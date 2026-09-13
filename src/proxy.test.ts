@@ -31,6 +31,13 @@ function nonceFromPolicy(policy: string): string {
   return match[1]
 }
 
+/** The `frame-ancestors` directive's value out of a full policy string. */
+function frameAncestorsFrom(policy: string): string {
+  const match = policy.match(/frame-ancestors ([^;]+)/)
+  assert.ok(match, `policy carries no frame-ancestors directive: ${policy}`)
+  return match[1].trim()
+}
+
 /** The request headers this response tells Next to render from. */
 function forwardedRequestHeaders(response: Response): Headers {
   return new Headers(
@@ -251,6 +258,19 @@ describe('proxy content-security-policy', () => {
     ]) {
       const response = proxy(new NextRequest(`http://localhost${path}`))
       assert.ok(response.headers.get('content-security-policy-report-only'), path)
+    }
+  })
+
+  it('sends frame-ancestors none for a share page, self for every other page', () => {
+    // This is the clickjacking control for public share links: flipping the
+    // ternary in documentResponse must fail this test.
+    delete process.env.ACCESS_KEY
+    const share = proxy(new NextRequest('http://localhost/s/Q0hFQ0stVE9LRU4'))
+    assert.equal(frameAncestorsFrom(share.headers.get('content-security-policy-report-only') ?? ''), "'none'")
+
+    for (const path of ['/home', '/x/aisignal']) {
+      const response = proxy(new NextRequest(`http://localhost${path}`))
+      assert.equal(frameAncestorsFrom(response.headers.get('content-security-policy-report-only') ?? ''), "'self'", path)
     }
   })
 

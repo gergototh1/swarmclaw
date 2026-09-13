@@ -202,6 +202,9 @@ function documentResponse(request: NextRequest): NextResponse {
   const policy = buildContentSecurityPolicy(nonce, {
     allowEval: isDevelopmentLikeRuntime(),
     // The tab host frames the app's own pages; a share link is framed by no one.
+    // Deliberately matched on the raw pathname: Next routes literal segments on
+    // the raw path, so `/S/`, `/%73/` or `//s/` reach no share page and are
+    // correctly left at 'self'.
     frameAncestors: request.nextUrl.pathname.startsWith('/s/') ? 'none' : 'self',
   })
   const headerName = contentSecurityPolicyHeaderName(isCspEnforced())
