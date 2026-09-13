@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { appUrlFromHref, isValidAppPath } from '@/lib/app/tab-protocol'
 
 /**
  * The tab model, as pure transitions.
@@ -145,8 +146,10 @@ export function landOnUrl(state: TabsState, url: string, newId: () => string): T
   return openTab(state, { id: newId(), url, title: null })
 }
 
-const appUrl = z.string().regex(/^\/(?!\/)/)
-const tabSchema = z.object({ id: z.string().min(1), url: appUrl, title: z.string().nullable() })
+// URLs are checked after parsing, not in the schema: one stale entry (a share
+// page, an auth page, a path the protocol has since refused) drops that tab
+// rather than every tab the reader had open.
+const tabSchema = z.object({ id: z.string().min(1), url: z.string(), title: z.string().nullable() })
 const stateSchema = z.object({
   tabs: z.array(tabSchema).min(1).max(MAX_TABS),
   activeId: z.string(),
@@ -154,14 +157,26 @@ const stateSchema = z.object({
   closed: z.array(tabSchema).max(50),
 })
 
+/**
+ * Stored tabs, or null when the value is corrupt or leaves no tab to show.
+ *
+ * Every tab and closed-tab URL must pass the same app-path gate as a frame's
+ * messages (`isValidAppPath`): a stored `/\evil.example` would otherwise reach
+ * `history.replaceState`, which throws, and being stored it would throw again
+ * on every load. An invalid entry is dropped; if the active tab was one, the
+ * most recently used remaining tab becomes active.
+ */
 export function tabsStateFromStorage(raw: unknown): TabsState | null {
   const parsed = stateSchema.safeParse(raw)
   if (!parsed.success) return null
-  const { tabs, activeId, lastUsed, closed } = parsed.data
-  if (!tabs.some((t) => t.id === activeId)) return null
-  const known = new Set(tabs.map((t) => t.id))
+  const { activeId, lastUsed } = parsed.data
+  if (!parsed.data.tabs.some((t) => t.id === activeId)) return null
   // Check for duplicate tab ids
-  if (known.size !== tabs.length) return null
+  if (new Set(parsed.data.tabs.map((t) => t.id)).size !== parsed.data.tabs.length) return null
+  const tabs = parsed.data.tabs.filter((t) => isValidAppPath(t.url))
+  if (tabs.length === 0) return null
+  const closed = parsed.data.closed.filter((t) => isValidAppPath(t.url))
+  const known = new Set(tabs.map((t) => t.id))
   // De-duplicate lastUsed while preserving order (keep first occurrence)
   const seen = new Set<string>()
   const deduplicatedLastUsed: string[] = []
@@ -171,5 +186,18 @@ export function tabsStateFromStorage(raw: unknown): TabsState | null {
       deduplicatedLastUsed.push(id)
     }
   }
-  return { tabs, activeId, lastUsed: deduplicatedLastUsed, closed: closed.slice(0, CLOSED_TABS_CAP) }
+  const active = known.has(activeId) ? activeId : (deduplicatedLastUsed[0] ?? tabs[0].id)
+  return { tabs, activeId: active, lastUsed: deduplicatedLastUsed, closed: closed.slice(0, CLOSED_TABS_CAP) }
+}
+
+/**
+ * The tabs a host starts with: the stored ones, landed on the address the host
+ * window was loaded at. That address is only used when it is a tabbable app
+ * path on this origin; anything else (an auth page, a share page, a stray
+ * backslash) lands on Home instead.
+ */
+export function restoreTabsState(stored: unknown, href: string, origin: string, newId: () => string): TabsState {
+  const url = appUrlFromHref(href, origin) ?? HOME_URL
+  const state = tabsStateFromStorage(stored)
+  return state ? landOnUrl(state, url, newId) : initialTabsState(newId, url)
 }

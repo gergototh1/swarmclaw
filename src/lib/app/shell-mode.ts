@@ -6,7 +6,12 @@ export interface WindowLike {
   name: string
   parent: WindowLike
   self: unknown
-  location: { origin: string }
+  location: { origin: string; pathname: string }
+}
+
+/** A share page (`/s/<token>`): public, never framed, never a tab host. */
+export function isSharePath(pathname: string): boolean {
+  return pathname.startsWith('/s/')
 }
 
 /**
@@ -37,12 +42,15 @@ export function tabIdFromWindow(win: WindowLike | undefined): string | null {
  * `tab`: a frame the host named -- only the route's content, whatever the width,
  * since the host decided. `host`: the top window at desktop width with tabs on.
  * `plain`: everything else, including a window framed by something that is not
- * the host, which must never start a tab host of its own.
+ * the host, which must never start a tab host of its own, and a share page
+ * (`/s/<token>`), which renders as itself: it refuses to be framed, so inside
+ * a host it could only show the browser's refusal.
  */
 export function detectShellMode(win: WindowLike | undefined, opts: { isDesktop: boolean; tabsEnabled: boolean }): ShellMode {
   if (!win) return 'plain'
   if (tabIdFromWindow(win)) return 'tab'
   if (win.parent !== win.self) return 'plain'
+  if (isSharePath(win.location.pathname)) return 'plain'
   return opts.isDesktop && opts.tabsEnabled ? 'host' : 'plain'
 }
 

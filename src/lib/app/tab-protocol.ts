@@ -12,7 +12,12 @@ import { z } from 'zod'
 
 export const TAB_WINDOW_NAME_PREFIX = 'sc-tab:'
 
-const NOT_TABBABLE_PREFIXES = ['/api/', '/_next/']
+/**
+ * `/s/` is a share page: public, read-only, and served with
+ * `frame-ancestors 'none'` (src/proxy.ts), so a tab could only ever show the
+ * browser's refusal to frame it.
+ */
+const NOT_TABBABLE_PREFIXES = ['/api/', '/_next/', '/s/']
 const NOT_TABBABLE_PATHS = new Set(['/login', '/setup', '/user'])
 
 /**
@@ -57,7 +62,7 @@ function isTabbablePath(pathname: string): boolean {
  * candidate was not already canonical, so it is refused rather than silently
  * rewritten. A literal backslash is also rejected outright, ahead of parsing.
  */
-function isValidAppPath(candidate: string): boolean {
+export function isValidAppPath(candidate: string): boolean {
   if (candidate.includes('\\')) return false
   let url: URL
   try {
@@ -98,8 +103,17 @@ const frameMessageSchema = z.discriminatedUnion('type', [
 
 export type FrameMessage = z.infer<typeof frameMessageSchema>
 
+/**
+ * What a rail click wants done with the tab's side panel. The panel renders
+ * inside the frame, from the frame's own store, so the host cannot set it
+ * itself: `toggle` closes it when the tab is already on that view with the
+ * panel open and opens it otherwise, `open` and `close` are unconditional.
+ */
+export const PANEL_INTENTS = ['toggle', 'open', 'close'] as const
+export type PanelIntent = (typeof PANEL_INTENTS)[number]
+
 const hostMessageSchema = z.discriminatedUnion('type', [
-  z.object({ source: z.literal('sc-host'), type: z.literal('navigate'), href: appUrl }),
+  z.object({ source: z.literal('sc-host'), type: z.literal('navigate'), href: appUrl, panel: z.enum(PANEL_INTENTS).optional() }),
   z.object({ source: z.literal('sc-host'), type: z.literal('flush'), requestId: z.string().min(1) }),
 ])
 

@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { detectShellMode, nextShellMode, tabIdFromWindow, type WindowLike } from './shell-mode'
+import { detectShellMode, isSharePath, nextShellMode, tabIdFromWindow, type WindowLike } from './shell-mode'
 
 const ORIGIN = 'http://a.example'
 
-function top(name = '', origin = ORIGIN): WindowLike {
-  const win: WindowLike = { name, parent: null as unknown as WindowLike, self: null, location: { origin } }
+function top(name = '', origin = ORIGIN, pathname = '/home'): WindowLike {
+  const win: WindowLike = { name, parent: null as unknown as WindowLike, self: null, location: { origin, pathname } }
   win.parent = win
   win.self = win
   return win
@@ -24,12 +24,12 @@ function framed(name: string, opts: FramedOptions = {}): WindowLike {
         name: '',
         parent: null as unknown as WindowLike,
         self: null,
-        get location(): { origin: string } {
+        get location(): { origin: string; pathname: string } {
           throw new Error('blocked: cross-origin frame')
         },
       }
-    : { name: '', parent: null as unknown as WindowLike, self: null, location: { origin: opts.parentOrigin ?? origin } }
-  const win: WindowLike = { name, parent, self: null, location: { origin } }
+    : { name: '', parent: null as unknown as WindowLike, self: null, location: { origin: opts.parentOrigin ?? origin, pathname: '/home' } }
+  const win: WindowLike = { name, parent, self: null, location: { origin, pathname: '/home' } }
   win.self = win
   return win
 }
@@ -65,6 +65,18 @@ describe('detectShellMode', () => {
     const win = framed('sc-tab:t1', { parentThrows: true })
     assert.equal(tabIdFromWindow(win), null)
     assert.equal(detectShellMode(win, { isDesktop: false, tabsEnabled: false }), 'plain')
+  })
+
+  it('is plain for a share page in the top window, even at desktop width with tabs on', () => {
+    assert.equal(detectShellMode(top('', ORIGIN, '/s/abc123'), { isDesktop: true, tabsEnabled: true }), 'plain')
+    assert.equal(detectShellMode(top('', ORIGIN, '/settings'), { isDesktop: true, tabsEnabled: true }), 'host')
+  })
+
+  it('only treats /s/<token> as a share page', () => {
+    assert.equal(isSharePath('/s/abc'), true)
+    assert.equal(isSharePath('/s'), false)
+    assert.equal(isSharePath('/settings'), false)
+    assert.equal(isSharePath('/skills/s/x'), false)
   })
 
   it('is tab for a tab-named frame with a same-origin parent', () => {

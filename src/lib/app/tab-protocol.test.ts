@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { appUrlFromHref, isEditableElementLike, parseFrameMessage, parseHostMessage, parseTabCommand, tabCommandForKey } from './tab-protocol'
+import {
+  appUrlFromHref, isEditableElementLike, isValidAppPath, parseFrameMessage, parseHostMessage, parseTabCommand, tabCommandForKey,
+} from './tab-protocol'
 
 const key = (over: Partial<{ key: string; code: string; metaKey: boolean; ctrlKey: boolean; altKey: boolean; shiftKey: boolean }>) => ({
   key: '', code: '', metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...over,
@@ -79,6 +81,20 @@ describe('parseHostMessage and parseTabCommand', () => {
 
   it('rejects navigate to the backslash-as-slash origin trick', () => {
     assert.equal(parseHostMessage({ source: 'sc-host', type: 'navigate', href: '/\\evil.example' }), null)
+  })
+
+  it('accepts a navigate that carries a panel intent, and only a known one', () => {
+    for (const panel of ['toggle', 'open', 'close']) {
+      const message = { source: 'sc-host', type: 'navigate', href: '/tasks', panel }
+      assert.deepEqual(parseHostMessage(message), message)
+    }
+    assert.equal(parseHostMessage({ source: 'sc-host', type: 'navigate', href: '/tasks', panel: 'flip' }), null)
+    assert.equal(parseHostMessage({ source: 'sc-host', type: 'navigate', href: '/tasks', panel: true }), null)
+  })
+
+  it('refuses a navigate or an open-tab to a share page', () => {
+    assert.equal(parseHostMessage({ source: 'sc-host', type: 'navigate', href: '/s/token' }), null)
+    assert.equal(parseFrameMessage({ source: 'sc-tab', type: 'open-tab', tabId: 't1', url: '/s/token', activate: true }), null)
   })
 
   it('accepts navigate to a valid url with a query and a hash unchanged', () => {
@@ -185,5 +201,25 @@ describe('isEditableElementLike', () => {
 
   it('is false for null', () => {
     assert.equal(isEditableElementLike(null), false)
+  })
+})
+
+describe('isValidAppPath', () => {
+  it('accepts canonical app paths', () => {
+    assert.equal(isValidAppPath('/tasks'), true)
+    assert.equal(isValidAppPath('/x/docs/doc_1?a=1#h'), true)
+    assert.equal(isValidAppPath('/skills'), true)
+    assert.equal(isValidAppPath('/settings'), true)
+  })
+
+  it('refuses share pages, auth pages, API routes and anything off-origin or non-canonical', () => {
+    for (const bad of ['/s/token', '/login', '/api/x', '/_next/a.js', '/\\evil.example', '//evil.example', 'https://evil.example', '/a/../api/x', 'tasks', '']) {
+      assert.equal(isValidAppPath(bad), false, bad)
+    }
+  })
+
+  it('refuses a share link through appUrlFromHref as well', () => {
+    assert.equal(appUrlFromHref('/s/token', 'http://app.example'), null)
+    assert.equal(appUrlFromHref('http://app.example/s/token?x=1', 'http://app.example'), null)
   })
 })

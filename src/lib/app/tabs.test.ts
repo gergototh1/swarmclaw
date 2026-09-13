@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
   CLOSED_TABS_CAP, HOME_URL, MAX_TABS, activateByPosition, activateRelative, activateTab, closeTab, initialTabsState,
-  landOnUrl, liveTabIds, moveTab, newTabId, openTab, reopenClosedTab, setTabTitle, setTabUrl, tabsStateFromStorage,
+  landOnUrl, liveTabIds, moveTab, newTabId, openTab, reopenClosedTab, restoreTabsState, setTabTitle, setTabUrl, tabsStateFromStorage,
   type TabsState,
 } from './tabs'
 
@@ -191,6 +191,52 @@ describe('tabsStateFromStorage', () => {
     assert.equal(tabsStateFromStorage({ tabs: [{ id: 'a', url: '/a', title: null }], activeId: 'missing', lastUsed: [], closed: [] }), null)
   })
 
+  it('drops tabs whose URL fails the app-path gate, keeping the rest', () => {
+    const read = tabsStateFromStorage({
+      tabs: [
+        { id: 'a', url: '/tasks', title: null },
+        { id: 'b', url: '/\\evil.example', title: null },
+        { id: 'c', url: '/s/token', title: null },
+        { id: 'd', url: '/login', title: null },
+        { id: 'e', url: '/api/files/serve', title: null },
+        { id: 'f', url: '/%2e%2e/api/x', title: null },
+      ],
+      activeId: 'a',
+      lastUsed: ['a', 'b', 'c'],
+      closed: [],
+    })
+    assert.deepEqual(read?.tabs.map((t) => t.id), ['a'])
+    assert.deepEqual(read?.lastUsed, ['a'])
+  })
+
+  it('drops invalid closed tabs too', () => {
+    const read = tabsStateFromStorage({
+      tabs: [{ id: 'a', url: '/a', title: null }],
+      activeId: 'a',
+      lastUsed: ['a'],
+      closed: [{ id: 'x', url: '/\\evil.example', title: null }, { id: 'y', url: '/tasks', title: null }],
+    })
+    assert.deepEqual(read?.closed.map((t) => t.id), ['y'])
+  })
+
+  it('moves the active tab to the most recently used valid one when the active URL is invalid', () => {
+    const read = tabsStateFromStorage({
+      tabs: [
+        { id: 'a', url: '/a', title: null },
+        { id: 'bad', url: '/\\evil.example', title: null },
+        { id: 'b', url: '/b', title: null },
+      ],
+      activeId: 'bad',
+      lastUsed: ['bad', 'b', 'a'],
+      closed: [],
+    })
+    assert.equal(read?.activeId, 'b')
+  })
+
+  it('refuses storage in which no tab has a valid URL, so the host starts over', () => {
+    assert.equal(tabsStateFromStorage({ tabs: [{ id: 'a', url: '/\\evil.example', title: null }], activeId: 'a', lastUsed: ['a'], closed: [] }), null)
+  })
+
   it('drops lastUsed ids that no longer name a tab', () => {
     const read = tabsStateFromStorage({ tabs: [{ id: 'a', url: '/a', title: null }], activeId: 'a', lastUsed: ['gone', 'a'], closed: [] })
     assert.deepEqual(read?.lastUsed, ['a'])
@@ -268,5 +314,28 @@ describe('newTabId', () => {
     const a = newTabId()
     const b = newTabId()
     assert.ok(a.length > 0 && a !== b)
+  })
+})
+
+describe('restoreTabsState', () => {
+  const origin = 'http://app.example'
+
+  it('lands the stored tabs on the address the host loaded at', () => {
+    const stored = { tabs: [{ id: 'a', url: '/home', title: null }], activeId: 'a', lastUsed: ['a'], closed: [] }
+    const state = restoreTabsState(stored, `${origin}/tasks?x=1`, origin, ids())
+    assert.deepEqual(state.tabs.map((t) => t.url), ['/home', '/tasks?x=1'])
+    assert.equal(state.tabs.find((t) => t.id === state.activeId)?.url, '/tasks?x=1')
+  })
+
+  it('lands on Home instead of an address that is not a tabbable app path', () => {
+    for (const href of [`${origin}/\\evil.example`, `${origin}/s/token`, `${origin}/login`, 'https://evil.example/tasks']) {
+      const state = restoreTabsState(null, href, origin, ids())
+      assert.deepEqual(state.tabs.map((t) => t.url), [HOME_URL], href)
+    }
+  })
+
+  it('starts over on Home when the stored value does not parse', () => {
+    const state = restoreTabsState({ nonsense: true }, `${origin}/home`, origin, ids())
+    assert.deepEqual(state.tabs, [{ id: 't1', url: HOME_URL, title: null }])
   })
 })
