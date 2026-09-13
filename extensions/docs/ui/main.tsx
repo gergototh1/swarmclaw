@@ -7,6 +7,7 @@ import { Editor } from './editor'
 import { currentExtensionId, hostOf, hostReact } from './host'
 import { DetailsPanel } from './details-panel'
 import { TreeColumn } from './tree'
+import { docIdFromSubPath, legacyDocIdFromSearch, subPathForDoc } from './doc-route'
 
 /**
  * The page: a status strip and three columns.
@@ -23,16 +24,45 @@ import { TreeColumn } from './tree'
  * see that reads the empty tree below it as "I have no documents".
  */
 
-export function DocsPage({ rpc, extensionId }: { extensionId: string; rpc: Rpc }) {
+/**
+ * What the host hands the page. `subPath`, `navigate` and `setTitle` come from
+ * a newer host; on an older one they are absent and the page keeps the open
+ * doc in its own state instead.
+ */
+type PageProps = {
+  extensionId: string
+  rpc: Rpc
+  subPath?: string
+  navigate?: (subPath: string, opts?: { replace?: boolean }) => void
+  setTitle?: (text: string | null) => void
+}
+
+export function DocsPage({ rpc, extensionId, subPath, navigate, setTitle }: PageProps) {
   const [tree, setTree] = useState<Tree | null>(null)
   const [treeError, setTreeError] = useState<string | null>(null)
   const [status, setStatus] = useState<Status | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
-  const [activeId, setActiveId] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null
-    const fromUrl = new URLSearchParams(window.location.search).get('doc')
-    return fromUrl && fromUrl.trim() !== '' ? fromUrl : null
-  })
+  const [localId, setLocalId] = useState<string | null>(() =>
+    typeof window === 'undefined' ? null : legacyDocIdFromSearch(window.location.search))
+  // On a host that routes, the URL is the only source of the open doc.
+  const activeId = subPath === undefined ? localId : docIdFromSubPath(subPath)
+  const setActiveId = useCallback((next: string | null, opts?: { replace?: boolean }) => {
+    if (navigate) navigate(subPathForDoc(next), opts)
+    else setLocalId(next)
+  }, [navigate])
+
+  // A link in the older `?doc=<id>` form moves to the path form once, in
+  // place, so the back button does not lead back to it.
+  useEffect(() => {
+    if (!navigate || subPath !== '' || typeof window === 'undefined') return
+    const legacy = legacyDocIdFromSearch(window.location.search)
+    if (legacy) navigate(subPathForDoc(legacy), { replace: true })
+  }, [navigate, subPath])
+
+  const reportTitle = useCallback((docTitle: string | null) => {
+    setTitle?.(docTitle ? `Docs · ${docTitle}` : null)
+  }, [setTitle])
+
   const [agentNames, setAgentNames] = useState<Map<string, string>>(new Map())
   // THE DETAILS COLUMN STARTS CLOSED. While it always stood there, the editor
   // shared its width as a third column with a panel whose content -- path,
@@ -80,11 +110,11 @@ export function DocsPage({ rpc, extensionId }: { extensionId: string; rpc: Rpc }
       .then((raw) => {
         refresh()
         if (errorText(raw)) return false
-        setActiveId(null)
+        setActiveId(null, { replace: true })
         return true
       })
       .catch(() => { refresh(); return false })
-  }, [activeId, rpc, refresh])
+  }, [activeId, rpc, refresh, setActiveId])
 
   const titles = useMemo(() => new Set(tree?.titles ?? []), [tree])
 
@@ -138,6 +168,7 @@ export function DocsPage({ rpc, extensionId }: { extensionId: string; rpc: Rpc }
           onDelete={handleDelete}
           focusTitle={freshDocId !== null && freshDocId === activeId}
           onTitleFocused={() => setFreshDocId(null)}
+          onTitle={reportTitle}
         />
         {panelOpen && <DetailsPanel rpc={rpc} id={activeId} onChanged={refresh} />}
       </div>

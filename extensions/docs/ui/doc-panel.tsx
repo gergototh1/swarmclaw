@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import type { Rpc } from './api'
 import { errorText, readTree } from './api'
 import { Editor } from './editor'
+import { subPathForDoc } from './doc-route'
 
 /**
  * One doc, opened from a card in the chat.
@@ -38,7 +39,7 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
       .catch(() => { /* Links still work; only unresolved-link styling needs this. */ })
   }, [rpc])
 
-  const docsHref = useMemo(() => `/x/docs?doc=${encodeURIComponent(refId)}`, [refId])
+  const docsHref = useMemo(() => `/x/docs/${subPathForDoc(refId)}`, [refId])
 
   return (
     <div className="docs-panel">
