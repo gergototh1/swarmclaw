@@ -8,6 +8,8 @@ import { useEffect } from 'react'
 import { createExtensionRegistry, type ExtensionRegistry } from '@/lib/extensions/registry'
 import { savePdf, type SavePdfRequest, type SavePdfResult } from '@/lib/extensions/save-pdf'
 import { api } from '@/lib/app/api-client'
+import { onTabFlushRequest } from '@/lib/app/tab-flush'
+import { openAppUrlInNewTab } from '@/components/layout/tab-frame-bridge'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardAction } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -31,6 +33,17 @@ export interface SwarmclawHost extends ExtensionRegistry {
   ui: Record<string, unknown>
   /** Saves HTML as a PDF: a file in the desktop app, the print dialog in a browser. */
   savePdf: (input: SavePdfRequest) => Promise<SavePdfResult>
+  /**
+   * Tabs. `onFlushRequest`: the handler runs before this tab is put to sleep or
+   * closed, and must resolve true only when everything it holds is saved -- the
+   * host keeps the tab alive otherwise. `openInNewTab`: opens an app URL in a
+   * new tab; false when this page is not in a tab, so the caller navigates
+   * itself.
+   */
+  tabs: {
+    onFlushRequest: (handler: () => Promise<boolean>) => () => void
+    openInNewTab: (href: string) => boolean
+  }
 }
 
 declare global {
@@ -130,7 +143,10 @@ export function getHostRegistry(): SwarmclawHost {
     throw new Error('The extension registry is browser-only: there is no window to install it on')
   }
   const existing = window.swarmclaw
-  if (existing) return existing
+  if (existing) {
+    if (!existing.tabs) existing.tabs = { onFlushRequest: onTabFlushRequest, openInNewTab: openAppUrlInNewTab }
+    return existing
+  }
 
   const registry = createExtensionRegistry({ react: React })
   const host: SwarmclawHost = {
@@ -143,6 +159,7 @@ export function getHostRegistry(): SwarmclawHost {
     rpc: callExtensionMethod,
     ui: hostUi,
     savePdf: (input) => savePdf(input),
+    tabs: { onFlushRequest: onTabFlushRequest, openInNewTab: openAppUrlInNewTab },
   }
   window.swarmclaw = host
   return host

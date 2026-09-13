@@ -47,6 +47,11 @@ export interface SwarmclawHostView {
     DropdownItem?: ComponentType<HostDropdownItemProps>
     DropdownSep?: ComponentType<Record<string, never>>
   }
+  /** Present on a host with tabs; see the host's `SwarmclawHost.tabs`. */
+  tabs?: {
+    onFlushRequest: (handler: () => Promise<boolean>) => () => void
+    openInNewTab: (href: string) => boolean
+  }
 }
 
 /** The host table, or a thrown error naming what is missing. */

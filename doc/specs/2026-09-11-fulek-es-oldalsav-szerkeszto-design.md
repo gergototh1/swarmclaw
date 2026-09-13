@@ -151,6 +151,20 @@ Az app policyja `frame-ancestors 'self'`. A `/s/<token>` megosztási oldalak saj
 policyt kapnak `frame-ancestors 'none'`-nal — ahogy a mostani komment is írja:
 beágyazhatóságot route-onként kell adni, nem a közös direktívát lazítani.
 
+### Ismert korlátok (a megvalósítás után)
+
+- **A Doksi mentési sora ablakonként, tehát fülenként él.** Két fülön ugyanaz a
+  doksi nem várja ki egymás mentését; a második fül mentése ilyenkor valódi
+  ütközést kap, amit az ütközés-sáv mutat.
+- **A böngésző saját Vissza gombja** a keretek közös előzményén lép, így egy
+  háttérben lévő fület is visszaléptethet.
+- **768 px alá keskenyítve** az app sima módba vált, és a fül-keretek
+  lebontódnak (a nyitott fülek listája megmarad).
+- **Asztali appban a ⇧⌘T** a bezárt fül visszanyitása, így ott már nem a Tasks
+  gyorsbillentyűje; az ablak bezárása ⇧⌘W.
+- **A fül ikonja** a szekció ikonja (bővítmény-oldalnál a saját ikonja); a külön
+  `VIEW_ICONS` tábla a 3. szakaszban készül.
+
 ## 2. Bővítmény-oldalak helye az URL-ben, fülcímek
 
 ### Host API (visszafelé kompatibilis)

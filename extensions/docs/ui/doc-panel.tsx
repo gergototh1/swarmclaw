@@ -6,6 +6,7 @@ import { errorText, readTree } from './api'
 import { flushAllEditors, leaveBlockedMessage } from './doc-saver'
 import { Editor } from './editor'
 import { subPathForDoc } from './doc-route'
+import { hostOf } from './host'
 
 /**
  * One doc, opened from a card in the chat.
@@ -54,6 +55,12 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
 
   const docsHref = useMemo(() => `/x/docs/${subPathForDoc(refId)}`, [refId])
 
+  // Inside a tab, a full page load would replace the chat tab with Docs, so the
+  // doc opens in a new tab instead; outside tabs the page navigates as before.
+  const openDocs = () => {
+    if (!hostOf().tabs?.openInNewTab(docsHref)) window.location.assign(docsHref)
+  }
+
   return (
     <div className="docs-panel">
       {headerSlot && createPortal(
@@ -78,7 +85,7 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
             void flushAllEditors().then(
               (landed) => {
                 if (landed) {
-                  window.location.assign(docsHref)
+                  openDocs()
                   return
                 }
                 setLeaveError(
@@ -101,7 +108,7 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
       {leaveError && (
         <p className="docs-error" role="alert">
           {leaveError}{' '}
-          <button type="button" onClick={() => window.location.assign(docsHref)}>
+          <button type="button" onClick={() => openDocs()}>
             Open anyway
           </button>
         </p>

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Rpc, Status, Tree } from './api'
 import { errorText, readStatus, readTree } from './api'
 import { DocPanel } from './doc-panel'
+import { flushAllEditors } from './doc-saver'
 import { Editor } from './editor'
 import { currentExtensionId, hostOf, hostReact } from './host'
 import { DetailsPanel } from './details-panel'
@@ -191,4 +192,8 @@ if (typeof document !== 'undefined') {
   const opts = { react: hostReact(), extensionId: currentExtensionId() ?? '' }
   host.registerPage('docs', DocsPage, opts)
   host.registerPage('panel:doc', DocPanel, opts)
+
+  // Before the host puts this tab to sleep or closes it, every open editor in
+  // it saves; the host keeps the tab alive when that does not fully succeed.
+  host.tabs?.onFlushRequest(() => flushAllEditors())
 }

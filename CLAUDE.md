@@ -356,6 +356,12 @@ and "Built-in platform capabilities are **not** extensions."
   location in `subPath` rather than in `useState`: that is what lets a reload,
   a bookmark or a tab come back to it. Fall back to local state when `navigate`
   is absent, so the bundle still works on an older host.
+- Inside the tab host an extension page runs in an iframe. `window.swarmclaw.tabs`
+  offers `onFlushRequest(handler)` — register one if the page holds unsaved
+  edits; it must resolve `true` only when everything is saved, or the host keeps
+  the tab alive — and `openInNewTab(href)`, which returns `false` outside a tab
+  so the caller navigates itself. Never `window.location.assign` to another app
+  page from inside a tab: it replaces that tab.
 
 ### Proving a Capability Reaches an Agent
 
