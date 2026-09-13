@@ -28,4 +28,12 @@ contextBridge.exposeInMainWorld('swarmclawDesktop', {
   },
   savePdf: (input: { html: string; fileName: string }): Promise<{ saved: boolean; path?: string; error?: string }> =>
     ipcRenderer.invoke('swarmclaw:save-pdf', input),
+  /** The menu's tab shortcuts; the renderer validates each command. */
+  onTabCommand: (cb: (command: unknown) => void) => {
+    const handler = (_e: unknown, command: unknown) => cb(command)
+    ipcRenderer.on('swarmclaw:tab-command', handler)
+    return () => {
+      ipcRenderer.off('swarmclaw:tab-command', handler)
+    }
+  },
 })

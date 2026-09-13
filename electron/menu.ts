@@ -1,8 +1,18 @@
 import { app, BrowserWindow, Menu, MenuItemConstructorOptions, shell } from 'electron'
 import { RuntimePaths } from './paths'
+import { TAB_COMMAND_CHANNEL, tabMenuEntries } from './tab-menu'
 
 export function buildAppMenu(paths: RuntimePaths, getWindow: () => BrowserWindow | null): void {
   const isMac = process.platform === 'darwin'
+
+  const tabItem = (entry: ReturnType<typeof tabMenuEntries>[number]): MenuItemConstructorOptions => ({
+    label: entry.label,
+    accelerator: entry.accelerator,
+    click: () => getWindow()?.webContents.send(TAB_COMMAND_CHANNEL, entry.command),
+  })
+  const tabEntries = tabMenuEntries(isMac)
+  const tabActions = tabEntries.filter((e) => e.command.kind !== 'goto').map(tabItem)
+  const tabPositions = tabEntries.filter((e) => e.command.kind === 'goto').map(tabItem)
 
   const macAppMenu: MenuItemConstructorOptions = {
     label: app.name,
@@ -22,12 +32,16 @@ export function buildAppMenu(paths: RuntimePaths, getWindow: () => BrowserWindow
   const fileMenu: MenuItemConstructorOptions = {
     label: 'File',
     submenu: [
+      ...tabActions,
+      { type: 'separator' },
       {
         label: 'Open Data Folder',
         click: () => void shell.openPath(paths.swarmclawHome),
       },
       { type: 'separator' },
-      isMac ? { role: 'close' } : { role: 'quit' },
+      // Cmd/Ctrl+W closes a tab now; the window moves to Shift+Cmd/Ctrl+W.
+      { role: 'close', accelerator: isMac ? 'Shift+Cmd+W' : 'Ctrl+Shift+W' },
+      ...(isMac ? [] : [{ role: 'quit' } as MenuItemConstructorOptions]),
     ],
   }
 
@@ -74,9 +88,11 @@ export function buildAppMenu(paths: RuntimePaths, getWindow: () => BrowserWindow
           { role: 'minimize' },
           { role: 'zoom' },
           { type: 'separator' },
+          ...tabPositions,
+          { type: 'separator' },
           { role: 'front' },
         ]
-      : [{ role: 'minimize' }, { role: 'close' }],
+      : [{ role: 'minimize' }, { type: 'separator' }, ...tabPositions],
   }
 
   const helpMenu: MenuItemConstructorOptions = {
