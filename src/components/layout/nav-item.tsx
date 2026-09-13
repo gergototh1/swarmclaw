@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { routeLinkClick } from '@/lib/app/tab-navigation'
 
 export function RailTooltip({ label, description, children }: { label: string; description: string; children: React.ReactNode }) {
   return (
@@ -37,7 +38,8 @@ export function ExtensionNavItem({ href, label, isActive, onClick, children }: {
   return (
     <Link
       href={href}
-      onClick={onClick}
+      onClick={(e) => { routeLinkClick(e, href); onClick?.() }}
+      onAuxClick={(e) => { if (e.button === 1) routeLinkClick(e, href) }}
       className={`flex items-center gap-2 px-2.5 py-1.5 rounded-sm text-[12.5px] transition-colors no-underline
         ${isActive
           ? 'bg-accent-soft text-accent-bright font-600'

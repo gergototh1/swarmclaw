@@ -26,6 +26,7 @@ import { ErrorBoundary } from '@/components/layout/error-boundary'
 import { SheetLayer } from '@/components/layout/sheet-layer'
 import { CommandPalette } from '@/components/shared/command-palette'
 import { TabFrameBridge, postToHost } from '@/components/layout/tab-frame-bridge'
+import { TabHost } from '@/components/layout/tab-host'
 
 import type { AppView } from '@/types'
 
@@ -360,7 +361,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       {/* Main content — panels come from route layouts, not here */}
       <ErrorBoundary>
-        {children}
+        {/* The host renders tabs instead of the route: each tab is the app in a frame. */}
+        {shellMode === 'host' ? <TabHost /> : children}
       </ErrorBoundary>
 
       <CommandPalette />

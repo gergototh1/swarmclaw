@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { getTabNavigator } from '@/lib/app/tab-navigation'
 import type { AppView } from '@/types'
 
 const VIEW_TO_PATH: Record<AppView, string> = {
@@ -98,7 +99,11 @@ export function useNavigate() {
   const router = useRouter()
 
   const navigateTo = useCallback((view: AppView, id?: string | null) => {
-    router.push(getViewPath(view, id))
+    const href = getViewPath(view, id)
+    // In the tab host, the host window stays put and the active tab navigates.
+    const tabs = getTabNavigator()
+    if (tabs) tabs.navigateActive(href)
+    else router.push(href)
   }, [router])
 
   return navigateTo

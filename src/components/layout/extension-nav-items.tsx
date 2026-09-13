@@ -30,9 +30,9 @@ const PAGE_ICONS: Record<ExtensionPageIconName, React.ComponentType<{ size?: num
 /** Widened view of `PAGE_ICONS`, so an unknown extension-supplied name is a lookup miss, not a type error. */
 const ICON_BY_NAME: Record<string, React.ComponentType<{ size?: number }> | undefined> = PAGE_ICONS
 
-function PageIcon({ name }: { name?: string }) {
+export function PageIcon({ name, size = 18 }: { name?: string; size?: number }) {
   const Icon = (name && ICON_BY_NAME[name]) || Puzzle
-  return <Icon size={18} />
+  return <Icon size={size} />
 }
 
 function ExtensionPageLinks({ pages, onNavigate }: {

@@ -18,6 +18,7 @@ import { useWs } from '@/hooks/use-ws'
 import { NAV_SECTIONS, type NavSection, type NavSectionId, type NavSectionIconName } from '@/lib/app/nav-sections'
 import { FULL_WIDTH_VIEWS, isPanelSidebarView, VIEW_DESCRIPTIONS, VIEW_LABELS } from '@/lib/app/view-constants'
 import { getViewPath, resolveSidebarActiveView, useNavigate } from '@/lib/app/navigation'
+import { routeLinkClick } from '@/lib/app/tab-navigation'
 import {
   PANEL_CLOSED_KEY,
   RAIL_EXPANDED_KEY,
@@ -43,7 +44,7 @@ import { BrandLockup, BrandMark } from './brand-logo'
  * union's names — is a compile error in both directions, not a section that
  * silently renders the Home icon.
  */
-const SECTION_ICONS: Record<NavSectionIconName, React.ComponentType<{ size?: number }>> = {
+export const SECTION_ICONS: Record<NavSectionIconName, React.ComponentType<{ size?: number }>> = {
   Home, MessageSquare, Users, Briefcase, BookOpen, Link2, Activity, Settings: SettingsIcon,
 }
 
@@ -94,7 +95,8 @@ function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtens
           <Link
             key={view}
             href={href}
-            onClick={() => onSelectView(view)}
+            onClick={(e) => { routeLinkClick(e, href); onSelectView(view) }}
+            onAuxClick={(e) => { if (e.button === 1) routeLinkClick(e, href) }}
             aria-current={on ? 'page' : undefined}
             className={`flex items-center gap-2 px-2.5 py-1.5 rounded-full text-[12.5px] transition-colors no-underline ${
               on ? 'bg-accent-soft text-accent-bright font-600' : 'text-text-2 hover:bg-layer-2 hover:text-text'
@@ -295,7 +297,8 @@ export function SidebarRail({
       <Link
         key={section.id}
         href={getViewPath(direct)}
-        onClick={() => { handleNavClick(direct); selectSection(section.id) }}
+        onClick={(e) => { routeLinkClick(e, getViewPath(direct)); handleNavClick(direct); selectSection(section.id) }}
+        onAuxClick={(e) => { if (e.button === 1) routeLinkClick(e, getViewPath(direct)) }}
         aria-current={activeView === direct ? 'page' : undefined}
         className={className}
         style={{ fontFamily: 'inherit' }}

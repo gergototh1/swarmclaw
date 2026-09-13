@@ -7,6 +7,7 @@ import { isLocalhostBrowser, isVisibleSessionForViewer } from '@/lib/observabili
 import { useNavigate } from '@/lib/app/navigation'
 import { useExtensionPages } from '@/hooks/use-extension-pages'
 import { extensionPageNavTargets } from '@/lib/app/palette-extension-pages'
+import { navigateInActiveTab } from '@/lib/app/tab-navigation'
 import { toast } from 'sonner'
 
 interface CommandItem {
@@ -38,6 +39,14 @@ export function CommandPalette() {
     const handler = () => setOpen(true)
     window.addEventListener('swarmclaw:open-search', handler)
     return () => window.removeEventListener('swarmclaw:open-search', handler)
+  }, [])
+
+  // The tab host opens the palette for a Cmd+K pressed inside a tab. A separate
+  // event from `swarmclaw:open-search`, which also opens the search dialog.
+  useEffect(() => {
+    const handler = () => setOpen(true)
+    window.addEventListener('swarmclaw:open-palette', handler)
+    return () => window.removeEventListener('swarmclaw:open-palette', handler)
   }, [])
 
   if (!open) return null
@@ -125,7 +134,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
         description: target.description,
         keywords: target.keywords,
         category: 'nav',
-        onSelect: () => { router.push(target.href); setOpen(false) },
+        onSelect: () => { if (!navigateInActiveTab(target.href)) router.push(target.href); setOpen(false) },
       })
     }
 
