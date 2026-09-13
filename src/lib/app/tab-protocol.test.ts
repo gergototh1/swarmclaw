@@ -19,6 +19,41 @@ describe('parseFrameMessage', () => {
     assert.equal(parseFrameMessage('ready'), null)
   })
 
+  it('rejects a location url that uses the backslash-as-slash origin trick', () => {
+    const message = { source: 'sc-tab', type: 'location', tabId: 't1', url: '/\\evil.example' }
+    assert.equal(parseFrameMessage(message), null)
+  })
+
+  it('rejects a location url with a percent-encoded slash disguising /api/', () => {
+    const message = { source: 'sc-tab', type: 'location', tabId: 't1', url: '/api%2ffiles/serve' }
+    assert.equal(parseFrameMessage(message), null)
+  })
+
+  it('rejects a location url with a percent-encoded backslash', () => {
+    const message = { source: 'sc-tab', type: 'location', tabId: 't1', url: '/api%5cfiles/serve' }
+    assert.equal(parseFrameMessage(message), null)
+  })
+
+  it('rejects an encoded double-dot segment that would resolve into /api/ (the URL parser already collapses dot segments, changing the path, so the round-trip check refuses it)', () => {
+    const message = { source: 'sc-tab', type: 'location', tabId: 't1', url: '/%2e%2e/api/files' }
+    assert.equal(parseFrameMessage(message), null)
+  })
+
+  it('does not decode a percent-encoded letter, so /%61pi/ is not treated as an API path', () => {
+    // Decision: only backslash and encoded slash/backslash (which can disguise a
+    // path-segment boundary) are blocked. Decoding every percent-escape to catch
+    // "api" spelled as "%61pi" would require full, general percent-decoding of
+    // the path, which is a much larger and riskier normalization step than this
+    // fix calls for -- so this string is accepted, not rejected.
+    const message = { source: 'sc-tab', type: 'location', tabId: 't1', url: '/%61pi/files' }
+    assert.ok(parseFrameMessage(message))
+  })
+
+  it('accepts a valid url with a query and a hash unchanged', () => {
+    const message = { source: 'sc-tab', type: 'location', tabId: 't1', url: '/tasks?a=1#frag' }
+    assert.deepEqual(parseFrameMessage(message), message)
+  })
+
   it('accepts a flush answer and an open-tab request', () => {
     assert.ok(parseFrameMessage({ source: 'sc-tab', type: 'flushed', tabId: 't1', requestId: 'r1', ok: false }))
     assert.ok(parseFrameMessage({ source: 'sc-tab', type: 'open-tab', tabId: 't1', url: '/x/docs/doc_1', activate: true }))
@@ -36,6 +71,15 @@ describe('parseHostMessage and parseTabCommand', () => {
     assert.deepEqual(parseTabCommand({ kind: 'goto', position: 9 }), { kind: 'goto', position: 9 })
     assert.equal(parseTabCommand({ kind: 'goto', position: 10 }), null)
   })
+
+  it('rejects navigate to the backslash-as-slash origin trick', () => {
+    assert.equal(parseHostMessage({ source: 'sc-host', type: 'navigate', href: '/\\evil.example' }), null)
+  })
+
+  it('accepts navigate to a valid url with a query and a hash unchanged', () => {
+    const message = { source: 'sc-host', type: 'navigate', href: '/chat?a=1#frag' }
+    assert.deepEqual(parseHostMessage(message), message)
+  })
 })
 
 describe('appUrlFromHref', () => {
@@ -52,6 +96,22 @@ describe('appUrlFromHref', () => {
     assert.equal(appUrlFromHref('/_next/static/a.js', origin), null)
     assert.equal(appUrlFromHref('/login', origin), null)
     assert.equal(appUrlFromHref('/setup', origin), null)
+  })
+
+  it('refuses the backslash-as-slash origin trick', () => {
+    assert.equal(appUrlFromHref('/\\evil.example', origin), null)
+  })
+
+  it('refuses a percent-encoded slash disguising /api/', () => {
+    assert.equal(appUrlFromHref('/api%2ffiles/serve', origin), null)
+  })
+
+  it('refuses a percent-encoded backslash disguising /api/', () => {
+    assert.equal(appUrlFromHref('/api%5cfiles/serve', origin), null)
+  })
+
+  it('refuses an encoded double-dot segment that would resolve into /api/', () => {
+    assert.equal(appUrlFromHref('/%2e%2e/api/files', origin), null)
   })
 })
 

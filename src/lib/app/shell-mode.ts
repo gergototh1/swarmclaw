@@ -4,13 +4,30 @@ export type ShellMode = 'host' | 'tab' | 'plain'
 
 export interface WindowLike {
   name: string
-  parent: unknown
+  parent: WindowLike
   self: unknown
+  location: { origin: string }
 }
 
-/** The tab id of a frame the tab host created; null for any other window. */
+/**
+ * The tab id of a frame the tab host created; null for any other window.
+ *
+ * A foreign page could embed the app in an iframe named `sc-tab:x` to make
+ * this return a tab id it does not own -- the frame still only posts to and
+ * accepts messages from its own origin, but a real tab must also have a
+ * same-origin parent, so that is checked here too. Reading a cross-origin
+ * parent's `location.origin` throws in a browser; treat that the same as a
+ * mismatched origin -- not a tab.
+ */
 export function tabIdFromWindow(win: WindowLike | undefined): string | null {
   if (!win || win.parent === win.self || !win.name.startsWith(TAB_WINDOW_NAME_PREFIX)) return null
+  let parentOrigin: string
+  try {
+    parentOrigin = win.parent.location.origin
+  } catch {
+    return null
+  }
+  if (parentOrigin !== win.location.origin) return null
   return win.name.slice(TAB_WINDOW_NAME_PREFIX.length) || null
 }
 

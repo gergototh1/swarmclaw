@@ -1,16 +1,35 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { detectShellMode, tabIdFromWindow } from './shell-mode'
+import { detectShellMode, tabIdFromWindow, type WindowLike } from './shell-mode'
 
-function top(name = '') {
-  const win = { name, parent: null as unknown, self: null as unknown }
+const ORIGIN = 'http://a.example'
+
+function top(name = '', origin = ORIGIN): WindowLike {
+  const win: WindowLike = { name, parent: null as unknown as WindowLike, self: null, location: { origin } }
   win.parent = win
   win.self = win
   return win
 }
 
-function framed(name: string) {
-  const win = { name, parent: {}, self: null as unknown }
+interface FramedOptions {
+  origin?: string
+  parentOrigin?: string
+  parentThrows?: boolean
+}
+
+function framed(name: string, opts: FramedOptions = {}): WindowLike {
+  const origin = opts.origin ?? ORIGIN
+  const parent: WindowLike = opts.parentThrows
+    ? {
+        name: '',
+        parent: null as unknown as WindowLike,
+        self: null,
+        get location(): { origin: string } {
+          throw new Error('blocked: cross-origin frame')
+        },
+      }
+    : { name: '', parent: null as unknown as WindowLike, self: null, location: { origin: opts.parentOrigin ?? origin } }
+  const win: WindowLike = { name, parent, self: null, location: { origin } }
   win.self = win
   return win
 }
@@ -34,5 +53,23 @@ describe('detectShellMode', () => {
   it('is plain when framed by anything else, and never host there', () => {
     assert.equal(detectShellMode(framed('embed'), { isDesktop: true, tabsEnabled: true }), 'plain')
     assert.equal(tabIdFromWindow(top('sc-tab:t1')), null)
+  })
+
+  it('is plain (not tab) for a tab-named frame whose parent is a different origin', () => {
+    const win = framed('sc-tab:t1', { origin: ORIGIN, parentOrigin: 'http://b.example' })
+    assert.equal(tabIdFromWindow(win), null)
+    assert.equal(detectShellMode(win, { isDesktop: false, tabsEnabled: false }), 'plain')
+  })
+
+  it('is plain (not tab) for a tab-named frame whose parent throws reading location', () => {
+    const win = framed('sc-tab:t1', { parentThrows: true })
+    assert.equal(tabIdFromWindow(win), null)
+    assert.equal(detectShellMode(win, { isDesktop: false, tabsEnabled: false }), 'plain')
+  })
+
+  it('is tab for a tab-named frame with a same-origin parent', () => {
+    const win = framed('sc-tab:t1')
+    assert.equal(tabIdFromWindow(win), 't1')
+    assert.equal(detectShellMode(win, { isDesktop: false, tabsEnabled: false }), 'tab')
   })
 })

@@ -15,13 +15,59 @@ export const TAB_WINDOW_NAME_PREFIX = 'sc-tab:'
 const NOT_TABBABLE_PREFIXES = ['/api/', '/_next/']
 const NOT_TABBABLE_PATHS = new Set(['/login', '/setup', '/user'])
 
+/**
+ * Never actually reachable -- only used so a candidate app path can be run
+ * through `new URL` and checked for normalisation without needing the app's
+ * real origin.
+ */
+const PLACEHOLDER_ORIGIN = 'http://app.invalid'
+
+/**
+ * A percent-encoded slash or backslash can hide a path-segment boundary from
+ * this string check while still being decoded into a real one by a server
+ * that routes on the decoded path -- e.g. `/api%2ffiles/serve` does not
+ * start with `/api/` here, but can still reach it server-side. Reject both,
+ * case-insensitively, rather than trying to decode and re-check.
+ */
+function hasEncodedPathSeparator(pathname: string): boolean {
+  return /%2f|%5c/i.test(pathname)
+}
+
 function isTabbablePath(pathname: string): boolean {
   if (!pathname.startsWith('/') || pathname.startsWith('//')) return false
+  if (hasEncodedPathSeparator(pathname)) return false
   if (NOT_TABBABLE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false
   return !NOT_TABBABLE_PATHS.has(pathname)
 }
 
-const appUrl = z.string().refine((value) => isTabbablePath(value.split(/[?#]/)[0]))
+/**
+ * The one gate for "is this string a safe, already-canonical app path" --
+ * used by both the `appUrl` zod schema below and `appUrlFromHref`.
+ *
+ * Resolves the candidate against a placeholder origin so a value that
+ * changes the origin during parsing is rejected: `new URL` treats `\` as `/`
+ * for http(s) URLs, so `/\evil.example` resolves to origin
+ * `http://evil.example`, not the placeholder. It then re-serialises the
+ * parsed result as `pathname + search + hash` and requires that to equal the
+ * candidate exactly -- anything the parser normalised away (encoded or
+ * literal dot segments, a stray backslash turned into a slash) means the
+ * candidate was not already canonical, so it is refused rather than silently
+ * rewritten. A literal backslash is also rejected outright, ahead of parsing.
+ */
+function isValidAppPath(candidate: string): boolean {
+  if (candidate.includes('\\')) return false
+  let url: URL
+  try {
+    url = new URL(candidate, PLACEHOLDER_ORIGIN)
+  } catch {
+    return false
+  }
+  if (url.origin !== PLACEHOLDER_ORIGIN) return false
+  if (`${url.pathname}${url.search}${url.hash}` !== candidate) return false
+  return isTabbablePath(url.pathname)
+}
+
+const appUrl = z.string().refine(isValidAppPath)
 
 const commandSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('new') }),
@@ -73,14 +119,16 @@ export function parseTabCommand(data: unknown): TabCommand | null {
 
 /** The app path a link points at, when it is on this origin and belongs in a tab. */
 export function appUrlFromHref(href: string, origin: string): string | null {
+  if (href.includes('\\')) return null
   let url: URL
   try {
     url = new URL(href, origin)
   } catch {
     return null
   }
-  if (url.origin !== origin || !isTabbablePath(url.pathname)) return null
-  return `${url.pathname}${url.search}${url.hash}`
+  if (url.origin !== origin) return null
+  const candidate = `${url.pathname}${url.search}${url.hash}`
+  return isValidAppPath(candidate) ? candidate : null
 }
 
 export interface KeyLike {
