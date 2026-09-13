@@ -95,7 +95,11 @@ function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtens
           <Link
             key={view}
             href={href}
-            onClick={(e) => { routeLinkClick(e, href); onSelectView(view) }}
+            onClick={(e) => {
+              // A background tab leaves the active tab where it is, so the rail's own handling has nothing to follow.
+              if (routeLinkClick(e, href) === 'background') return
+              onSelectView(view)
+            }}
             onAuxClick={(e) => { if (e.button === 1) routeLinkClick(e, href) }}
             aria-current={on ? 'page' : undefined}
             className={`flex items-center gap-2 px-2.5 py-1.5 rounded-full text-[12.5px] transition-colors no-underline ${
@@ -297,7 +301,11 @@ export function SidebarRail({
       <Link
         key={section.id}
         href={getViewPath(direct)}
-        onClick={(e) => { routeLinkClick(e, getViewPath(direct)); handleNavClick(direct); selectSection(section.id) }}
+        onClick={(e) => {
+          if (routeLinkClick(e, getViewPath(direct)) === 'background') return
+          handleNavClick(direct)
+          selectSection(section.id)
+        }}
         onAuxClick={(e) => { if (e.button === 1) routeLinkClick(e, getViewPath(direct)) }}
         aria-current={activeView === direct ? 'page' : undefined}
         className={className}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TabStrip } from '@/components/layout/tab-strip'
 import { useExtensionPages } from '@/hooks/use-extension-pages'
+import { createFlushRequests } from '@/lib/app/tab-flush'
 import { tabLabel, type TabLabel } from '@/lib/app/tab-label'
 import { setTabNavigator } from '@/lib/app/tab-navigation'
 import {
@@ -18,7 +19,6 @@ import { useChatroomStore } from '@/stores/use-chatroom-store'
 import { useTabsStore } from '@/stores/use-tabs-store'
 
 const READY_TIMEOUT_MS = 20_000
-const FLUSH_TIMEOUT_MS = 3_000
 
 interface MountedFrame {
   id: string
@@ -69,13 +69,22 @@ function withoutId(set: ReadonlySet<string>, id: string): ReadonlySet<string> {
   return next
 }
 
+/** `set` without the ids that no longer name a tab; `set` itself when none are gone. */
+function onlyTabIds(set: ReadonlySet<string>, state: TabsState): ReadonlySet<string> {
+  const known = new Set(state.tabs.map((t) => t.id))
+  if ([...set].every((id) => known.has(id))) return set
+  return new Set([...set].filter((id) => known.has(id)))
+}
+
 /**
  * The host window's tabs: a strip and one iframe per live tab.
  *
  * At most `MAX_LIVE_FRAMES` frames stay mounted, the most recently used. A
  * frame leaves only after it answers a flush request with true, so an edit it
- * holds is never unloaded; one that answers false stays, over the cap. A tab
- * without a frame is loaded from its URL when it is activated.
+ * holds is never unloaded; one that answers false stays, over the cap, and is
+ * not asked again for a cooldown. A tab without a frame is loaded from its URL
+ * when it is activated. Every mounted frame keeps its full size; the ones in
+ * the background are hidden and inert, not collapsed.
  */
 export function TabHost() {
   const state = useTabsStore((s) => s.state)
@@ -91,7 +100,14 @@ export function TabHost() {
   const frames = useRef(new Map<string, HTMLIFrameElement>())
   const ready = useRef(new Set<string>())
   const readyTimers = useRef(new Map<string, number>())
-  const pendingFlush = useRef(new Map<string, { requestId: string; finish: (ok: boolean) => void }>())
+  const [flushes] = useState(() => createFlushRequests({
+    newRequestId: newTabId,
+    schedule: (fn, ms) => {
+      const timer = window.setTimeout(fn, ms)
+      return () => window.clearTimeout(timer)
+    },
+    now: () => Date.now(),
+  }))
 
   // Frames follow the tabs. Adjusted while rendering, against the tabs state
   // they were last reconciled with, rather than set from an effect: the active
@@ -100,6 +116,7 @@ export function TabHost() {
   if (state && state !== reconciledFor) {
     setReconciledFor(state)
     setMounted((current) => reconcileFrames(current, state))
+    setFailed((current) => onlyTabIds(current, state))
   }
 
   useEffect(() => {
@@ -118,34 +135,35 @@ export function TabHost() {
     return map
   }, [agents, sessions, chatrooms, extensionPages, state])
 
+  // A closed tab's bookkeeping goes with it. Reopening a closed tab brings back
+  // the same id, and its new frame must not inherit "ready", a running timer,
+  // a pending flush or a refusal from the old one. (`failed` is pruned above.)
+  // Declared before the ready-timer effect so a reopened frame's timer starts
+  // against pruned state.
+  useEffect(() => {
+    if (!state) return
+    const known = new Set(state.tabs.map((t) => t.id))
+    for (const id of [...ready.current]) if (!known.has(id)) ready.current.delete(id)
+    for (const key of [...readyTimers.current.keys()]) {
+      const id = key.slice(0, key.lastIndexOf(':'))
+      if (!known.has(id)) clearReadyTimers(readyTimers.current, id)
+    }
+    flushes.retain(known)
+  }, [state, flushes])
+
   const requestFlush = useCallback((id: string): Promise<boolean> => {
     const frame = frames.current.get(id)
     // A frame that never loaded holds nothing to save.
     if (!frame || !ready.current.has(id)) return Promise.resolve(true)
-    const existing = pendingFlush.current.get(id)
-    if (existing) return new Promise((resolve) => {
-      const previous = existing.finish
-      existing.finish = (ok) => { previous(ok); resolve(ok) }
-    })
-    const requestId = newTabId()
-    return new Promise<boolean>((resolve) => {
-      const timer = window.setTimeout(() => settle(false), FLUSH_TIMEOUT_MS)
-      function settle(ok: boolean) {
-        window.clearTimeout(timer)
-        pendingFlush.current.delete(id)
-        resolve(ok)
-      }
-      pendingFlush.current.set(id, { requestId, finish: settle })
-      post(frame, { source: 'sc-host', type: 'flush', requestId })
-    })
-  }, [])
+    return flushes.request(id, (requestId) => post(frame, { source: 'sc-host', type: 'flush', requestId }))
+  }, [flushes])
 
   // Put the least recently used frames to sleep, each only once it has flushed.
   useEffect(() => {
     if (!state) return
     const keep = new Set(liveTabIds(state))
     for (const frame of mounted) {
-      if (keep.has(frame.id) || pendingFlush.current.has(frame.id)) continue
+      if (keep.has(frame.id) || flushes.isPending(frame.id) || flushes.refusedRecently(frame.id)) continue
       void requestFlush(frame.id).then((ok) => {
         if (!ok) return
         // Used again while the flush was out: it stays awake.
@@ -157,7 +175,7 @@ export function TabHost() {
         setMounted((current) => current.filter((f) => f.id !== frame.id))
       })
     }
-  }, [state, mounted, requestFlush])
+  }, [state, mounted, requestFlush, flushes])
 
   // A frame that does not say it is ready in time is marked, with a reload.
   useEffect(() => {
@@ -176,8 +194,9 @@ export function TabHost() {
     return () => {
       for (const timer of timers.values()) window.clearTimeout(timer)
       timers.clear()
+      flushes.dispose()
     }
-  }, [])
+  }, [flushes])
 
   const reloadTab = useCallback((id: string) => {
     const tab = useTabsStore.getState().state?.tabs.find((t) => t.id === id)
@@ -233,24 +252,38 @@ export function TabHost() {
           return
         case 'command': runCommand(message.command); return
         case 'auth-required': window.location.assign('/login'); return
-        case 'flushed': {
-          const pending = pendingFlush.current.get(message.tabId)
-          if (pending && pending.requestId === message.requestId) pending.finish(message.ok)
-          return
-        }
+        case 'flushed': flushes.answer(message.tabId, message.requestId, message.ok); return
       }
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [apply, runCommand])
+  }, [apply, runCommand, flushes])
 
   // The address bar shows the active tab, so a reload or a bookmark lands there.
+  // `null` state, not `history.state`: Next's patched replaceState passes a state
+  // carrying its `__NA` flag straight through, so its router would never learn
+  // the URL and `usePathname()` (the rail's highlight) would stay put. Without
+  // the flag it copies its own history fields over and restores to the new URL.
   useEffect(() => {
     const active = state?.tabs.find((t) => t.id === state.activeId)
     if (!active) return
     const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
-    if (current !== active.url) window.history.replaceState(window.history.state, '', active.url)
+    if (current !== active.url) window.history.replaceState(null, '', active.url)
   }, [state])
+
+  // Focus never stays in a frame that went to the background (a tab key pressed
+  // inside a tab switches tabs with focus still there): it follows to the
+  // active frame. Focus in the host's own chrome, such as the strip, is left alone.
+  const activeId = state?.activeId
+  useEffect(() => {
+    if (!activeId) return
+    const focused = document.activeElement
+    if (!(focused instanceof HTMLIFrameElement)) return
+    const activeFrame = frames.current.get(activeId)
+    if (focused === activeFrame || ![...frames.current.values()].includes(focused)) return
+    if (activeFrame) activeFrame.focus()
+    else focused.blur()
+  }, [activeId])
 
   // The rail, the palette and useNavigate go through here.
   useEffect(() => {
@@ -321,8 +354,18 @@ export function TabHost() {
       <div className="relative flex-1 min-h-0">
         {mounted.map((frame) => {
           const active = frame.id === state.activeId
+          // Every frame keeps the full size, so the document inside a background
+          // tab keeps its desktop layout, its width-based panels and its scroll
+          // position. `display: none` would give it a 0x0 viewport. A background
+          // frame is invisible, takes no pointer events, and is inert (no focus,
+          // no find-in-page) and hidden from assistive technology.
           return (
-            <div key={`${frame.id}:${frame.generation}`} className={active ? 'absolute inset-0' : 'hidden'}>
+            <div
+              key={`${frame.id}:${frame.generation}`}
+              className={active ? 'absolute inset-0' : 'absolute inset-0 invisible pointer-events-none'}
+              inert={!active}
+              aria-hidden={active ? undefined : true}
+            >
               <iframe
                 ref={(element) => {
                   if (!element) return

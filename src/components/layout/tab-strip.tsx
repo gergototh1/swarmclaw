@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { Home, Plus, X } from 'lucide-react'
 import { PageIcon } from '@/components/layout/extension-nav-items'
 import { SECTION_ICONS } from '@/components/layout/sidebar-rail'
@@ -15,6 +15,11 @@ function TabIcon({ label }: { label: TabLabel | undefined }) {
   return <Icon size={13} />
 }
 
+/**
+ * The tab strip. Each entry is a presentational wrapper holding two sibling
+ * buttons -- the `role="tab"` label and the close button -- so no interactive
+ * element sits inside another. The wrapper carries the tab's look and the drag.
+ */
 export function TabStrip({ tabs, activeId, labels, failedIds, onActivate, onClose, onNew, onMove }: {
   tabs: readonly Tab[]
   activeId: string
@@ -27,15 +32,20 @@ export function TabStrip({ tabs, activeId, labels, failedIds, onActivate, onClos
 }) {
   const [dragId, setDragId] = useState<string | null>(null)
 
-  const onTabKey = (e: KeyboardEvent<HTMLDivElement>, id: string, index: number) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      onActivate(id)
-    } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-      e.preventDefault()
-      const next = tabs[(index + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length]
-      onActivate(next.id)
-    }
+  const onTabKey = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    // Option+Arrow is the host's next/previous tab command, run by its window
+    // key listener; acting here as well would move two tabs.
+    if (e.altKey || e.metaKey || e.ctrlKey) return
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+    e.preventDefault()
+    const next = tabs[(index + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length]
+    onActivate(next.id)
+  }
+
+  const closeOnMiddleClick = (e: MouseEvent<HTMLButtonElement>, id: string) => {
+    if (e.button !== 1) return
+    e.preventDefault()
+    onClose(id)
   }
 
   return (
@@ -48,9 +58,7 @@ export function TabStrip({ tabs, activeId, labels, failedIds, onActivate, onClos
           return (
             <div
               key={tab.id}
-              role="tab"
-              aria-selected={active}
-              tabIndex={active ? 0 : -1}
+              role="presentation"
               title={title}
               draggable
               onDragStart={(e) => { setDragId(tab.id); e.dataTransfer.effectAllowed = 'move' }}
@@ -61,20 +69,31 @@ export function TabStrip({ tabs, activeId, labels, failedIds, onActivate, onClos
                 setDragId(null)
               }}
               onDragEnd={() => setDragId(null)}
-              onClick={() => onActivate(tab.id)}
-              onAuxClick={(e) => { if (e.button === 1) { e.preventDefault(); onClose(tab.id) } }}
-              onKeyDown={(e) => onTabKey(e, tab.id, index)}
-              className={`group flex items-center gap-1.5 min-w-[110px] max-w-[220px] pl-2.5 pr-1 py-1.5 rounded-t-md text-[12.5px] cursor-pointer select-none border border-b-0 ${
+              className={`group flex items-center min-w-[110px] max-w-[220px] pr-1 rounded-t-md text-[12.5px] select-none border border-b-0 ${
                 active ? 'bg-bg text-text border-line-subtle' : 'bg-transparent text-text-3 border-transparent hover:bg-layer-2 hover:text-text'
               }`}
             >
-              <span className="shrink-0 flex items-center"><TabIcon label={label} /></span>
-              <span className="truncate flex-1">{title}</span>
-              {failedIds.has(tab.id) && <span className="shrink-0 text-danger text-[11px]" aria-label="This tab did not load">!</span>}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={active}
+                tabIndex={active ? 0 : -1}
+                onClick={() => onActivate(tab.id)}
+                onAuxClick={(e) => closeOnMiddleClick(e, tab.id)}
+                onKeyDown={(e) => onTabKey(e, index)}
+                className="flex items-center gap-1.5 flex-1 min-w-0 pl-2.5 pr-1.5 py-1.5 bg-transparent border-none text-inherit text-[12.5px] text-left cursor-pointer"
+                style={{ fontFamily: 'inherit' }}
+              >
+                <span className="shrink-0 flex items-center"><TabIcon label={label} /></span>
+                <span className="truncate flex-1">{title}</span>
+                {failedIds.has(tab.id) && <span className="shrink-0 text-danger text-[11px]" aria-label="This tab did not load">!</span>}
+              </button>
               <button
                 type="button"
                 aria-label={`Close ${title}`}
-                onClick={(e) => { e.stopPropagation(); onClose(tab.id) }}
+                tabIndex={active ? 0 : -1}
+                onClick={() => onClose(tab.id)}
+                onAuxClick={(e) => closeOnMiddleClick(e, tab.id)}
                 className="shrink-0 w-5 h-5 rounded-sm flex items-center justify-center border-none bg-transparent text-text-3 hover:text-text hover:bg-layer-2 cursor-pointer"
               >
                 <X size={12} />

@@ -158,8 +158,10 @@ beágyazhatóságot route-onként kell adni, nem a közös direktívát lazítan
   ütközést kap, amit az ütközés-sáv mutat.
 - **A böngésző saját Vissza gombja** a keretek közös előzményén lép, így egy
   háttérben lévő fület is visszaléptethet.
-- **768 px alá keskenyítve** az app sima módba vált, és a fül-keretek
-  lebontódnak (a nyitott fülek listája megmarad).
+- **768 px alá keskenyítve** (vagy a fülek kikapcsolásakor) az app csak a
+  következő újratöltéskor vált sima módba. Addig a gazda marad, mert a váltás
+  minden fül-keretet flush nélkül bontana le, és a mentetlen szerkesztések
+  elvesznének (a nyitott fülek listája újratöltés után is megmarad).
 - **Asztali appban a ⇧⌘T** a bezárt fül visszanyitása, így ott már nem a Tasks
   gyorsbillentyűje; az ablak bezárása ⇧⌘W.
 - **A fül ikonja** a szekció ikonja (bővítmény-oldalnál a saját ikonja); a külön

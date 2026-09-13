@@ -15,7 +15,7 @@ import { useSwipe } from '@/hooks/use-swipe'
 import { useWs } from '@/hooks/use-ws'
 import { api } from '@/lib/app/api-client'
 import { pathToView, useNavigate } from '@/lib/app/navigation'
-import { detectShellMode, tabIdFromWindow } from '@/lib/app/shell-mode'
+import { detectShellMode, nextShellMode, tabIdFromWindow, type ShellMode } from '@/lib/app/shell-mode'
 import { shouldAutoOpenPanelSidebar } from '@/lib/app/view-constants'
 import { normalizeThemeMode } from '@/lib/theme-mode'
 
@@ -69,10 +69,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   // Read from `window`, so it is 'plain' during server rendering. The first
   // client renders show the boot loader either way, so the difference never
   // reaches markup that hydrates.
-  const shellMode = useMemo(
+  const detectedShellMode = useMemo(
     () => detectShellMode(typeof window === 'undefined' ? undefined : window, { isDesktop, tabsEnabled }),
     [isDesktop, tabsEnabled],
   )
+  // Host mode, once shown past the boot loader, holds until reload: leaving it
+  // would unmount every tab frame unflushed (see `nextShellMode`). Only a mode
+  // that was actually shown latches, so settings that arrive during boot still
+  // decide the first one. Adjusted while rendering, like `TabHost`'s frames.
+  const booted = hydrated && authChecked && authenticated && userReady && !!currentUser && setupDone === true && agentReady && !isAuthPage
+  const [shownShellMode, setShownShellMode] = useState<ShellMode | null>(null)
+  const shellMode = nextShellMode(shownShellMode, detectedShellMode)
+  if (booted && shellMode !== shownShellMode) setShownShellMode(shellMode)
+  // A latched host keeps its desktop chrome below 768px too, until the reload.
+  const desktopLayout = isDesktop || shellMode === 'host'
   const frameTabId = useMemo(
     () => (shellMode === 'tab' && typeof window !== 'undefined' ? tabIdFromWindow(window) : null),
     [shellMode],
@@ -205,11 +215,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
    * Watch the pathname rather than wrapping `useNavigate`: a pathname watcher
    * also catches <Link> clicks and the browser back button, which a hook
    * wrapper never sees. Auth pages are not destinations worth returning to.
+   *
+   * The pathname effects below skip the tab host: its address bar only mirrors
+   * the active tab, and the frame inside that tab already runs them for itself.
+   * A redirect here would navigate the host window, not the tab.
    */
   useEffect(() => {
-    if (isAuthPage) return
+    if (isAuthPage || shellMode === 'host') return
     recordRecentPath(pathname)
-  }, [pathname, isAuthPage])
+  }, [pathname, isAuthPage, shellMode])
 
   // View validity check
   const isViewEnabled = useCallback((view: AppView) => {
@@ -219,15 +233,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   // Redirect disabled views
   useEffect(() => {
-    if (isAuthPage) return
+    if (isAuthPage || shellMode === 'host') return
     const currentView = pathToView(pathname)
     if (currentView && !isViewEnabled(currentView)) {
       router.replace('/home')
     }
-  }, [pathname, isViewEnabled, router, isAuthPage])
+  }, [pathname, isViewEnabled, router, isAuthPage, shellMode])
 
   useEffect(() => {
-    if (isAuthPage) return
+    if (isAuthPage || shellMode === 'host') return
     const currentView = pathToView(pathname)
     if (!shouldAutoOpenPanelSidebar(currentView, isDesktop)) {
       lastAutoOpenedPanelPathRef.current = null
@@ -236,7 +250,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     if (lastAutoOpenedPanelPathRef.current === pathname) return
     lastAutoOpenedPanelPathRef.current = pathname
     setSidebarOpen(true)
-  }, [isAuthPage, isDesktop, pathname, setSidebarOpen])
+  }, [isAuthPage, isDesktop, pathname, setSidebarOpen, shellMode])
 
   // Extension sidebar items
   const refreshExtensionState = useCallback(() => {
@@ -333,21 +347,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="h-full flex overflow-hidden"
-      onTouchStart={isDesktop ? undefined : swipeHandlers.onTouchStart}
-      onTouchMove={isDesktop ? undefined : swipeHandlers.onTouchMove}
-      onTouchEnd={isDesktop ? undefined : swipeHandlers.onTouchEnd}
+      onTouchStart={desktopLayout ? undefined : swipeHandlers.onTouchStart}
+      onTouchMove={desktopLayout ? undefined : swipeHandlers.onTouchMove}
+      onTouchEnd={desktopLayout ? undefined : swipeHandlers.onTouchEnd}
     >
       {/* Publishes the host React and UI primitives on window.swarmclaw so
           extension page bundles can register their components. */}
       <ExtensionHost />
 
       {/* Desktop: Navigation rail */}
-      {isDesktop && (
+      {desktopLayout && (
         <SidebarRail onSwitchUser={() => setProfileSheetOpen(true)} isViewEnabled={isViewEnabled} />
       )}
 
       {/* Mobile: Same sidebar as desktop, rendered as full-width overlay */}
-      {!isDesktop && sidebarOpen && (
+      {!desktopLayout && sidebarOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
           <div

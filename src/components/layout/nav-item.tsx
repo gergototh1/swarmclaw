@@ -38,7 +38,7 @@ export function ExtensionNavItem({ href, label, isActive, onClick, children }: {
   return (
     <Link
       href={href}
-      onClick={(e) => { routeLinkClick(e, href); onClick?.() }}
+      onClick={(e) => { if (routeLinkClick(e, href) !== 'background') onClick?.() }}
       onAuxClick={(e) => { if (e.button === 1) routeLinkClick(e, href) }}
       className={`flex items-center gap-2 px-2.5 py-1.5 rounded-sm text-[12.5px] transition-colors no-underline
         ${isActive
