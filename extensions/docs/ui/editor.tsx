@@ -67,10 +67,15 @@ import { htmlToMd, mdToHtml } from './markdown'
  * - "Keep theirs" voids every save this editor queued for the doc before the
  *   click, and applies theirs through the queue, after whatever is already
  *   out. A conflict that came back without their text reads the doc instead.
+ *   The doc counts as not loaded from the click until that run finishes, so
+ *   an edit typed during the wait (an autosave tick, a Cmd+S) cannot queue
+ *   behind the run and land on top of theirs once it is applied.
  * - An edit typed while a delete is out is still marked dirty, so a failed
  *   delete saves it.
  * - A save that fails while its doc is not on screen is kept, and shown the
- *   next time that doc opens.
+ *   next time that doc opens -- by any editor, not just the one that failed.
+ *   A later save that merely succeeds does not clear it: only the load that
+ *   shows it, or the bar's own buttons, take it out of `failedEdits`.
  */
 
 const AUTOSAVE_MS = 800
@@ -411,7 +416,6 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
         }
         const next = (raw as { version?: number }).version
         confirmed.set(docId, { version: typeof next === 'number' ? next : baseVersion, content })
-        failedEdits.delete(docId)
         onSaved()
         if (!onScreen() || !current()) return
         if (typeof next === 'number') setVersion(next)
@@ -605,6 +609,10 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
     if (saveState.kind !== 'conflict' || !barIsLive(saveState.docId)) return
     const { mine, title: mineTitle, conflict, restored } = saveState
     if (restored) {
+      // This bar came from `failedEdits`; the load that showed it already
+      // took the entry, but take it again in case a newer failure has not
+      // landed here yet -- resolving this bar must not leave one behind.
+      failedEdits.delete(id)
       // The editor shows the doc as loaded, not the kept text: put it there.
       autosaveRef.current?.cancel()
       setRaw(mine)
@@ -623,17 +631,31 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
    * A conflict can come back without their text. Then the doc is read in the
    * queue and what the read returns is applied, as a load would -- an empty
    * body in its place would be shown, and saved by the next rename.
+   *
+   * The doc counts as not loaded from the click until this run finishes,
+   * applying theirs or giving up: `loadedIdRef` is cleared below and every
+   * save path (autosave, Cmd+S, the raw textarea) already refuses to run
+   * while a doc's id does not match `loadedIdRef.current`. Without this, an
+   * edit typed during the wait -- an autosave tick or a Cmd+S -- would queue
+   * behind this run under the new generation, land on top of theirs once it
+   * is applied, and go out as a "saved" write the server never showed on
+   * screen.
    */
   const keepTheirs = () => {
     if (saveState.kind !== 'conflict' || !barIsLive(saveState.docId)) return
-    const { docId, conflict, title: refusedTitle } = saveState
+    const { docId, conflict, title: refusedTitle, restored } = saveState
     autosaveRef.current?.cancel()
     const generation = bumpGeneration(generations, docId)
+    loadedIdRef.current = null
+    if (restored) failedEdits.delete(docId)
     const titleBefore = doc?.title ?? ''
     setSaveState({ kind: 'idle' })
     void saveQueue(docId, async () => {
       const current = () => generationOf(generations, docId) === generation
-      const onScreen = () => openIdRef.current === docId && loadedIdRef.current === docId
+      // Whether this doc is still the one on screen. Not whether it is
+      // "loaded" -- this run itself holds `loadedIdRef` at null until it
+      // restores it below, so that check would never be true here.
+      const onScreen = () => openIdRef.current === docId
       if (!current()) return
       const known = confirmed.get(docId)
       let theirs: ConfirmedDoc
@@ -654,6 +676,9 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
           }
         } catch (err) {
           if (current() && onScreen()) {
+            // Restore before showing the error, or the reader is left unable
+            // to save this doc at all.
+            loadedIdRef.current = docId
             setSaveState({ kind: 'error', message: `Could not read their version: ${err instanceof Error ? err.message : String(err)}` })
           }
           return
@@ -667,6 +692,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
       editor?.commands.setContent(mdToHtml(theirs.content, titles))
       dirty.current = false
       if (theirTitle !== undefined) setTitle(theirTitle)
+      loadedIdRef.current = docId
       setSaveState({ kind: 'idle' })
     })
   }
@@ -674,6 +700,10 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
   const restoreUnsaved = () => {
     if (saveState.kind !== 'unsaved' || !barIsLive(saveState.docId)) return
     const { mine } = saveState
+    // This bar only ever comes from `failedEdits`; the load that showed it
+    // already took the entry, but take it again in case a newer failure has
+    // not landed here yet -- resolving this bar must not leave one behind.
+    failedEdits.delete(id)
     setRaw(mine)
     editor?.commands.setContent(mdToHtml(mine, titles))
     dirty.current = true
@@ -683,6 +713,7 @@ export function Editor({ rpc, id, titles, onSaved, panelOpen, onTogglePanel, onD
 
   const discardUnsaved = () => {
     if (saveState.kind !== 'unsaved' || !barIsLive(saveState.docId)) return
+    failedEdits.delete(id)
     setSaveState({ kind: 'idle' })
   }
 
