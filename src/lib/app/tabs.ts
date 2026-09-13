@@ -136,10 +136,10 @@ export function landOnUrl(state: TabsState, url: string, newId: () => string): T
 const appUrl = z.string().regex(/^\/(?!\/)/)
 const tabSchema = z.object({ id: z.string().min(1), url: appUrl, title: z.string().nullable() })
 const stateSchema = z.object({
-  tabs: z.array(tabSchema).min(1),
+  tabs: z.array(tabSchema).min(1).max(200),
   activeId: z.string(),
-  lastUsed: z.array(z.string()),
-  closed: z.array(tabSchema),
+  lastUsed: z.array(z.string()).max(200),
+  closed: z.array(tabSchema).max(50),
 })
 
 export function tabsStateFromStorage(raw: unknown): TabsState | null {
@@ -148,5 +148,16 @@ export function tabsStateFromStorage(raw: unknown): TabsState | null {
   const { tabs, activeId, lastUsed, closed } = parsed.data
   if (!tabs.some((t) => t.id === activeId)) return null
   const known = new Set(tabs.map((t) => t.id))
-  return { tabs, activeId, lastUsed: lastUsed.filter((id) => known.has(id)), closed: closed.slice(0, CLOSED_TABS_CAP) }
+  // Check for duplicate tab ids
+  if (known.size !== tabs.length) return null
+  // De-duplicate lastUsed while preserving order (keep first occurrence)
+  const seen = new Set<string>()
+  const deduplicatedLastUsed: string[] = []
+  for (const id of lastUsed) {
+    if (!seen.has(id) && known.has(id)) {
+      seen.add(id)
+      deduplicatedLastUsed.push(id)
+    }
+  }
+  return { tabs, activeId, lastUsed: deduplicatedLastUsed, closed: closed.slice(0, CLOSED_TABS_CAP) }
 }

@@ -171,6 +171,72 @@ describe('tabsStateFromStorage', () => {
     const read = tabsStateFromStorage({ tabs: [{ id: 'a', url: '/a', title: null }], activeId: 'a', lastUsed: ['gone', 'a'], closed: [] })
     assert.deepEqual(read?.lastUsed, ['a'])
   })
+
+  it('returns null when two tabs share an id', () => {
+    const read = tabsStateFromStorage({
+      tabs: [
+        { id: 'a', url: '/a', title: null },
+        { id: 'a', url: '/b', title: null },
+      ],
+      activeId: 'a',
+      lastUsed: ['a'],
+      closed: [],
+    })
+    assert.equal(read, null)
+  })
+
+  it('de-duplicates lastUsed, keeping the first occurrence', () => {
+    const read = tabsStateFromStorage({
+      tabs: [
+        { id: 'a', url: '/a', title: null },
+        { id: 'b', url: '/b', title: null },
+      ],
+      activeId: 'a',
+      lastUsed: ['a', 'a', 'b'],
+      closed: [],
+    })
+    assert.deepEqual(read?.lastUsed, ['a', 'b'])
+  })
+
+  it('returns null when tabs array exceeds 200 entries', () => {
+    const tabs = Array.from({ length: 201 }, (_, i) => ({
+      id: `t${i}`,
+      url: `/p${i}`,
+      title: null,
+    }))
+    const read = tabsStateFromStorage({
+      tabs,
+      activeId: 't0',
+      lastUsed: [],
+      closed: [],
+    })
+    assert.equal(read, null)
+  })
+
+  it('returns null when lastUsed array exceeds 200 entries', () => {
+    const read = tabsStateFromStorage({
+      tabs: [{ id: 'a', url: '/a', title: null }],
+      activeId: 'a',
+      lastUsed: Array.from({ length: 201 }, (_, i) => `id${i}`),
+      closed: [],
+    })
+    assert.equal(read, null)
+  })
+
+  it('returns null when closed array exceeds 50 entries', () => {
+    const closed = Array.from({ length: 51 }, (_, i) => ({
+      id: `c${i}`,
+      url: `/closed${i}`,
+      title: null,
+    }))
+    const read = tabsStateFromStorage({
+      tabs: [{ id: 'a', url: '/a', title: null }],
+      activeId: 'a',
+      lastUsed: [],
+      closed,
+    })
+    assert.equal(read, null)
+  })
 })
 
 describe('newTabId', () => {
