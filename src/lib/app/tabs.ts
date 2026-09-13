@@ -30,6 +30,8 @@ export interface TabsState {
 export const HOME_URL = '/home'
 export const MAX_LIVE_FRAMES = 6
 export const CLOSED_TABS_CAP = 10
+/** Tabs in the strip. Stored state is refused beyond this, so the strip never grows past it either. */
+export const MAX_TABS = 200
 
 /**
  * A tab id. `crypto.randomUUID` exists only in a secure context, and the app is
@@ -49,7 +51,16 @@ export function initialTabsState(newId: () => string, url: string = HOME_URL): T
   return { tabs: [tab], activeId: tab.id, lastUsed: [tab.id], closed: [] }
 }
 
+/**
+ * Adds a tab after `afterId` (default: the active tab). At `MAX_TABS` nothing
+ * is added: a tab already on that URL is activated instead, if activating was
+ * asked for, and otherwise the state is returned unchanged.
+ */
 export function openTab(state: TabsState, tab: Tab, opts: { activate?: boolean; afterId?: string } = {}): TabsState {
+  if (state.tabs.length >= MAX_TABS) {
+    const same = state.tabs.find((t) => t.url === tab.url)
+    return same && opts.activate !== false ? activateTab(state, same.id) : state
+  }
   const anchor = state.tabs.findIndex((t) => t.id === (opts.afterId ?? state.activeId))
   const tabs = [...state.tabs]
   tabs.splice(anchor === -1 ? tabs.length : anchor + 1, 0, tab)
@@ -80,7 +91,8 @@ export function closeTab(state: TabsState, id: string, newId: () => string): Tab
 
 export function reopenClosedTab(state: TabsState): TabsState {
   const [tab, ...closed] = state.closed
-  if (!tab) return state
+  // At the cap the tab would not fit; it stays on the stack for later.
+  if (!tab || state.tabs.length >= MAX_TABS) return state
   return openTab({ ...state, closed }, tab)
 }
 
@@ -136,7 +148,7 @@ export function landOnUrl(state: TabsState, url: string, newId: () => string): T
 const appUrl = z.string().regex(/^\/(?!\/)/)
 const tabSchema = z.object({ id: z.string().min(1), url: appUrl, title: z.string().nullable() })
 const stateSchema = z.object({
-  tabs: z.array(tabSchema).min(1).max(200),
+  tabs: z.array(tabSchema).min(1).max(MAX_TABS),
   activeId: z.string(),
   lastUsed: z.array(z.string()).max(200),
   closed: z.array(tabSchema).max(50),

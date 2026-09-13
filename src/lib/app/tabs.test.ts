@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
-  CLOSED_TABS_CAP, HOME_URL, activateByPosition, activateRelative, activateTab, closeTab, initialTabsState,
+  CLOSED_TABS_CAP, HOME_URL, MAX_TABS, activateByPosition, activateRelative, activateTab, closeTab, initialTabsState,
   landOnUrl, liveTabIds, moveTab, newTabId, openTab, reopenClosedTab, setTabTitle, setTabUrl, tabsStateFromStorage,
   type TabsState,
 } from './tabs'
@@ -41,6 +41,17 @@ describe('openTab', () => {
     const state = openTab(withTabs(['/home']), { id: 'x', url: '/chat', title: null }, { activate: false })
     assert.equal(state.activeId, 't1')
     assert.deepEqual(state.lastUsed, ['t1', 'x'])
+  })
+
+  it('opens nothing new at the tab cap, but still activates a tab already on that URL', () => {
+    const full = withTabs(Array.from({ length: MAX_TABS }, (_, i) => `/p${i}`))
+    assert.equal(full.tabs.length, MAX_TABS)
+    assert.equal(openTab(full, { id: 'x', url: '/new', title: null }), full)
+    assert.equal(openTab(full, { id: 'x', url: '/new', title: null }, { activate: false }), full)
+    const existing = openTab(full, { id: 'x', url: '/p3', title: null })
+    assert.equal(existing.tabs.length, MAX_TABS)
+    assert.equal(existing.activeId, 't4')
+    assert.equal(openTab(full, { id: 'x', url: '/p3', title: null }, { activate: false }), full)
   })
 })
 
@@ -95,6 +106,19 @@ describe('reopenClosedTab', () => {
   it('does nothing with an empty stack', () => {
     const state = withTabs(['/a'])
     assert.equal(reopenClosedTab(state), state)
+  })
+
+  it('keeps the closed tab on the stack when the strip is at the cap', () => {
+    const newId = ids()
+    let state = initialTabsState(newId, '/p0')
+    for (let i = 1; i <= MAX_TABS; i++) state = openTab(state, { id: newId(), url: `/p${i}`, title: null })
+    state = closeTab(state, state.activeId, newId)
+    assert.equal(state.tabs.length, MAX_TABS - 1)
+    state = openTab(state, { id: newId(), url: '/filler', title: null })
+    assert.equal(state.tabs.length, MAX_TABS)
+    // The filler did not fit, so the strip is still full with one closed tab waiting.
+    assert.equal(reopenClosedTab(state), state)
+    assert.equal(state.closed.length, 1)
   })
 })
 

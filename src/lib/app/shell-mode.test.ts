@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { detectShellMode, tabIdFromWindow, type WindowLike } from './shell-mode'
+import { detectShellMode, nextShellMode, tabIdFromWindow, type WindowLike } from './shell-mode'
 
 const ORIGIN = 'http://a.example'
 
@@ -71,5 +71,19 @@ describe('detectShellMode', () => {
     const win = framed('sc-tab:t1')
     assert.equal(tabIdFromWindow(win), 't1')
     assert.equal(detectShellMode(win, { isDesktop: false, tabsEnabled: false }), 'tab')
+  })
+})
+
+describe('nextShellMode', () => {
+  it('follows detection until host mode has been shown', () => {
+    assert.equal(nextShellMode(null, 'plain'), 'plain')
+    assert.equal(nextShellMode(null, 'host'), 'host')
+    assert.equal(nextShellMode('plain', 'host'), 'host')
+    assert.equal(nextShellMode('tab', 'tab'), 'tab')
+  })
+
+  it('keeps host once entered, whatever width or setting is detected later', () => {
+    assert.equal(nextShellMode('host', 'plain'), 'host')
+    assert.equal(nextShellMode('host', 'host'), 'host')
   })
 })

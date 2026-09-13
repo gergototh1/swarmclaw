@@ -26,16 +26,20 @@ export function getTabNavigator(): TabNavigator | null {
 
 /**
  * A link click in the host's own chrome (the rail): into the active tab, or a
- * background tab for a modified or middle click. Returns false, leaving the
- * link alone, when there is no host.
+ * background tab for a modified or middle click. Says which it did, so a
+ * caller can skip its own click handling for a background tab (the active tab
+ * did not move); false, leaving the link alone, when there is no host.
  */
-export function routeLinkClick(e: ClickLike, href: string): boolean {
+export function routeLinkClick(e: ClickLike, href: string): 'active' | 'background' | false {
   const navigator = slot.current
   if (!navigator) return false
   e.preventDefault()
-  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) navigator.openInNewTab(href, { activate: false })
-  else navigator.navigateActive(href)
-  return true
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) {
+    navigator.openInNewTab(href, { activate: false })
+    return 'background'
+  }
+  navigator.navigateActive(href)
+  return 'active'
 }
 
 export function navigateInActiveTab(href: string): boolean {

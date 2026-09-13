@@ -32,7 +32,7 @@ describe('routeLinkClick', () => {
     const { calls, navigator } = recorder()
     setTabNavigator(navigator)
     const c = click()
-    assert.equal(routeLinkClick(c.event, '/tasks'), true)
+    assert.equal(routeLinkClick(c.event, '/tasks'), 'active')
     assert.equal(c.prevented(), true)
     assert.deepEqual(calls, ['active:/tasks'])
   })
@@ -40,9 +40,11 @@ describe('routeLinkClick', () => {
   it('opens a modified or middle click in a background tab', () => {
     const { calls, navigator } = recorder()
     setTabNavigator(navigator)
-    routeLinkClick(click({ metaKey: true }).event, '/a')
-    routeLinkClick(click({ button: 1 }).event, '/b')
-    assert.deepEqual(calls, ['new:/a:false', 'new:/b:false'])
+    assert.equal(routeLinkClick(click({ metaKey: true }).event, '/a'), 'background')
+    assert.equal(routeLinkClick(click({ button: 1 }).event, '/b'), 'background')
+    assert.equal(routeLinkClick(click({ ctrlKey: true }).event, '/c'), 'background')
+    assert.equal(routeLinkClick(click({ shiftKey: true }).event, '/d'), 'background')
+    assert.deepEqual(calls, ['new:/a:false', 'new:/b:false', 'new:/c:false', 'new:/d:false'])
   })
 })
 

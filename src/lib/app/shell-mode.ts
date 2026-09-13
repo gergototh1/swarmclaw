@@ -45,3 +45,14 @@ export function detectShellMode(win: WindowLike | undefined, opts: { isDesktop: 
   if (win.parent !== win.self) return 'plain'
   return opts.isDesktop && opts.tabsEnabled ? 'host' : 'plain'
 }
+
+/**
+ * The mode to render, given the one last shown (null before any) and the one
+ * detected now. Host mode, once shown, holds until the page reloads: leaving it
+ * unmounts every tab frame at once, with no chance to flush, so narrowing the
+ * window or switching tabs off in settings would drop unsaved edits in all of
+ * them. The switch takes effect on the next load instead.
+ */
+export function nextShellMode(previous: ShellMode | null, detected: ShellMode): ShellMode {
+  return previous === 'host' ? 'host' : detected
+}
