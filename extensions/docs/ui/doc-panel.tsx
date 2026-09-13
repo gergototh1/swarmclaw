@@ -71,15 +71,18 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
             // A modified or non-primary click opens elsewhere and leaves this
             // page, and its editor, where they are.
             if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-            // This link is a full page load, and the `pagehide` flush can be cut
-            // off by it: save what is pending first, then go -- but only when
-            // every save landed. A failure kept in `failedEdits` lives in
-            // module memory the page load would wipe, so it is named here with
-            // "Open anyway". A block that is not a kept `failedEdits` entry --
-            // a conflict, not-saved bar, or plain error still showing in this
-            // panel's own editor -- would otherwise say nothing at all: the
-            // reader has not gone anywhere, so nothing was recorded off
-            // screen, but the edit still is not saved.
+            // Inside a tab, `openDocs()` opens a new tab, and this flush is what
+            // makes sure that new tab loads the saved text. Outside a tab this
+            // is a full page load, whose `pagehide` flush can be cut off, so
+            // the same flush covers that path too. Either way: save what is
+            // pending first, then go -- but only when every save landed. A
+            // failure kept in `failedEdits` lives in module memory a page load
+            // would wipe, so it is named here with "Open anyway". A block that
+            // is not a kept `failedEdits` entry -- a conflict, not-saved bar,
+            // or plain error still showing in this panel's own editor --
+            // would otherwise say nothing at all: the reader has not gone
+            // anywhere, so nothing was recorded off screen, but the edit
+            // still is not saved.
             e.preventDefault()
             setLeaveError(null)
             void flushAllEditors().then(
