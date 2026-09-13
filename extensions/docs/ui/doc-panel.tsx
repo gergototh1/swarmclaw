@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom'
 
 import type { Rpc } from './api'
 import { errorText, readTree } from './api'
-import { Editor, flushAllEditors } from './editor'
+import { flushAllEditors } from './doc-saver'
+import { Editor } from './editor'
 import { failedEdits } from './doc-store'
 import { subPathForDoc } from './doc-route'
 
