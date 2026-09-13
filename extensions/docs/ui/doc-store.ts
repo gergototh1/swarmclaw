@@ -1,19 +1,33 @@
 /**
- * What every editor this bundle mounts shares about the docs it saves.
+ * What the editors this bundle mounts share about the docs they save, and the
+ * helpers for what each editor keeps for itself.
  *
  * The Docs page and the panel beside the chat are two `Editor` instances from
- * the same bundle. When each kept these for itself, an edit flushed by a closing
- * panel was still out when the page opened the same doc: the page's read did
- * not wait for it, and the reader's next save came back as a conflict with
- * their own edit. One queue, one confirmed record and one generation count per
- * doc, for the whole bundle, close that.
+ * the same bundle. Shared, for the whole bundle:
  *
- * - `saveQueue`: reads and saves for one doc run one at a time (`save-queue.ts`).
- * - `confirmed`: the last version and body the server confirmed, per doc id.
- * - `generations`: bumped by "Keep theirs"; a save queued under an older
- *   generation does nothing when its turn comes.
- * - `failedEdits`: the latest save per doc that failed while that doc was not on
- *   screen, kept until the doc is opened again so the edit is not lost unseen.
+ * - `saveQueue`: reads and saves for one doc run one at a time
+ *   (`save-queue.ts`), whichever editor queued them. This is what makes a doc
+ *   reopened right after a closing panel flushed its edit safe: the new
+ *   editor's read waits in the same queue, so it reads after the flushed save
+ *   has landed, with the edit and its version in it.
+ * - `failedEdits`: the latest save per doc that failed while that doc was not
+ *   on screen, kept until the doc is opened again -- in whichever editor -- so
+ *   the edit is not lost unseen.
+ * - `saveFailureCount`: how many saves have failed so far, on screen or not,
+ *   so a flush can tell whether the saves it waited on all landed.
+ *
+ * Kept PER EDITOR, not here:
+ *
+ * - The confirmed record (`ConfirmedDoc` per doc id): the last version and
+ *   body that editor saw the server confirm. Each save's base version comes
+ *   from it. Two editors open on one doc must each save on the version they
+ *   themselves last saw; with one shared record, the second editor's save
+ *   would take the first's version as its base and silently write over text
+ *   it never showed, instead of getting a conflict.
+ * - The generation count (`generationOf` / `bumpGeneration` over that editor's
+ *   own map): bumped by that editor's "Keep theirs", so a save queued by that
+ *   editor under an older generation does nothing when its turn comes. Another
+ *   editor's saves are its own business.
  *
  * Pure: no React, no DOM.
  */
@@ -39,19 +53,26 @@ export interface FailedEdit {
 
 export const saveQueue = createSaveQueue()
 
-export const confirmed = new Map<string, ConfirmedDoc>()
-
-export const generations = new Map<string, number>()
-
 export const failedEdits = new Map<string, FailedEdit>()
 
-export function generationOf(docId: string): number {
+const failures = { count: 0 }
+
+/** A save failed, on screen or off: counted so a flush can tell. */
+export function noteSaveFailure(): void {
+  failures.count += 1
+}
+
+export function saveFailureCount(): number {
+  return failures.count
+}
+
+export function generationOf(generations: Map<string, number>, docId: string): number {
   return generations.get(docId) ?? 0
 }
 
-/** Voids every save for this doc queued before now; returns the new generation. */
-export function bumpGeneration(docId: string): number {
-  const next = generationOf(docId) + 1
+/** Voids every save for this doc queued before now under these generations; returns the new generation. */
+export function bumpGeneration(generations: Map<string, number>, docId: string): number {
+  const next = generationOf(generations, docId) + 1
   generations.set(docId, next)
   return next
 }

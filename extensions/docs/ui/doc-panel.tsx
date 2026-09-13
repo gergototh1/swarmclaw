@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import type { Rpc } from './api'
 import { errorText, readTree } from './api'
 import { Editor, flushAllEditors } from './editor'
+import { failedEdits } from './doc-store'
 import { subPathForDoc } from './doc-route'
 
 /**
@@ -32,6 +33,8 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
 }) {
   const [titles, setTitles] = useState<Set<string>>(new Set())
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  /** Why "Open in Docs" stayed, when the reason is not on the panel's own editor. */
+  const [leaveError, setLeaveError] = useState<string | null>(null)
 
   useEffect(() => {
     rpc('tree')
@@ -52,16 +55,38 @@ export function DocPanel({ rpc, refId, onClose, extensionId, headerSlot }: {
             // page, and its editor, where they are.
             if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
             // This link is a full page load, and the `pagehide` flush can be cut
-            // off by it: save what is pending first, then go.
+            // off by it: save what is pending first, then go -- but only when
+            // every save landed. A failed one is kept in module memory, which
+            // the page load would wipe. The panel's own doc is on screen, so
+            // its editor already shows that failure; one for another doc is
+            // said here.
             e.preventDefault()
-            const go = () => window.location.assign(docsHref)
-            void flushAllEditors().then(go, go)
+            setLeaveError(null)
+            void flushAllEditors().then(
+              (landed) => {
+                if (landed) {
+                  window.location.assign(docsHref)
+                  return
+                }
+                if ([...failedEdits.keys()].some((docId) => docId !== refId)) {
+                  setLeaveError('An edit in another open doc could not be saved, so Docs was not opened.')
+                } else if (failedEdits.has(refId)) {
+                  // Only while this doc was not on screen, e.g. a save out when the
+                  // trash button was pressed: the editor is not showing it.
+                  setLeaveError('An earlier edit to this doc could not be saved, so Docs was not opened.')
+                }
+              },
+              (err: unknown) => {
+                setLeaveError(`Pending edits could not be saved, so Docs was not opened: ${err instanceof Error ? err.message : String(err)}`)
+              },
+            )
           }}
         >
           Open in Docs
         </a>,
         headerSlot,
       )}
+      {leaveError && <p className="docs-error" role="alert">{leaveError}</p>}
       {deleteError && <p className="docs-error" role="alert">{deleteError}</p>}
       <Editor
         rpc={rpc}
