@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { setFrameActive } from '@/lib/app/frame-active'
 import { sidebarOpenForNavigate } from '@/lib/app/panel-intent'
 import { tabIdFromWindow } from '@/lib/app/shell-mode'
 import { runTabFlushHandlers } from '@/lib/app/tab-flush'
@@ -116,12 +117,25 @@ export function TabFrameBridge({ tabId }: { tabId: string }) {
         router.push(message.href)
         return
       }
+      if (message.type === 'active') {
+        setFrameActive(message.active)
+        // CSS has no way to ask the host, so the flag rides on the root element:
+        // `globals.css` pauses animations under it.
+        document.documentElement.toggleAttribute('data-tab-inactive', !message.active)
+        return
+      }
       void runTabFlushHandlers().then((ok) => {
         postToHost({ source: 'sc-tab', type: 'flushed', tabId, requestId: message.requestId, ok })
       })
     }
     window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
+    return () => {
+      window.removeEventListener('message', onMessage)
+      // This bridge only mounts in tab mode; on unmount (tab mode turned off,
+      // or a hot reload) the frame must not stay marked inactive forever.
+      setFrameActive(true)
+      document.documentElement.removeAttribute('data-tab-inactive')
+    }
   }, [router, tabId])
 
   return null

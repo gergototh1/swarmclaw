@@ -115,6 +115,8 @@ export type PanelIntent = (typeof PANEL_INTENTS)[number]
 const hostMessageSchema = z.discriminatedUnion('type', [
   z.object({ source: z.literal('sc-host'), type: z.literal('navigate'), href: appUrl, panel: z.enum(PANEL_INTENTS).optional() }),
   z.object({ source: z.literal('sc-host'), type: z.literal('flush'), requestId: z.string().min(1) }),
+  // The host is the only thing that knows which tab is on screen, so it tells each frame.
+  z.object({ source: z.literal('sc-host'), type: z.literal('active'), active: z.boolean() }),
 ])
 
 export type HostMessage = z.infer<typeof hostMessageSchema>

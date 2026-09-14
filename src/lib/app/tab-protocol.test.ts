@@ -101,6 +101,12 @@ describe('parseHostMessage and parseTabCommand', () => {
     const message = { source: 'sc-host', type: 'navigate', href: '/chat?a=1#frag' }
     assert.deepEqual(parseHostMessage(message), message)
   })
+
+  it('accepts an active message and rejects a malformed one', () => {
+    assert.deepEqual(parseHostMessage({ source: 'sc-host', type: 'active', active: false }), { source: 'sc-host', type: 'active', active: false })
+    assert.equal(parseHostMessage({ source: 'sc-host', type: 'active' }), null)
+    assert.equal(parseHostMessage({ source: 'sc-host', type: 'active', active: 'yes' }), null)
+  })
 })
 
 describe('appUrlFromHref', () => {

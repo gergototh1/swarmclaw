@@ -1061,6 +1061,16 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   }
 }
 
+/* A tab the reader is not looking at is still laid out (so its scroll position
+   and layout survive), which means its animations would otherwise keep the
+   compositor busy at the display's refresh rate for every background tab. */
+html[data-tab-inactive] *,
+html[data-tab-inactive] *::before,
+html[data-tab-inactive] *::after {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
 /* Org chart node delegation glow — shadow-only pulse, no size change */
 @keyframes delegation-glow-pulse {
   0%, 100% { opacity: 1; }

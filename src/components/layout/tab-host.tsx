@@ -194,6 +194,18 @@ export function TabHost() {
     for (const frame of mounted) armReadyTimer(frame.id, frame.generation)
   }, [mounted, armReadyTimer])
 
+  // A frame cannot see the strip, so this is the only way it learns it is not
+  // the tab being looked at.
+  useEffect(() => {
+    const activeTabId = state?.activeId
+    if (!activeTabId) return
+    for (const frame of mounted) {
+      const element = frames.current.get(frame.id)
+      if (!element) continue
+      post(element, { source: 'sc-host', type: 'active', active: frame.id === activeTabId })
+    }
+  }, [state?.activeId, mounted])
+
   // A frame that loaded a document other than the one that said it was ready
   // has reloaded itself: it is booting again, so a flush has nothing to ask it
   // and a navigate goes in by reloading it at the new URL, as for a fresh frame.
@@ -270,11 +282,18 @@ export function TabHost() {
       const message = parseFrameMessage(event.data)
       if (!message || !isOwnFrameMessage(event, window.location.origin, message.tabId, frames.current)) return
       switch (message.type) {
-        case 'ready':
+        case 'ready': {
           ready.current.set(message.tabId, frames.current.get(message.tabId)?.contentDocument ?? null)
           clearReadyTimers(readyTimers.current, message.tabId)
           setFailed((current) => withoutId(current, message.tabId))
+          // A frame that boots in the background must learn that immediately,
+          // not wait for the next activation change.
+          const readyFrame = frames.current.get(message.tabId)
+          if (readyFrame) {
+            post(readyFrame, { source: 'sc-host', type: 'active', active: message.tabId === useTabsStore.getState().state?.activeId })
+          }
           return
+        }
         case 'location': apply((s) => setTabUrl(s, message.tabId, message.url)); return
         case 'title': apply((s) => setTabTitle(s, message.tabId, message.text)); return
         case 'open-tab':
