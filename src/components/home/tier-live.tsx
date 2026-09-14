@@ -5,6 +5,7 @@ import { api } from '@/lib/app/api-client'
 import { useAppStore } from '@/stores/use-app-store'
 import { useChatStore } from '@/stores/use-chat-store'
 import { useNavigate } from '@/lib/app/navigation'
+import { usePageActive } from '@/hooks/use-page-active'
 import { tightestCap } from '@/lib/home/mission-budget'
 import { selectUpcomingSchedules } from '@/lib/home/upcoming-schedules'
 import { SectionHeader } from '@/components/ui/section-header'
@@ -34,6 +35,12 @@ export function TierLive() {
   // minute — plenty for a schedule list, since nothing here needs second
   // precision.
   const [now, setNow] = useState(() => Date.now())
+  // Gates both intervals below the same way `useWs` gates its own polling: a
+  // Home tab sitting in the background stops polling `/missions` and stops
+  // ticking the clock, and picks up exactly one fresh read the moment it is
+  // shown again (the effects below re-run on the `isActive` transition, and
+  // the leading call inside each one is that one read).
+  const isActive = usePageActive()
 
   /*
    * Missions have API routes but no store slice, and one section is not reason
@@ -42,6 +49,7 @@ export function TierLive() {
    * on every tick when nothing moved.
    */
   useEffect(() => {
+    if (!isActive) return
     let cancelled = false
     const load = async () => {
       try {
@@ -59,7 +67,7 @@ export function TierLive() {
     void load()
     const timer = setInterval(() => void load(), POLL_MS)
     return () => { cancelled = true; clearInterval(timer) }
-  }, [])
+  }, [isActive])
 
   const runningTasks = useMemo(
     () => Object.values(tasks).filter((t) => t.status === 'running' || t.status === 'queued'),
@@ -79,10 +87,16 @@ export function TierLive() {
    * static line every minute.
    */
   useEffect(() => {
-    if (nothingToShow) return
+    if (nothingToShow || !isActive) return
+    // `async` + `void`, same shape as the missions poll's `load` above: a
+    // direct `setNow(Date.now())` here trips `react-hooks/set-state-in-effect`
+    // (a setState call literally inline in the effect body), same as a
+    // literal `setMissions(...)` would above.
+    const tick = async () => { setNow(Date.now()) }
+    void tick()
     const timer = setInterval(() => setNow(Date.now()), NOW_TICK_MS)
     return () => clearInterval(timer)
-  }, [nothingToShow])
+  }, [nothingToShow, isActive])
 
   if (nothingToShow) {
     return <p className="mb-6 px-1 text-[12px] text-text-3">Nothing running.</p>

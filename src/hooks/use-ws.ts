@@ -100,14 +100,25 @@ export function useWs(topic: string, handler: () => void | Promise<void>, fallba
   // always set by the time that effect's callback can run.
   //
   // A reactivation can call for a refresh for two different reasons: a push
-  // event arrived while inactive (recorded by `onEvent`), or this topic polls
-  // as a fallback and the WS is still disconnected right now — e.g. a
-  // background frame's own socket (see idle-socket.ts) has not reconnected
-  // yet, so no push event could have arrived to be recorded as a miss in the
-  // first place. Both go through the same `onActiveChange` call so at most
-  // one refresh happens either way; a separate direct `runHandler()` call for
-  // the second case (as this used to have, in the fallback effect below)
-  // would double it whenever both are true at once.
+  // event arrived while inactive (recorded by `onEvent`), or the frame's own
+  // socket (see idle-socket.ts) is still disconnected right now, so no push
+  // event could have arrived to be recorded as a miss in the first place.
+  // Both go through the same `onActiveChange` call so at most one refresh
+  // happens either way; a separate direct `runHandler()` call for the second
+  // case (as this used to have, in the fallback effect below) would double it
+  // whenever both are true at once.
+  //
+  // `stale` is not gated on `fallbackMs`: a topic with no fallback interval —
+  // `'extensions'` in chat-area.tsx, `'skills'` in sidebar-rail.tsx, and every
+  // other push-only subscription — otherwise gets no refresh at all after a
+  // background-closed socket reconnects; it would sit stale until the next
+  // push event, which for a page-list or badge topic can be an arbitrarily
+  // long time. `isWsConnected()` reflects this frame's own socket exactly —
+  // idle-socket.ts's `connect`/`disconnect` are `connectWs`/`disconnectWs`
+  // from the same `ws-client.ts` this reads — so no extra plumbing is needed
+  // to ask "was it closed while I was away": right after `becameActive`, the
+  // new socket from `idleSocket.setActive(true)` has not reached `onopen` yet,
+  // so `isWsConnected()` is still false only when it really was closed.
   useEffect(() => {
     if (catchUpRef.current == null) {
       catchUpRef.current = createCatchUp(() => runHandler())
@@ -115,7 +126,7 @@ export function useWs(topic: string, handler: () => void | Promise<void>, fallba
     isActiveRef.current = isActive
     const becameActive = !wasActiveRef.current && isActive
     wasActiveRef.current = isActive
-    const stale = becameActive && !!fallbackMsRef.current && fallbackMsRef.current > 0 && !isWsConnected()
+    const stale = becameActive && !isWsConnected()
     catchUpRef.current.onActiveChange(isActive, stale)
   }, [isActive])
 

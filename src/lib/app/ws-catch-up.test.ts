@@ -60,3 +60,45 @@ describe('createCatchUp', () => {
     assert.equal(runs, 1)
   })
 })
+
+// `useWs` computes `stale` from `isWsConnected()` for every topic now, not
+// only ones with a `fallbackMs` — a topic with no fallback interval (e.g.
+// `'extensions'` in chat-area.tsx) used to get no refresh at all when the
+// frame's own socket (idle-socket.ts) had actually closed while it was away.
+// These name the four cases that decision has to get right, independent of
+// how `stale` itself is computed upstream.
+describe('reactivation refresh: socket state crossed with missed events', () => {
+  it('socket stayed open + events missed → one run', () => {
+    let runs = 0
+    const c = createCatchUp(() => { runs++ })
+    c.onEvent(false)
+    c.onActiveChange(true, false)
+    assert.equal(runs, 1)
+  })
+
+  it('socket closed, no events → one run', () => {
+    let runs = 0
+    const c = createCatchUp(() => { runs++ })
+    c.onActiveChange(true, true)
+    assert.equal(runs, 1)
+  })
+
+  it('socket closed + events missed → one run, not two', () => {
+    let runs = 0
+    const c = createCatchUp(() => { runs++ })
+    c.onEvent(false)
+    c.onActiveChange(true, true)
+    assert.equal(runs, 1)
+  })
+
+  it('frame never went inactive → no extra run', () => {
+    // `useWs` only ever passes `stale: true` on an actual inactive→active
+    // transition (`becameActive`); a frame that was already active, with
+    // nothing missed, gets no run just because `onActiveChange(true, …)` is
+    // called again.
+    let runs = 0
+    const c = createCatchUp(() => { runs++ })
+    c.onActiveChange(true, false)
+    assert.equal(runs, 0)
+  })
+})
