@@ -1063,12 +1063,22 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 
 /* A tab the reader is not looking at is still laid out (so its scroll position
    and layout survive), which means its animations would otherwise keep the
-   compositor busy at the display's refresh rate for every background tab. */
+   compositor busy at the display's refresh rate for every background tab.
+
+   Same shape as the reduced-motion rule above, and deliberately not
+   `animation-play-state: paused`: a paused animation never ends, so it never
+   fires `animationend` — and an exit animation that started just as the tab
+   went into the background would leave `@radix-ui/react-presence` waiting for
+   that event, keeping a dialog or a popover mounted until the tab is looked at
+   again. Collapsing the duration instead finishes the animation immediately:
+   nothing keeps compositing, and everything waiting on the end event still
+   hears it. */
 html[data-tab-inactive] *,
 html[data-tab-inactive] *::before,
 html[data-tab-inactive] *::after {
-  animation-play-state: paused !important;
-  transition: none !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }
 
 /* Org chart node delegation glow — shadow-only pulse, no size change */

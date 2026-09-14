@@ -11,6 +11,12 @@ import { hmrSingleton } from '@/lib/shared-utils'
  *
  * Defaults to active, so a plain window, the host window, and a frame whose
  * host never says anything all behave exactly as before.
+ *
+ * Known gap: an extension page renders in its own nested iframe inside the tab
+ * frame, and nothing forwards either signal into it — it gets no `active`
+ * message and the `data-tab-inactive` attribute is on the tab frame's root
+ * element, not on the nested document. An extension page therefore keeps
+ * animating and polling while its tab sits in the background.
  */
 const state = hmrSingleton('frameActive_state', () => ({
   active: true,

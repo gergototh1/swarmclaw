@@ -61,6 +61,15 @@ describe('parseFrameMessage', () => {
     assert.deepEqual(parseFrameMessage(message), message)
   })
 
+  it('rejects `active`, which only the host is allowed to say', () => {
+    // The host is the one thing that knows which tab is on screen. A frame
+    // claiming it would let one tab tell the host — and through it every other
+    // tab — that it is the active one, switching their polling and sockets back
+    // on from the background.
+    assert.equal(parseFrameMessage({ source: 'sc-tab', type: 'active', active: false }), null)
+    assert.equal(parseFrameMessage({ source: 'sc-tab', type: 'active', active: true, tabId: 't1' }), null)
+  })
+
   it('accepts a flush answer and an open-tab request', () => {
     assert.ok(parseFrameMessage({ source: 'sc-tab', type: 'flushed', tabId: 't1', requestId: 'r1', ok: false }))
     assert.ok(parseFrameMessage({ source: 'sc-tab', type: 'open-tab', tabId: 't1', url: '/x/docs/doc_1', activate: true }))

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { api } from '@/lib/app/api-client'
 import { useAppStore } from '@/stores/use-app-store'
 import { useChatStore } from '@/stores/use-chat-store'
@@ -13,6 +13,20 @@ import type { Mission } from '@/types'
 
 const POLL_MS = 20_000
 const NOW_TICK_MS = 60_000
+
+/**
+ * The wall clock, truncated to the tick.
+ *
+ * Truncating is what makes this readable as a store: every call inside one tick
+ * answers the same number, which is what `useSyncExternalStore` needs from a
+ * snapshot. It also keeps the reads out of render — `Date.now()` there is an
+ * impure read (`react-hooks/purity`) — and out of an effect, where writing it to
+ * state would be a cascading render (`react-hooks/set-state-in-effect`). The
+ * clock is an external system; subscribing to it is what the rule asks for.
+ */
+function readTick(): number {
+  return Math.floor(Date.now() / NOW_TICK_MS) * NOW_TICK_MS
+}
 
 const BAR_TONE: Record<'normal' | 'warn' | 'danger', string> = {
   normal: 'bg-accent-bright',
@@ -30,17 +44,25 @@ export function TierLive() {
 
   const [missions, setMissions] = useState<Mission[]>([])
   const fingerprintRef = useRef<string>('')
-  // `Date.now()` can't be called inside `useMemo` (react-hooks/purity treats
-  // it as an impure read), so "now" lives in state instead and ticks once a
-  // minute — plenty for a schedule list, since nothing here needs second
-  // precision.
-  const [now, setNow] = useState(() => Date.now())
-  // Gates both intervals below the same way `useWs` gates its own polling: a
-  // Home tab sitting in the background stops polling `/missions` and stops
-  // ticking the clock, and picks up exactly one fresh read the moment it is
-  // shown again (the effects below re-run on the `isActive` transition, and
-  // the leading call inside each one is that one read).
+  // Gates the mission poll and the clock the same way `useWs` gates its own
+  // polling: a Home tab sitting in the background stops polling `/missions` and
+  // stops ticking, and picks both up the moment it is shown again — the poll
+  // because its effect re-runs on the transition, the clock because
+  // re-subscribing re-reads the snapshot.
   const isActive = usePageActive()
+
+  // A minute is plenty for a schedule list; nothing here needs second
+  // precision. While the tab is in the background nothing ticks at all, and a
+  // reactivation reads the current time rather than waiting out a tick.
+  // Being on screen is the whole gate: an idle Home ticks too, which costs one
+  // re-render of one line a minute and earns a schedule that crosses into the
+  // 24-hour window showing up on its own.
+  const subscribeTick = useCallback((onTick: () => void) => {
+    if (!isActive) return () => {}
+    const timer = setInterval(onTick, NOW_TICK_MS)
+    return () => clearInterval(timer)
+  }, [isActive])
+  const now = useSyncExternalStore(subscribeTick, readTick, readTick)
 
   /*
    * Missions have API routes but no store slice, and one section is not reason
@@ -79,24 +101,6 @@ export function TierLive() {
   const streamingSession = streamingSessionId ? sessions[streamingSessionId] : null
   const nothingRunning = missions.length === 0 && runningTasks.length === 0 && !streamingSession
   const nothingToShow = nothingRunning && upcoming.length === 0
-
-  /*
-   * A completely idle home has nothing that a minute-old `now` would change --
-   * no upcoming schedule to drop off, no "Nothing running." line that depends
-   * on the clock. Skip the tick entirely rather than re-rendering the same
-   * static line every minute.
-   */
-  useEffect(() => {
-    if (nothingToShow || !isActive) return
-    // `async` + `void`, same shape as the missions poll's `load` above: a
-    // direct `setNow(Date.now())` here trips `react-hooks/set-state-in-effect`
-    // (a setState call literally inline in the effect body), same as a
-    // literal `setMissions(...)` would above.
-    const tick = async () => { setNow(Date.now()) }
-    void tick()
-    const timer = setInterval(() => setNow(Date.now()), NOW_TICK_MS)
-    return () => clearInterval(timer)
-  }, [nothingToShow, isActive])
 
   if (nothingToShow) {
     return <p className="mb-6 px-1 text-[12px] text-text-3">Nothing running.</p>
