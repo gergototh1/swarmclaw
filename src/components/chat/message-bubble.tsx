@@ -562,6 +562,15 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
   // paragraph counter that must reset once per "assignment pass"; useMemo (not useCallback)
   // recreates that counter exactly when liveInlineToolMedia/handleOpenToolMediaImage change,
   // which is exactly when the counter needs to restart from zero.
+  //
+  // The invariant this rests on: because the blocks are memoized, a re-render only
+  // walks the paragraphs of the blocks that actually changed, so a counter that was
+  // NOT reset would number them from wherever the last pass left off. It stays
+  // correct only because `liveInlineToolMedia` takes a fresh identity whenever
+  // `normalizedDisplayText` changes (it is derived from it), which resets the
+  // counter in the same render in which any block can have changed. Break that
+  // derivation — memoize liveInlineToolMedia on something coarser, say — and the
+  // images silently attach to the wrong paragraphs mid-stream.
   const renderMessageParagraph = useMemo(() => {
     let liveInlineToolMediaIndex = 0
     return function renderMessageParagraphImpl(node: unknown, children: ReactNode) {

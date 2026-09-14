@@ -149,8 +149,6 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
         </details>
       ) : (
         <div className="border border-line-subtle bg-layer-1 rounded-md px-6 py-5 relative overflow-hidden">
-          {/* Thinking glow effect */}
-          
           <div className="flex items-center gap-3 relative z-10">
             <div className="flex gap-2">
               <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={dotAnimation()} />
