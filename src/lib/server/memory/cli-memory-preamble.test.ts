@@ -395,3 +395,82 @@ describe('buildCliMemoryPreamble separates rules from background', () => {
     assert.ok(out.preamble!.includes('Nyelvi preferencia'), out.preamble!)
   })
 })
+
+/*
+ * A pontosan illeszkedő memória kiesett a laza találatok közül.
+ *
+ * A preambulum `ftsMode: 'any'`-vel keresett, ami egy hosszú, természetes
+ * mondatból OR-kérdést csinál: minden szó külön találat. Egy 350 bejegyzéses
+ * tárban ez betölti az 50-es eredménykorlátot lazán kapcsolódó sorokkal, és a
+ * ténylegesen keresett bejegyzés ki sem fér.
+ *
+ * ÉLESBEN MÉRVE (2026-09-14, csomagolt build, adatmásolat, 351 memória):
+ *   "Kreatív angol app port repo"           ftsMode=all  → 3 találat, rank 0
+ *   "Kreatív angol app port repo"           ftsMode=any  → 50 találat, rank -1
+ *   "Hol fut a Kreatív angol app és hol..." ftsMode=any  → 50 találat, rank -1
+ *
+ * Tehát az 'any' nem bővítette a felidézést, hanem elfojtotta. A szigorú
+ * kérdés megy előre, az 'any' csak akkor egészíti ki, ha kevés a találat --
+ * így a rövid kérdések sem veszítenek.
+ */
+describe('buildCliMemoryPreamble prefers a precise match over loose noise', () => {
+  const NOISE_AGENT = 'cli-preamble-noise-agent'
+
+  it('surfaces the entry that matches every term, even among many loose matches', () => {
+    const db = memDb.getMemoryDb()
+    // Zaj: minden sor illeszkedik a kérdés KÉT szavára, egyik sem az összesre.
+    // Ennyi kell, hogy az 'any' kérdés betöltse az 50-es eredménykorlátot, ami
+    // az élő tárban (351 memória) magától adódik.
+    for (let i = 0; i < 200; i++) {
+      db.add({
+        agentId: NOISE_AGENT,
+        category: 'knowledge/facts',
+        title: `Zajos jegyzet ${i}`,
+        content: i % 2 === 0
+          ? `Hol van a repo és hol fut a szolgáltatás, sorszám ${i}.`
+          : `Hol fut az app és hol van a naplója, sorszám ${i}.`,
+      })
+    }
+    db.add({
+      agentId: NOISE_AGENT,
+      category: 'knowledge/dev-environment',
+      title: 'Kreatív angol app — port és repo helye',
+      content: 'A Kreatív angol app a localhost:8765 porton fut, a repo a ~/DEV/kreativ-angol mappában van.',
+      importance: 7,
+    })
+
+    const out = mod.buildCliMemoryPreamble({
+      session: { id: 'n1', agentId: NOISE_AGENT },
+      agent: { id: NOISE_AGENT, tools: ['memory'], proactiveMemory: true },
+      message: 'Hol fut a Kreatív angol app és hol van a repo?',
+    })
+
+    assert.ok(out.preamble, 'expected a preamble')
+    assert.ok(
+      out.preamble!.includes('Kreatív angol app'),
+      `the precise match must win over loose ones:\n${out.preamble}`,
+    )
+  })
+
+  it('still recalls on a short question, where only a loose match can hit', () => {
+    // A szigorú kérdés önmagában nem elég: egy rövid kérdésre az 'all' gyakran
+    // semmit nem ad, ezért a kiegészítés nem eshet ki.
+    const db = memDb.getMemoryDb()
+    const agentId = 'cli-preamble-short-agent'
+    db.add({
+      agentId,
+      category: 'knowledge/facts',
+      title: 'Billingo számlázás',
+      content: 'A számlákat a Billingo API-n keresztül állítjuk ki, a kulcs a secrets között van.',
+    })
+
+    const out = mod.buildCliMemoryPreamble({
+      session: { id: 'n2', agentId },
+      agent: { id: agentId, tools: ['memory'], proactiveMemory: true },
+      message: 'Mit tudsz a Billingo számlázásról egyébként?',
+    })
+
+    assert.ok(out.preamble, 'expected a preamble')
+    assert.ok(out.preamble!.includes('Billingo'), out.preamble!)
+  })
+})

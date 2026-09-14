@@ -225,17 +225,43 @@ export function buildCliMemoryPreamble(input: CliMemoryPreambleInput): CliMemory
   const trimmed = message.trim()
   let hits: MemoryEntry[] = []
   if (trimmed.length >= MIN_QUERY_CHARS) {
-    try {
-      const lookup = memDb.searchWithLinked(
-        trimmed.slice(0, MAX_QUERY_CHARS),
-        agentId,
-        LINK_HOPS,
-        MAX_LINKED_LOOKUP,
-        MAX_LINKED_EXPANSION,
-        { scope, ftsMode: 'any' },
-      )
-      hits = filterMemoriesByScope(lookup.entries, scope)
-    } catch { /* recall is best-effort — a failed search must not fail the turn */ }
+    const query = trimmed.slice(0, MAX_QUERY_CHARS)
+    const lookup = (ftsMode: 'all' | 'any'): MemoryEntry[] => {
+      try {
+        const result = memDb.searchWithLinked(
+          query,
+          agentId,
+          LINK_HOPS,
+          MAX_LINKED_LOOKUP,
+          MAX_LINKED_EXPANSION,
+          { scope, ftsMode },
+        )
+        return filterMemoriesByScope(result.entries, scope)
+      } catch {
+        // Recall is best-effort — a failed search must not fail the turn.
+        return []
+      }
+    }
+
+    // Strict first, loose only to top up.
+    //
+    // `any` turns a natural-language question into an OR over every word, and
+    // in a store of any size that fills the result cap with rows matching one
+    // word each -- the entry matching ALL of them never makes the cut. Measured
+    // on the live store (351 memories): "Kreatív angol app port repo" ranked
+    // first under `all` and did not appear at all under `any`. But `all` alone
+    // is too strict for a short question, so the loose pass still runs when the
+    // strict one leaves the reserve unfilled.
+    hits = lookup('all')
+    if (hits.length < RELEVANCE_RESERVE) {
+      const seen = new Set(hits.map((entry) => entry.id))
+      for (const entry of lookup('any')) {
+        if (entry?.id && !seen.has(entry.id)) {
+          seen.add(entry.id)
+          hits.push(entry)
+        }
+      }
+    }
   }
   for (const entry of hits) take(entry, Math.min(RELEVANCE_RESERVE, limit))
 

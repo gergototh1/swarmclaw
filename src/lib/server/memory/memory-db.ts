@@ -263,7 +263,10 @@ export function filterMemoriesByScope(entries: MemoryEntry[], scope?: MemoryScop
 
   if (mode === 'agent') {
     if (!agentId) return []
-    return entries.filter((entry) => scopeAllowsAgentAccess(entry, agentId))
+    // An unowned row is a GLOBAL memory, which belongs to everyone -- the same
+    // reading `auto` already applies below. Without this, `scope: "global"`
+    // wrote a memory that no agent-scoped read could ever return.
+    return entries.filter((entry) => !entry.agentId || scopeAllowsAgentAccess(entry, agentId))
   }
 
   if (mode === 'session') {
@@ -790,32 +793,58 @@ function initDb() {
     },
     listAll: db.prepare(`SELECT * FROM memories ORDER BY updatedAt DESC LIMIT ?`),
     listByAgent: db.prepare(`SELECT * FROM memories WHERE agentId=? ORDER BY updatedAt DESC LIMIT ?`),
-    listByAgentOrShared: db.prepare(`SELECT * FROM memories WHERE agentId=? OR sharedWith LIKE ? OR sharedWith IN ('global','all','*') ORDER BY updatedAt DESC LIMIT ?`),
+    /*
+     * `agentId IS NULL` is a GLOBAL memory, not an orphan.
+     *
+     * `memory_store` with `scope: "global"` deliberately writes a null owner
+     * (session-tools/memory.ts), and `filterMemoriesByScope` already treats an
+     * unowned row as visible to everyone. These pre-filters did not, so a
+     * global write was confirmed to the agent and then never returned to
+     * anybody -- the same silent-success shape this whole area suffers from.
+     */
+    listByAgentOrShared: db.prepare(`SELECT * FROM memories WHERE agentId=? OR agentId IS NULL OR sharedWith LIKE ? OR sharedWith IN ('global','all','*') ORDER BY updatedAt DESC LIMIT ?`),
     listByCategoryAll: db.prepare(`SELECT * FROM memories WHERE category=? ORDER BY updatedAt DESC LIMIT ?`),
-    listByCategoryAgentOrShared: db.prepare(`SELECT * FROM memories WHERE category=? AND (agentId=? OR sharedWith LIKE ? OR sharedWith IN ('global','all','*')) ORDER BY updatedAt DESC LIMIT ?`),
+    listByCategoryAgentOrShared: db.prepare(`SELECT * FROM memories WHERE category=? AND (agentId=? OR agentId IS NULL OR sharedWith LIKE ? OR sharedWith IN ('global','all','*')) ORDER BY updatedAt DESC LIMIT ?`),
     listKnowledgeSourceChunks: db.prepare(`
       SELECT * FROM memories
       WHERE category='knowledge' AND json_extract(metadata, '$.sourceId') = ?
       ORDER BY COALESCE(json_extract(metadata, '$.chunkIndex'), 0) ASC, createdAt ASC
     `),
-    listPinnedByAgent: db.prepare(`SELECT * FROM memories WHERE pinned = 1 AND agentId = ? ORDER BY updatedAt DESC LIMIT ?`),
+    listPinnedByAgent: db.prepare(`SELECT * FROM memories WHERE pinned = 1 AND (agentId = ? OR agentId IS NULL) ORDER BY updatedAt DESC LIMIT ?`),
     listPinnedAll: db.prepare(`SELECT * FROM memories WHERE pinned = 1 ORDER BY updatedAt DESC LIMIT ?`),
+    /*
+     * ORDER BY bm25 BEFORE the LIMIT.
+     *
+     * These used to cap at `MAX_FTS_RESULT_ROWS` with no ordering at all, so
+     * SQLite returned an arbitrary (rowid-ordered) slice and everything that
+     * ranks the results -- semantic similarity, recency, importance -- only ever
+     * saw that slice. An `any` query ORs every word of a question, so in a store
+     * of a few hundred rows the cap fills with one-word matches and the entry
+     * matching every term is cut before anything scores it. Worse, rowid order
+     * means the NEWEST memory is the first to be dropped.
+     *
+     * Measured on the live store (351 memories): the target ranked first under
+     * `all` and was absent entirely under `any`.
+     */
     search: db.prepare(`
       SELECT m.* FROM memories m
       INNER JOIN memories_fts f ON m.rowid = f.rowid
       WHERE memories_fts MATCH ?
+      ORDER BY bm25(memories_fts)
       LIMIT ${MAX_FTS_RESULT_ROWS}
     `),
     searchByAgent: db.prepare(`
       SELECT m.* FROM memories m
       INNER JOIN memories_fts f ON m.rowid = f.rowid
       WHERE memories_fts MATCH ? AND m.agentId = ?
+      ORDER BY bm25(memories_fts)
       LIMIT ${MAX_FTS_RESULT_ROWS}
     `),
     searchByAgentOrShared: db.prepare(`
       SELECT m.* FROM memories m
       INNER JOIN memories_fts f ON m.rowid = f.rowid
-      WHERE memories_fts MATCH ? AND (m.agentId = ? OR m.sharedWith LIKE ? OR m.sharedWith IN ('global','all','*'))
+      WHERE memories_fts MATCH ? AND (m.agentId = ? OR m.agentId IS NULL OR m.sharedWith LIKE ? OR m.sharedWith IN ('global','all','*'))
+      ORDER BY bm25(memories_fts)
       LIMIT ${MAX_FTS_RESULT_ROWS}
     `),
     // Remove a linked ID from all memories that reference it (cleanup on delete)
@@ -926,7 +955,7 @@ function initDb() {
     `SELECT * FROM memories WHERE embedding IS NOT NULL`
   )
   const getAllWithEmbeddingsByAgentOrShared = db.prepare(
-    `SELECT * FROM memories WHERE embedding IS NOT NULL AND (agentId = ? OR sharedWith LIKE ?)`
+    `SELECT * FROM memories WHERE embedding IS NOT NULL AND (agentId = ? OR agentId IS NULL OR sharedWith LIKE ?)`
   )
 
   return {
@@ -1433,7 +1462,7 @@ function initDb() {
       const safeLimit = Math.max(1, Math.min(500, Math.trunc(limit)))
       const rows = db.prepare(
         `SELECT id, content, embedding FROM memories
-         WHERE (agentId = ? OR sharedWith LIKE ?)
+         WHERE (agentId = ? OR agentId IS NULL OR sharedWith LIKE ?)
            AND category LIKE 'reflection/%'
            AND updatedAt >= ?
          ORDER BY updatedAt DESC LIMIT ?`,

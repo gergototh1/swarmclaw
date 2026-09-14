@@ -475,6 +475,72 @@ describe('memory-db', () => {
     })
   })
 
+  /*
+   * Globális memória: mindenkié, tehát senki nem éri el.
+   *
+   * A `memory_store` sémája kínálja a `scope: "global"` értéket, és az író
+   * ügynök ésszerűen választja egy géptől független tényre. A tárolás ekkor
+   * `agentId: null`-t ír (memory.ts: `scopeMode === 'global' ? null :
+   * currentAgentId`), a lekérdezések viszont `agentId = ? OR sharedWith LIKE ?`
+   * alakúak -- amire a NULL soha nem illeszkedik.
+   *
+   * Az eredmény pontosan az a hibaosztály, amit ez a kör javít: az írás
+   * sikeresnek jelenik meg, az ügynök vissza is mondja az azonosítót, és a
+   * bejegyzés örökre elérhetetlen marad. ÉLES MÉRÉS (2026-09-14, csomagolt
+   * build, adatmásolat): a Sidekick `scope:"global"`-lal mentette a "Kreatív
+   * angol app ... localhost:8765" tényt, `importance: 7`-tel, és a következő
+   * felidézés nem hozta elő.
+   *
+   * A `filterMemoriesByScope` egyébként már látónak tekinti a gazdátlan sort
+   * (`!m.agentId || m.agentId === currentAgentId`); csak az SQL elő-szűrő ejti.
+   */
+  describe('global memories', () => {
+    it('returns a global memory to the agent that searches', () => {
+      const db = memDb.getMemoryDb()
+      const agentId = `global-search-${Date.now()}`
+      db.add({
+        agentId: null,
+        category: 'knowledge/dev-environment',
+        title: 'Kreatív angol app helye',
+        content: 'A Kreatív angol app a localhost:8765 porton fut, a repo ~/DEV/kreativ-angol.',
+        importance: 7,
+      })
+      const hits = db.search('kreatív angol localhost', agentId)
+      assert.ok(
+        hits.some((m) => m.title === 'Kreatív angol app helye'),
+        'a memory owned by nobody must still be searchable by everybody',
+      )
+    })
+
+    it('lists a global memory for the agent', () => {
+      const db = memDb.getMemoryDb()
+      const agentId = `global-list-${Date.now()}`
+      db.add({
+        agentId: null,
+        category: 'knowledge/facts',
+        title: 'Globális tény listához',
+        content: 'Ez a tény nem egyetlen ügynöké.',
+      })
+      const listed = db.list(agentId, 200)
+      assert.ok(listed.some((m) => m.title === 'Globális tény listához'))
+    })
+
+    it('still keeps another agent\'s private memory out', () => {
+      // A gazdátlan sor látható mindenkinek; a MÁSIK ügynöké nem.
+      const db = memDb.getMemoryDb()
+      const owner = `global-owner-${Date.now()}`
+      const stranger = `global-stranger-${Date.now()}`
+      db.add({
+        agentId: owner,
+        category: 'knowledge/facts',
+        title: 'Privát tény idegennek',
+        content: 'Ezt csak a tulajdonos ügynök láthatja.',
+      })
+      const listed = db.list(stranger, 200)
+      assert.equal(listed.some((m) => m.title === 'Privát tény idegennek'), false)
+    })
+  })
+
   describe('defaultImportanceForCategory', () => {
     it('ranks who the user is and what they asked for above everything else', () => {
       const identity = memDb.defaultImportanceForCategory('identity/owner', false)
