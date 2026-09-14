@@ -615,20 +615,34 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
     updateScrollState()
   }, [hasLiveArtifacts, messages.length, updateScrollState])
 
-  // Re-snap when content resizes during snap window (lazy images increasing scrollHeight)
+  // Re-snap when content resizes during snap window (lazy images increasing scrollHeight).
+  //
+  // While a run streams, this fires many times a second — every chunk of text and
+  // every new tool row resizes the content. Reading `scrollHeight` right before
+  // writing `scrollTop` forces a synchronous layout each time, so the write is
+  // coalesced to one per animation frame; the reader cannot see more than that
+  // anyway, and the scroll still lands on the final height of the frame.
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
     const content = el.firstElementChild as HTMLElement | null
     if (!content) return
 
+    let frame: number | null = null
     const observer = new ResizeObserver(() => {
-      if (Date.now() < snapUntilRef.current || wasAtBottomRef.current) {
-        el.scrollTop = el.scrollHeight
-      }
+      if (frame !== null) return
+      frame = window.requestAnimationFrame(() => {
+        frame = null
+        if (Date.now() < snapUntilRef.current || wasAtBottomRef.current) {
+          el.scrollTop = el.scrollHeight
+        }
+      })
     })
     observer.observe(content)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      if (frame !== null) window.cancelAnimationFrame(frame)
+    }
   }, [sessionId])
 
   const handleScrollToBottom = useCallback(() => {
