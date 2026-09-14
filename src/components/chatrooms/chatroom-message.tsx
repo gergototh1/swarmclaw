@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { useNow } from '@/hooks/use-now'
 import { ReactionPicker } from './reaction-picker'
@@ -107,6 +107,46 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
   const [showModMenu, setShowModMenu] = useState(false)
   const userAvatarSeed = useAppStore((s) => s.appSettings.userAvatarSeed)
   const wide = isStructuredMarkdown(message.text)
+
+  // Stable render props for MarkdownBody: per-block memoization (see markdown-body.tsx)
+  // only skips re-parsing a block when every prop passed to it keeps the same identity
+  // across renders.
+  const renderChatroomLink = useCallback((href: string, children: ReactNode) => {
+    // Agent mention links (recognized agents — hover card)
+    if (href.startsWith('#agent:')) {
+      const agentId = href.replace('#agent:', '')
+      const mentionAgent = agents[agentId]
+      if (mentionAgent) {
+        return (
+          <AgentHoverCard agent={mentionAgent}>
+            <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded-xs hover:underline cursor-pointer">
+              {children}
+            </span>
+          </AgentHoverCard>
+        )
+      }
+      return (
+        <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded-xs">
+          {children}
+        </span>
+      )
+    }
+    // Unrecognized @mention — styled but not clickable
+    if (href.startsWith('#mention:')) {
+      return (
+        <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded-xs">
+          {children}
+        </span>
+      )
+    }
+    return null // fall through to default handling
+  }, [agents])
+
+  const renderChatroomInlineCode = useCallback((_text: string, children: ReactNode) => (
+    <code className="px-1 py-0.5 rounded-xs bg-layer-3 text-[12px] font-mono text-accent-bright/90">
+      {children}
+    </code>
+  ), [])
 
   // System event messages (join/leave)
   if (message.senderId === 'system') {
@@ -232,41 +272,8 @@ export function ChatroomMessageBubble({ message, agents, onToggleReaction, onRep
         <div className={`text-[13px] text-text leading-[1.5] break-words chatroom-prose ${wide ? 'max-w-[92%]' : 'max-w-[85%]'}`}>
           <MarkdownBody
             text={processedText}
-            renderLink={(href, children) => {
-              // Agent mention links (recognized agents — hover card)
-              if (href.startsWith('#agent:')) {
-                const agentId = href.replace('#agent:', '')
-                const mentionAgent = agents[agentId]
-                if (mentionAgent) {
-                  return (
-                    <AgentHoverCard agent={mentionAgent}>
-                      <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded-xs hover:underline cursor-pointer">
-                        {children}
-                      </span>
-                    </AgentHoverCard>
-                  )
-                }
-                return (
-                  <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded-xs">
-                    {children}
-                  </span>
-                )
-              }
-              // Unrecognized @mention — styled but not clickable
-              if (href.startsWith('#mention:')) {
-                return (
-                  <span className="text-accent-bright font-600 bg-accent-soft/40 px-0.5 rounded-xs">
-                    {children}
-                  </span>
-                )
-              }
-              return null // fall through to default handling
-            }}
-            renderInlineCode={(_text, children) => (
-              <code className="px-1 py-0.5 rounded-xs bg-layer-3 text-[12px] font-mono text-accent-bright/90">
-                {children}
-              </code>
-            )}
+            renderLink={renderChatroomLink}
+            renderInlineCode={renderChatroomInlineCode}
           />
         </div>
 

@@ -1,10 +1,11 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { memo, useMemo, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { CodeBlock } from '@/components/chat/code-block'
+import { splitMarkdownBlocks } from '@/lib/chat/markdown-blocks'
 
 export interface MarkdownBodyProps {
   text: string
@@ -18,7 +19,7 @@ export interface MarkdownBodyProps {
   skipMediaUrls?: Set<string>
 }
 
-export function MarkdownBody({
+const MarkdownBlock = memo(function MarkdownBlock({
   text,
   renderLink,
   renderInlineCode,
@@ -111,5 +112,23 @@ export function MarkdownBody({
     >
       {text}
     </ReactMarkdown>
+  )
+})
+
+/**
+ * One memoized renderer per markdown block.
+ *
+ * While a message streams, only its last block changes; the blocks before it are
+ * identical strings, so `memo` skips re-parsing and re-highlighting them. The
+ * render props must be stable for that to hold — see `message-bubble.tsx`.
+ */
+export function MarkdownBody(props: MarkdownBodyProps) {
+  const blocks = useMemo(() => splitMarkdownBlocks(props.text), [props.text])
+  return (
+    <>
+      {blocks.map((block, index) => (
+        <MarkdownBlock key={index} {...props} text={block} />
+      ))}
+    </>
   )
 }

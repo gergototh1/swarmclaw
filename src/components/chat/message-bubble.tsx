@@ -1,6 +1,6 @@
 'use client'
 
-import { isValidElement, memo, useState, useCallback, useMemo } from 'react'
+import { isValidElement, memo, useState, useCallback, useMemo, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -556,6 +556,138 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
     setPreviewContent({ type: 'image', url, title: name })
   }, [setPreviewContent])
 
+  // Stable render props for MarkdownBody: per-block memoization (see markdown-body.tsx)
+  // only skips re-parsing a block when every prop passed to it — including these — keeps
+  // the same identity across renders. `renderMessageParagraph` closes over a mutable
+  // paragraph counter that must reset once per "assignment pass"; useMemo (not useCallback)
+  // recreates that counter exactly when liveInlineToolMedia/handleOpenToolMediaImage change,
+  // which is exactly when the counter needs to restart from zero.
+  const renderMessageParagraph = useMemo(() => {
+    let liveInlineToolMediaIndex = 0
+    return function renderMessageParagraphImpl(node: unknown, children: ReactNode) {
+      const previews = collectInlinePreviewLinks(node)
+      const streamedInlineMedia = previews.length === 0
+        ? liveInlineToolMedia?.[liveInlineToolMediaIndex++] ?? null
+        : null
+      if (previews.length === 0 && !streamedInlineMedia) return null // use default <p>
+      return (
+        <>
+          <p>{children}</p>
+          <div className="mt-3 mb-1 flex flex-col gap-3">
+            {previews.map((preview) => (
+              <span key={`${preview.type}:${preview.href}`} className="block max-w-full">
+                {preview.type === 'image' && (
+                  <a href={preview.href} download target="_blank" rel="noopener noreferrer" className="block max-w-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={preview.href}
+                      alt={preview.label}
+                      loading="lazy"
+                      className="max-w-[400px] rounded-sm border border-line-default hover:border-line-strong transition-colors"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                    />
+                  </a>
+                )}
+                {preview.type === 'video' && (
+                  <video src={preview.href} controls playsInline preload="none" className="max-w-full rounded-sm border border-line-default" />
+                )}
+                {preview.type === 'pdf' && (
+                  <span className="block w-full max-w-[520px] overflow-hidden rounded-sm border border-line-default">
+                    <iframe src={preview.href} loading="lazy" className="h-[360px] w-full bg-white" title={preview.label} />
+                  </span>
+                )}
+              </span>
+            ))}
+            {streamedInlineMedia && renderToolMediaEntry(
+              streamedInlineMedia,
+              `inline-tool-media-${liveInlineToolMediaIndex}-${streamedInlineMedia.url}`,
+              handleOpenToolMediaImage,
+            )}
+          </div>
+        </>
+      )
+    }
+  }, [liveInlineToolMedia, handleOpenToolMediaImage])
+
+  const renderMessageInlineCode = useCallback((text: string) => {
+    if (text && (FILE_PATH_RE.test(text) || (DIR_PATH_RE.test(text) && text.split('/').length > 2))) {
+      return <FilePathChip filePath={text.replace(/\/$/, '')} cwd={cwd} />
+    }
+    return null
+  }, [cwd])
+
+  const renderMessageLink = useCallback((href: string, children: ReactNode) => {
+    // Internal app links: #task:<id>
+    const taskMatch = href.match(/^#task:(.+)$/)
+    if (taskMatch) {
+      return (
+        <button
+          type="button"
+          onClick={async () => {
+            const store = useAppStore.getState()
+            await store.loadTasks(true)
+            store.setTaskSheetViewOnly(true)
+            store.setEditingTaskId(taskMatch[1])
+            store.setTaskSheetOpen(true)
+          }}
+          className="inline-flex items-center gap-1 text-purple-400 hover:text-purple-300 underline cursor-pointer bg-transparent border-none p-0 font-inherit text-inherit"
+        >
+          {children}
+        </button>
+      )
+    }
+    // #schedule:<id>
+    const schedMatch = href.match(/^#schedule:(.+)$/)
+    if (schedMatch) {
+      return (
+        <button
+          type="button"
+          onClick={async () => {
+            const store = useAppStore.getState()
+            await store.loadSchedules()
+            store.setEditingScheduleId(schedMatch[1])
+            store.setScheduleSheetOpen(true)
+          }}
+          className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 underline cursor-pointer bg-transparent border-none p-0 font-inherit text-inherit"
+        >
+          {children}
+        </button>
+      )
+    }
+    // Upload links (agent chat has richer handling than default)
+    const isUpload = href.startsWith('/api/uploads/')
+    if (isUpload) {
+      const uploadPath = href.split('?')[0]
+      const uploadIsHtml = /\.(html?)$/i.test(uploadPath)
+      return (
+        <span className="inline-flex items-center gap-1.5">
+          <a href={href} download className="inline-flex items-center gap-1.5 text-sky-400 hover:text-sky-300 underline">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {children}
+          </a>
+          {uploadIsHtml && (
+            <a href={href} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-accent-soft hover:bg-accent-soft/80 text-accent-bright text-[10px] font-600 no-underline transition-colors"
+              title="Preview in new tab">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              Preview
+            </a>
+          )}
+        </span>
+      )
+    }
+    return null // fall through to MarkdownBody defaults
+  }, [])
+
+  const messageSkipMediaUrls = useMemo(() => toolEventMediaUrls || undefined, [toolEventMediaUrls])
+
   const handleCopy = useCallback(() => {
     void copyTextToClipboard(copySourceText).then((copiedText) => {
       if (!copiedText) return
@@ -879,133 +1011,13 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
                 )}
               </div>
             )}
-            {(() => {
-              let liveInlineToolMediaIndex = 0
-              return (
-                <MarkdownBody
-                  text={normalizedDisplayText}
-                  skipMediaUrls={toolEventMediaUrls || undefined}
-                  renderParagraph={(node, children) => {
-                    const previews = collectInlinePreviewLinks(node)
-                    const streamedInlineMedia = previews.length === 0
-                      ? liveInlineToolMedia?.[liveInlineToolMediaIndex++] ?? null
-                      : null
-                    if (previews.length === 0 && !streamedInlineMedia) return null // use default <p>
-                    return (
-                      <>
-                        <p>{children}</p>
-                        <div className="mt-3 mb-1 flex flex-col gap-3">
-                          {previews.map((preview) => (
-                            <span key={`${preview.type}:${preview.href}`} className="block max-w-full">
-                              {preview.type === 'image' && (
-                                <a href={preview.href} download target="_blank" rel="noopener noreferrer" className="block max-w-full">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={preview.href}
-                                    alt={preview.label}
-                                    loading="lazy"
-                                    className="max-w-[400px] rounded-sm border border-line-default hover:border-line-strong transition-colors"
-                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                                  />
-                                </a>
-                              )}
-                              {preview.type === 'video' && (
-                                <video src={preview.href} controls playsInline preload="none" className="max-w-full rounded-sm border border-line-default" />
-                              )}
-                              {preview.type === 'pdf' && (
-                                <span className="block w-full max-w-[520px] overflow-hidden rounded-sm border border-line-default">
-                                  <iframe src={preview.href} loading="lazy" className="h-[360px] w-full bg-white" title={preview.label} />
-                                </span>
-                              )}
-                            </span>
-                          ))}
-                          {streamedInlineMedia && renderToolMediaEntry(
-                            streamedInlineMedia,
-                            `inline-tool-media-${liveInlineToolMediaIndex}-${streamedInlineMedia.url}`,
-                            handleOpenToolMediaImage,
-                          )}
-                        </div>
-                      </>
-                    )
-                  }}
-                  renderInlineCode={(text) => {
-                    if (text && (FILE_PATH_RE.test(text) || (DIR_PATH_RE.test(text) && text.split('/').length > 2))) {
-                      return <FilePathChip filePath={text.replace(/\/$/, '')} cwd={cwd} />
-                    }
-                    return null
-                  }}
-                  renderLink={(href, children) => {
-                    // Internal app links: #task:<id>
-                    const taskMatch = href.match(/^#task:(.+)$/)
-                    if (taskMatch) {
-                      return (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const store = useAppStore.getState()
-                            await store.loadTasks(true)
-                            store.setTaskSheetViewOnly(true)
-                            store.setEditingTaskId(taskMatch[1])
-                            store.setTaskSheetOpen(true)
-                          }}
-                          className="inline-flex items-center gap-1 text-purple-400 hover:text-purple-300 underline cursor-pointer bg-transparent border-none p-0 font-inherit text-inherit"
-                        >
-                          {children}
-                        </button>
-                      )
-                    }
-                    // #schedule:<id>
-                    const schedMatch = href.match(/^#schedule:(.+)$/)
-                    if (schedMatch) {
-                      return (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const store = useAppStore.getState()
-                            await store.loadSchedules()
-                            store.setEditingScheduleId(schedMatch[1])
-                            store.setScheduleSheetOpen(true)
-                          }}
-                          className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 underline cursor-pointer bg-transparent border-none p-0 font-inherit text-inherit"
-                        >
-                          {children}
-                        </button>
-                      )
-                    }
-                    // Upload links (agent chat has richer handling than default)
-                    const isUpload = href.startsWith('/api/uploads/')
-                    if (isUpload) {
-                      const uploadPath = href.split('?')[0]
-                      const uploadIsHtml = /\.(html?)$/i.test(uploadPath)
-                      return (
-                        <span className="inline-flex items-center gap-1.5">
-                          <a href={href} download className="inline-flex items-center gap-1.5 text-sky-400 hover:text-sky-300 underline">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                              <polyline points="7 10 12 15 17 10" />
-                              <line x1="12" y1="15" x2="12" y2="3" />
-                            </svg>
-                            {children}
-                          </a>
-                          {uploadIsHtml && (
-                            <a href={href} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-accent-soft hover:bg-accent-soft/80 text-accent-bright text-[10px] font-600 no-underline transition-colors"
-                              title="Preview in new tab">
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                <circle cx="12" cy="12" r="3" />
-                              </svg>
-                              Preview
-                            </a>
-                          )}
-                        </span>
-                      )
-                    }
-                    return null // fall through to MarkdownBody defaults
-                  }}
-                />
-              )
-            })()}
+            <MarkdownBody
+              text={normalizedDisplayText}
+              skipMediaUrls={messageSkipMediaUrls}
+              renderParagraph={renderMessageParagraph}
+              renderInlineCode={renderMessageInlineCode}
+              renderLink={renderMessageLink}
+            />
           </div>
           ) : null
           }
