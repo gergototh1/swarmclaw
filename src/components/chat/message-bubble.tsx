@@ -563,14 +563,23 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
   // recreates that counter exactly when liveInlineToolMedia/handleOpenToolMediaImage change,
   // which is exactly when the counter needs to restart from zero.
   //
-  // The invariant this rests on: because the blocks are memoized, a re-render only
-  // walks the paragraphs of the blocks that actually changed, so a counter that was
-  // NOT reset would number them from wherever the last pass left off. It stays
-  // correct only because `liveInlineToolMedia` takes a fresh identity whenever
-  // `normalizedDisplayText` changes (it is derived from it), which resets the
-  // counter in the same render in which any block can have changed. Break that
-  // derivation — memoize liveInlineToolMedia on something coarser, say — and the
-  // images silently attach to the wrong paragraphs mid-stream.
+  // Because the blocks are memoized, a re-render only walks the paragraphs of the
+  // blocks that actually changed, so a counter that was NOT reset would number them
+  // from wherever the last pass left off. The two cases pull in opposite directions:
+  //
+  //  - No tool media: `liveInlineToolMedia` is `null` every chunk — one stable
+  //    identity, so this memo never recomputes and the counter never resets. That
+  //    is safe only because `liveInlineToolMedia?.[i++]` short-circuits on the
+  //    `?.` and never increments, so the un-reset counter is never read either.
+  //    Make that read unconditional and a long stream would run the index away.
+  //  - Tool media present: `liveInlineToolMedia` is derived from
+  //    `normalizedDisplayText`, so every chunk mints a fresh array. The counter is
+  //    reset in the same render in which any block can have changed, which is what
+  //    keeps the images on the right paragraphs — and the cost is that
+  //    `renderMessageParagraph` changes identity every chunk too, so every block
+  //    re-renders. Those messages get the correctness and none of the memoization
+  //    win. Break the derivation — memoize liveInlineToolMedia on something coarser
+  //    — and the images silently attach to the wrong paragraphs mid-stream.
   const renderMessageParagraph = useMemo(() => {
     let liveInlineToolMediaIndex = 0
     return function renderMessageParagraphImpl(node: unknown, children: ReactNode) {

@@ -64,8 +64,11 @@ export async function streamChat(
         resolve({ done: true, value: undefined })
       }, STREAM_IDLE_TIMEOUT_MS)
     })
+    // `.finally`, not a line after the await: a dropped transport rejects the
+    // read, and the 5-minute idle timer would otherwise outlive the stream it
+    // was watching — holding the event loop, and this closure, open.
     const { done, value } = await Promise.race([reader.read(), idleAbort])
-    clearTimeout(timeoutId)
+      .finally(() => clearTimeout(timeoutId))
     if (done) {
       if (timedOut) {
         onEvent?.({ t: 'err', text: 'Stream timed out (no data for 5 minutes)' })
@@ -78,12 +81,21 @@ export async function streamChat(
     buf = lines.pop() || ''
     for (const line of lines) {
       if (!line.startsWith('data: ')) continue
+      let event: SSEEvent
       try {
-        const event = JSON.parse(line.slice(6)) as SSEEvent
-        // Forward all event types including tool_call and tool_result
-        onEvent?.(event)
+        event = JSON.parse(line.slice(6)) as SSEEvent
       } catch {
-        // skip malformed
+        continue // skip malformed
+      }
+      // Forward all event types including tool_call and tool_result.
+      // One handler that throws must not kill the stream — but it must not be
+      // invisible either: the same `catch` used to cover the parse, so a bug in
+      // the store's event handling looked exactly like a malformed line and
+      // took the rest of this line batch down with it.
+      try {
+        onEvent?.(event)
+      } catch (err) {
+        console.error('[chat] SSE event handler threw', err)
       }
     }
   }

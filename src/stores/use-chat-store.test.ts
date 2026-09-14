@@ -974,6 +974,8 @@ describe('useChatStore stream batch ordering', () => {
       response,
       push(event: unknown) { controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n`)) },
       close() { controller.close() },
+      /** Break the transport mid-stream, so the read rejects and `streamChat` throws. */
+      fail(error: Error) { controller.error(error) },
     }
   }
 
@@ -1064,6 +1066,51 @@ describe('useChatStore stream batch ordering', () => {
       assert.equal(after.displayText, '')
       assert.equal(after.streaming, false)
     } finally {
+      restoreWindow()
+    }
+  })
+
+  /*
+   * The turn can also end by throwing: a dropped transport makes the body read
+   * reject, and `streamChat` has no catch for it. The `finally` is then the only
+   * thing that disposes the batch — and a batch that survives the turn is not
+   * inert, because its `apply` only checks which session owns the live stream,
+   * not which turn queued the patch. The next turn on the same session re-takes
+   * that ownership inside the 50 ms window, so a leaked timer writes the dead
+   * turn's text into the live one.
+   */
+  it('drops the pending batch when the stream throws, so it cannot land on the next turn', async () => {
+    const restoreWindow = installTimerWindow()
+    // The second turn's stream has to be ended even if an assertion throws first,
+    // or its pending read holds the test runner open instead of failing.
+    let endSecondTurn = async () => {}
+    try {
+      const failing = startSession()
+      const send = useChatStore.getState().sendMessage('Hi', { sessionId: 'session-1' })
+      await tick()
+
+      failing.push({ t: 'd', text: 'Hello' })
+      // Inside the window the first chunk opened, so this one is only pending.
+      failing.push({ t: 'd', text: ' world' })
+      await tick()
+      failing.fail(new Error('transport dropped'))
+
+      await assert.rejects(send, /transport dropped/)
+      assert.equal(useChatStore.getState().streaming, false, 'the thrown turn must still be cleaned up')
+
+      // A second turn on the same session, started while that timer would still fire.
+      const next = startSession()
+      const secondSend = useChatStore.getState().sendMessage('Again', { sessionId: 'session-1' })
+      endSecondTurn = async () => { next.push({ t: 'done' }); next.close(); await secondSend }
+      await tick()
+      assert.equal(useChatStore.getState().streamingSessionId, 'session-1')
+
+      await new Promise((resolve) => setTimeout(resolve, 80))
+      const during = useChatStore.getState()
+      assert.equal(during.streamText, '', 'the failed turn\'s text must not appear in the next turn')
+      assert.equal(during.displayText, '')
+    } finally {
+      await endSecondTurn()
       restoreWindow()
     }
   })
