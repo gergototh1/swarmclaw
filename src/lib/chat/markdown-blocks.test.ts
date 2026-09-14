@@ -47,4 +47,46 @@ describe('splitMarkdownBlocks', () => {
     const text = '> quote line one\n\n> quote line two'
     assert.deepEqual(splitMarkdownBlocks(text), [text])
   })
+
+  it('keeps a fenced code block indented under a list item inside that list', () => {
+    const text = '- Run it:\n\n  ```sh\n  npm test\n  ```\n\n- Then check'
+    assert.deepEqual(splitMarkdownBlocks(text), [text])
+  })
+
+  it('keeps an indented fence in a tight list item inside that list', () => {
+    const text = '1. Step one\n   ```js\n   const a = 1\n   ```\n2. Step two'
+    assert.deepEqual(splitMarkdownBlocks(text), [text])
+  })
+
+  it('keeps a line\'s leading indentation, so an indented code block stays code', () => {
+    assert.deepEqual(splitMarkdownBlocks('    const a = 1\n\nafter'), ['    const a = 1', 'after'])
+  })
+
+  it('closes a fence only on a run of the same character that is at least as long', () => {
+    assert.deepEqual(splitMarkdownBlocks('````\n```\ninner\n```\n````'), ['````\n```\ninner\n```\n````'])
+    assert.deepEqual(splitMarkdownBlocks('~~~~\n~~~\nx\n~~~\n~~~~'), ['~~~~\n~~~\nx\n~~~\n~~~~'])
+    // A longer run of the same character does close a shorter fence.
+    assert.deepEqual(splitMarkdownBlocks('```\na\n````\n\nafter'), ['```\na\n````', 'after'])
+  })
+
+  it('returns the whole text as one block when a definition binds to another block', () => {
+    const footnote = 'See note[^1] here.\n\n[^1]: The footnote body.'
+    assert.deepEqual(splitMarkdownBlocks(footnote), [footnote])
+    const linkRef = 'See [the docs][d] please.\n\n[d]: https://example.com'
+    assert.deepEqual(splitMarkdownBlocks(linkRef), [linkRef])
+  })
+
+  it('returns the whole text as one block for raw HTML, which may run past a blank line', () => {
+    const html = '<div class="x">\n\n<span>hi</span>\n\n</div>'
+    assert.deepEqual(splitMarkdownBlocks(html), [html])
+  })
+
+  it('still splits when the definition-like line is only a code sample', () => {
+    const text = '```\n[d]: https://example.com\n```\n\ntext'
+    assert.deepEqual(splitMarkdownBlocks(text), ['```\n[d]: https://example.com\n```', 'text'])
+  })
+
+  it('keeps a half-typed list marker with the list above it', () => {
+    assert.deepEqual(splitMarkdownBlocks('1. one\n\n2.'), ['1. one\n\n2.'])
+  })
 })

@@ -19,7 +19,14 @@ export interface MarkdownBodyProps {
   skipMediaUrls?: Set<string>
 }
 
-const MarkdownBlock = memo(function MarkdownBlock({
+/**
+ * One block, rendered exactly as the app renders it.
+ *
+ * Exported so `markdown-blocks-render.test.ts` can hold the whole-message render
+ * and the per-block renders to the same pipeline — the split is only allowed to
+ * change what gets re-parsed, never what the reader sees.
+ */
+export const MarkdownBlock = memo(function MarkdownBlock({
   text,
   renderLink,
   renderInlineCode,
