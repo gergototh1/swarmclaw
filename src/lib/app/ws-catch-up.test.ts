@@ -33,4 +33,30 @@ describe('createCatchUp', () => {
     c.onActiveChange(true)
     assert.equal(runs, 1)
   })
+
+  it('a stale reconnect with nothing missed still runs, and a plain re-check does not run again', () => {
+    let runs = 0
+    const c = createCatchUp(() => { runs++ })
+    // Nothing arrived while inactive (the socket was closed, so nothing could).
+    c.onActiveChange(true, true)
+    assert.equal(runs, 1)
+    // The caller only passes `stale: true` on the transition itself (see
+    // `useWs`'s `becameActive`); a re-check with nothing missed and nothing
+    // stale this time does not run again.
+    c.onActiveChange(true, false)
+    assert.equal(runs, 1)
+  })
+
+  it('a missed event and a stale reconnect on the same activation still run only once', () => {
+    // Regression: `useWs` used to run its own immediate refresh (for a still-
+    // disconnected socket) in a separate effect from the catch-up coordinator,
+    // so a reactivation that was both "something was missed" and "the socket
+    // is still down" fired the handler twice. Routing the stale case through
+    // `onActiveChange` instead keeps this to exactly one call.
+    let runs = 0
+    const c = createCatchUp(() => { runs++ })
+    c.onEvent(false)
+    c.onActiveChange(true, true)
+    assert.equal(runs, 1)
+  })
 })

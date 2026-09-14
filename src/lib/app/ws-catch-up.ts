@@ -10,8 +10,17 @@
 export interface CatchUp {
   /** A push event arrived. Runs the handler when active; records a miss when not. */
   onEvent(active: boolean): void
-  /** The frame's active state changed. Runs the handler once if anything was missed. */
-  onActiveChange(active: boolean): void
+  /**
+   * The frame's active state changed. Runs the handler once if anything was
+   * missed, or if `stale` says the caller cannot trust "nothing missed" on its
+   * own — e.g. the frame's own socket (Task 4's idle-socket) was still
+   * disconnected at the moment of reactivation, so no push event could have
+   * arrived to be recorded as a miss in the first place. This is the single
+   * place that decides whether reactivation gets a refresh, so a caller with
+   * more than one reason to refresh (a missed event *and* a stale socket)
+   * still gets exactly one `run()`, not two.
+   */
+  onActiveChange(active: boolean, stale?: boolean): void
 }
 
 export function createCatchUp(run: () => void): CatchUp {
@@ -24,8 +33,8 @@ export function createCatchUp(run: () => void): CatchUp {
       }
       missed = true
     },
-    onActiveChange(active) {
-      if (!active || !missed) return
+    onActiveChange(active, stale = false) {
+      if (!active || (!missed && !stale)) return
       missed = false
       run()
     },

@@ -98,12 +98,25 @@ export function useWs(topic: string, handler: () => void | Promise<void>, fallba
   // callback below, and run a catch-up pass when the frame comes back into
   // view. Declared before the subscription effect so `catchUpRef.current` is
   // always set by the time that effect's callback can run.
+  //
+  // A reactivation can call for a refresh for two different reasons: a push
+  // event arrived while inactive (recorded by `onEvent`), or this topic polls
+  // as a fallback and the WS is still disconnected right now — e.g. a
+  // background frame's own socket (see idle-socket.ts) has not reconnected
+  // yet, so no push event could have arrived to be recorded as a miss in the
+  // first place. Both go through the same `onActiveChange` call so at most
+  // one refresh happens either way; a separate direct `runHandler()` call for
+  // the second case (as this used to have, in the fallback effect below)
+  // would double it whenever both are true at once.
   useEffect(() => {
     if (catchUpRef.current == null) {
       catchUpRef.current = createCatchUp(() => runHandler())
     }
     isActiveRef.current = isActive
-    catchUpRef.current.onActiveChange(isActive)
+    const becameActive = !wasActiveRef.current && isActive
+    wasActiveRef.current = isActive
+    const stale = becameActive && !!fallbackMsRef.current && fallbackMsRef.current > 0 && !isWsConnected()
+    catchUpRef.current.onActiveChange(isActive, stale)
   }, [isActive])
 
   // WS subscription — only re-runs when topic changes. Re-subscribing on every
@@ -124,17 +137,12 @@ export function useWs(topic: string, handler: () => void | Promise<void>, fallba
     fallbackHandlerRef.current = () => runHandler()
   })
 
-  // Fallback polling with shared intervals and connection state notifications
+  // Fallback polling with shared intervals and connection state notifications.
+  // The immediate refresh-on-reactivation used to live here too; it now goes
+  // through the catch-up effect above so exactly one refresh happens per
+  // activation, however many reasons there are for it.
   useEffect(() => {
     if (!topic) return
-
-    const becameActive = !wasActiveRef.current && isActive
-    wasActiveRef.current = isActive
-
-    // When page becomes visible again, fire an immediate refresh for data-fetch topics
-    if (becameActive && fallbackMsRef.current && fallbackMsRef.current > 0 && !isWsConnected()) {
-      runHandler()
-    }
 
     // Don't run polling while the tab is hidden
     if (!isActive) return

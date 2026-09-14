@@ -1,13 +1,23 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { setFrameActive } from '@/lib/app/frame-active'
+import { createIdleSocket, type IdleSocket } from '@/lib/app/idle-socket'
 import { sidebarOpenForNavigate } from '@/lib/app/panel-intent'
 import { tabIdFromWindow } from '@/lib/app/shell-mode'
 import { runTabFlushHandlers } from '@/lib/app/tab-flush'
 import { appUrlFromHref, isEditableElementLike, parseHostMessage, tabCommandForKey, type FrameMessage } from '@/lib/app/tab-protocol'
+import { connectWs, disconnectWs } from '@/lib/ws-client'
 import { useAppStore } from '@/stores/use-app-store'
+
+/**
+ * A tab that has sat in the background for a while does not need a socket of
+ * its own; Task 3's catch-up brings it back up to date when it returns. The
+ * grace period keeps a quick flick between two tabs from churning the
+ * connection — 30s is "I'll be right back", not "I'm done with this tab".
+ */
+const IDLE_SOCKET_GRACE_MS = 30_000
 
 export function postToHost(message: FrameMessage): void {
   window.parent.postMessage(message, window.location.origin)
@@ -41,10 +51,26 @@ export function TabFrameBridge({ tabId }: { tabId: string }) {
   const pathname = usePathname()
   const search = useSearchParams().toString()
   const router = useRouter()
+  const idleSocketRef = useRef<IdleSocket | null>(null)
 
   useEffect(() => {
     postToHost({ source: 'sc-tab', type: 'ready', tabId })
   }, [tabId])
+
+  useEffect(() => {
+    // One idle-socket state machine per mounted bridge — created here, not at
+    // module scope, so a hot reload or a remount starts clean rather than
+    // reusing a timer for a socket that no longer belongs to this frame.
+    const idleSocket = createIdleSocket({ graceMs: IDLE_SOCKET_GRACE_MS, connect: connectWs, disconnect: disconnectWs })
+    idleSocketRef.current = idleSocket
+    return () => {
+      idleSocketRef.current = null
+      // The frame is going away (tab mode turned off, or a remount): leave the
+      // socket exactly as it is rather than forcing a disconnect or a
+      // reconnect. `useAppBootstrap` owns the socket's actual lifecycle.
+      idleSocket.dispose()
+    }
+  }, [])
 
   useEffect(() => {
     const report = () => {
@@ -122,6 +148,7 @@ export function TabFrameBridge({ tabId }: { tabId: string }) {
         // CSS has no way to ask the host, so the flag rides on the root element:
         // `globals.css` pauses animations under it.
         document.documentElement.toggleAttribute('data-tab-inactive', !message.active)
+        idleSocketRef.current?.setActive(message.active)
         return
       }
       void runTabFlushHandlers().then((ok) => {
