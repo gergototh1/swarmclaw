@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { pagesForSection } from './use-extension-pages'
 import { NAV_SECTION_IDS } from '@/lib/app/nav-sections'
@@ -43,4 +44,16 @@ test('every page lands in exactly one section', () => {
 
 test('an empty page list yields an empty section', () => {
   assert.deepEqual(pagesForSection([], 'work'), [])
+})
+
+test('the page-list fallback matches the shell\'s extensions fallback', () => {
+  // Two independent timers answering the same question — how stale
+  // `extensions`-derived state may get while the socket is down. Only a comment
+  // used to say they belong together.
+  const hook = readFileSync(new URL('./use-extension-pages.ts', import.meta.url), 'utf8')
+  const shell = readFileSync(new URL('../components/layout/dashboard-shell.tsx', import.meta.url), 'utf8')
+  const ours = /PAGES_FALLBACK_MS = ([\d_]+)/.exec(hook)?.[1]
+  const theirs = /useWs\('extensions',\s*\w+,\s*([\d_]+)\)/.exec(shell)?.[1]
+  assert.ok(ours && theirs, `found PAGES_FALLBACK_MS=${ours}, shell extensions fallback=${theirs}`)
+  assert.equal(ours, theirs)
 })
