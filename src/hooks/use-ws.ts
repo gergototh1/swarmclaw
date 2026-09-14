@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { subscribeWs, unsubscribeWs, isWsConnected, onWsStateChange, offWsStateChange } from '@/lib/ws-client'
 import { hmrSingleton } from '@/lib/shared-utils'
 import { usePageActive } from './use-page-active'
+import { createCatchUp, type CatchUp } from '@/lib/app/ws-catch-up'
 
 /** Shared fallback intervals keyed by topic — multiple useWs instances share one interval. */
 const sharedFallbacks = hmrSingleton('useWs_sharedFallbacks', () => new Map<string, {
@@ -64,6 +65,7 @@ export function useWs(topic: string, handler: () => void | Promise<void>, fallba
   const fallbackMsRef = useRef(fallbackMs)
   const inFlightRef = useRef<Promise<void> | null>(null)
   const wasActiveRef = useRef(isActive)
+  const isActiveRef = useRef(isActive)
 
   useEffect(() => {
     handlerRef.current = handler
@@ -89,11 +91,29 @@ export function useWs(topic: string, handler: () => void | Promise<void>, fallba
     }
   }
 
-  // WS subscription — only re-runs when topic changes
+  const catchUpRef = useRef<CatchUp | null>(null)
+
+  // Create the catch-up coordinator on first use (refs can't be initialized
+  // during render), keep the active flag current for the subscription
+  // callback below, and run a catch-up pass when the frame comes back into
+  // view. Declared before the subscription effect so `catchUpRef.current` is
+  // always set by the time that effect's callback can run.
+  useEffect(() => {
+    if (catchUpRef.current == null) {
+      catchUpRef.current = createCatchUp(() => runHandler())
+    }
+    isActiveRef.current = isActive
+    catchUpRef.current.onActiveChange(isActive)
+  }, [isActive])
+
+  // WS subscription — only re-runs when topic changes. Re-subscribing on every
+  // tab switch would cost more than the handler runs it skips, and the socket
+  // connection itself is handled by a later task — so the subscription stays
+  // open while the frame is inactive; only the handler is skipped.
   useEffect(() => {
     if (!topic) return
 
-    const cb = () => runHandler()
+    const cb = () => catchUpRef.current?.onEvent(isActiveRef.current)
     subscribeWs(topic, cb)
     return () => { unsubscribeWs(topic, cb) }
   }, [topic])
