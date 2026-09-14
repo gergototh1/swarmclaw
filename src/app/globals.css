@@ -983,14 +983,6 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes pulse-glow {
-  0%, 100% { transform: scale(1); opacity: 0.45; }
-  50% { transform: scale(1.2); opacity: 0.85; }
-}
-@keyframes avatar-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
 @keyframes slide-in-left {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
@@ -1054,6 +1046,19 @@ textarea:hover::-webkit-scrollbar { width: 6px; }
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* The app runs infinite feedback animations (thinking dots, streaming
+   chips, loaders) for the whole duration of an agent run. Respect a
+   user's OS-level request for reduced motion by collapsing all
+   animations and transitions to effectively instantaneous. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Org chart node delegation glow — shadow-only pulse, no size change */

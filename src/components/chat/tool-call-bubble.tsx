@@ -491,7 +491,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
       <details open={isError || isRunning} className="group/tool">
         <summary
           data-testid="tool-call-summary"
-          className="w-full text-left rounded-md border bg-surface/80 backdrop-blur-sm transition-all duration-200 hover:bg-surface-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+          className="w-full text-left rounded-md border bg-surface transition-all duration-200 hover:bg-surface-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden"
           style={{ borderLeft: `3px solid ${color}`, borderColor: `${color}33` }}
         >
           <div className="flex items-center gap-2.5 px-3.5 py-2.5">
@@ -596,7 +596,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
                     e.stopPropagation()
                     useChatStore.getState().setPreviewContent({ type: 'image', url: src, title: `${label} — Screenshot` })
                   }}
-                  className="bg-black/60 backdrop-blur-sm rounded-sm p-1.5 hover:bg-black/80 border-none cursor-pointer"
+                  className="bg-black/60 rounded-sm p-1.5 hover:bg-black/80 border-none cursor-pointer"
                   title="Open in side panel"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
@@ -608,7 +608,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
                   href={src}
                   download
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-black/60 backdrop-blur-sm rounded-sm p-1.5 hover:bg-black/80"
+                  className="bg-black/60 rounded-sm p-1.5 hover:bg-black/80"
                   title="Download"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">

@@ -631,8 +631,11 @@ export const MessageBubble = memo(function MessageBubble({ message, assistantNam
             />
           )}
           {!isUser && liveStreamActive && (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent-bright/10 border border-accent-bright/15"
-              style={{ animation: 'pulse-subtle 2s ease-in-out infinite' }}>
+            // The wrapper's own pulse no longer animates -- the inner dot's
+            // `pulse` animation already carries the "still working" signal,
+            // so nesting a second infinite animation here just doubled the
+            // compositing cost for no extra information.
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent-bright/10 border border-accent-bright/15">
               <span className={`w-1.5 h-1.5 rounded-full ${
                 liveStream?.phase === 'queued' ? 'bg-amber-400' : 'bg-accent-bright'
               }`} style={{ animation: 'pulse 1.5s ease infinite' }} />

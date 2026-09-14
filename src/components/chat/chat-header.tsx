@@ -380,22 +380,16 @@ export function ChatHeader({ session, streaming, onStop, onMenuToggle, onBack, m
         {/* Avatar */}
         {agent && (
           <div className="relative shrink-0">
-            {streaming && (
-              <div
-                className="absolute -inset-[4px] rounded-full"
-                style={{
-                  background: 'radial-gradient(circle, var(--color-accent-bright), transparent 70%)',
-                  animation: 'pulse-glow 2s ease-in-out infinite',
-                  filter: 'blur(5px)',
-                }}
-              />
-            )}
+            {/* A blurred, infinitely animated halo used to sit here. Animating
+                `filter: blur()` forces the compositor to recomposite the whole
+                header every frame at the display's refresh rate, which is
+                expensive for very little payoff. The "Responding" chip dot
+                below already carries the same "still working" signal. */}
             <div
               className="relative rounded-full transition-transform duration-500"
               style={{
                 padding: 2,
                 background: streaming ? 'var(--color-accent-bright)' : 'var(--color-line-default)',
-                animation: streaming ? 'avatar-pulse 2s ease-in-out infinite' : undefined,
               }}
             >
               <div className="rounded-full bg-bg">

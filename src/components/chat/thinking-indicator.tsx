@@ -15,17 +15,27 @@ interface Props {
   agentName?: string
 }
 
-function ElapsedTimer({ startTime }: { startTime: number }) {
+// Shared by the elapsed-time label and the "still thinking" dot animation
+// below, so a thinking phase has exactly one ticking timer instead of two.
+function useElapsedSeconds(startTime: number) {
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
     if (!startTime) return
+    // Renders whole seconds, so a 1s tick is enough -- 250ms just burned
+    // extra renders for a value that only changes once a second. A new
+    // thinking phase gets a fresh `startTime` from the store, which re-runs
+    // this effect and starts the count (and the dot-bounce window) over.
     const tick = () => setElapsed(Math.floor((Date.now() - startTime) / 1000))
     tick()
-    const id = setInterval(tick, 250)
+    const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [startTime])
 
+  return elapsed
+}
+
+function ElapsedTimer({ elapsed }: { elapsed: number }) {
   if (!elapsed) return null
   const mins = Math.floor(elapsed / 60)
   const secs = elapsed % 60
@@ -56,6 +66,15 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
 
   const hasThinkingContent = thinkingText.trim().length > 0
   const hasMission = !!agentStatus?.goal
+
+  const elapsed = useElapsedSeconds(thinkingStartTime)
+  // A long tool-heavy run can sit in a thinking phase for many minutes --
+  // bouncing three dots the entire time is wasted compositing for feedback
+  // the user already has from the status text and elapsed timer. Animate
+  // only for the first 10s, then hold the dots static.
+  const dotsBouncing = elapsed < 10
+  const dotAnimation = (delay?: string) =>
+    dotsBouncing ? { animation: `dot-bounce 1.2s ease-in-out infinite${delay ? ` ${delay}` : ''}` } : undefined
 
   return (
     <div className="flex flex-col items-start relative pl-[44px]"
@@ -98,17 +117,19 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
       {hasThinkingContent ? (
         <details className="group/think w-full max-w-[85%] md:max-w-[72%]">
           <summary className="px-5 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden relative overflow-hidden border border-transparent hover:border-line-subtle transition-all">
-            {/* Thinking pulse background */}
-            <div className="absolute inset-0 bg-accent-bright/5 opacity-0 group-hover/think:opacity-100 transition-opacity" style={{ animation: 'pulse-subtle 2s ease-in-out infinite' }} />
-            
+            {/* Thinking pulse background -- only visible on hover, so the
+                animation now runs only while it's actually shown instead of
+                looping unseen for the whole thinking phase. */}
+            <div className="absolute inset-0 bg-accent-bright/5 opacity-0 group-hover/think:opacity-100 transition-opacity group-hover/think:[animation:pulse-subtle_2s_ease-in-out_infinite]" />
+
             <div className="flex items-center gap-3 relative z-10">
               <div className="flex gap-2">
-                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite' }} />
-                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.15s' }} />
-                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.3s' }} />
+                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={dotAnimation()} />
+                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={dotAnimation('0.15s')} />
+                <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={dotAnimation('0.3s')} />
               </div>
               <span className={`text-[12px] font-mono ${isQueued ? 'text-amber-300/70' : 'text-text-3/60'}`}>{statusText}</span>
-              <ElapsedTimer startTime={thinkingStartTime} />
+              <ElapsedTimer elapsed={elapsed} />
               <svg
                 width="12" height="12" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round"
@@ -132,12 +153,12 @@ export const ThinkingIndicator = memo(function ThinkingIndicator({ assistantName
           
           <div className="flex items-center gap-3 relative z-10">
             <div className="flex gap-2">
-              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite' }} />
-              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.15s' }} />
-              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={{ animation: 'dot-bounce 1.2s ease-in-out infinite 0.3s' }} />
+              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={dotAnimation()} />
+              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={dotAnimation('0.15s')} />
+              <span className={`w-[6px] h-[6px] rounded-full ${isQueued ? 'bg-amber-400/70 ' : 'bg-accent-bright/60 '}`} style={dotAnimation('0.3s')} />
             </div>
             <span className={`text-[12px] font-mono ${isQueued ? 'text-amber-300/70' : 'text-text-3/60'}`}>{statusText}</span>
-            <ElapsedTimer startTime={thinkingStartTime} />
+            <ElapsedTimer elapsed={elapsed} />
           </div>
         </div>
       )}
