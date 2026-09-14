@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { setFrameActive } from '@/lib/app/frame-active'
 import { createIdleSocket, type IdleSocket } from '@/lib/app/idle-socket'
+import { markFrameDeactivated, markSocketReopened } from '@/lib/app/socket-gap'
 import { sidebarOpenForNavigate } from '@/lib/app/panel-intent'
 import { tabIdFromWindow } from '@/lib/app/shell-mode'
 import { runTabFlushHandlers } from '@/lib/app/tab-flush'
@@ -13,9 +14,10 @@ import { useAppStore } from '@/stores/use-app-store'
 
 /**
  * A tab that has sat in the background for a while does not need a socket of
- * its own; Task 3's catch-up brings it back up to date when it returns. The
- * grace period keeps a quick flick between two tabs from churning the
- * connection — 30s is "I'll be right back", not "I'm done with this tab".
+ * its own; every subscription in the frame refetches once when it comes back
+ * (`ws-catch-up.ts`, told about the gap by `socket-gap.ts`). The grace period
+ * keeps a quick flick between two tabs from churning the connection — 30s is
+ * "I'll be right back", not "I'm done with this tab".
  */
 const IDLE_SOCKET_GRACE_MS = 30_000
 
@@ -61,7 +63,15 @@ export function TabFrameBridge({ tabId }: { tabId: string }) {
     // One idle-socket state machine per mounted bridge — created here, not at
     // module scope, so a hot reload or a remount starts clean rather than
     // reusing a timer for a socket that no longer belongs to this frame.
-    const idleSocket = createIdleSocket({ graceMs: IDLE_SOCKET_GRACE_MS, connect: connectWs, disconnect: disconnectWs })
+    //
+    // `connect` runs only when the grace timer had actually closed the socket,
+    // which is exactly the gap every subscription in the frame has to hear
+    // about before it decides whether coming back needs a refetch.
+    const idleSocket = createIdleSocket({
+      graceMs: IDLE_SOCKET_GRACE_MS,
+      connect: () => { markSocketReopened(); connectWs() },
+      disconnect: disconnectWs,
+    })
     idleSocketRef.current = idleSocket
     return () => {
       idleSocketRef.current = null
@@ -70,6 +80,17 @@ export function TabFrameBridge({ tabId }: { tabId: string }) {
       // reconnect. `useAppBootstrap` owns the socket's actual lifecycle.
       idleSocket.dispose()
     }
+  }, [])
+
+  // Unmount only. This must not ride the message effect's cleanup: that effect
+  // re-runs whenever its dependencies change, and a background frame would then
+  // be marked active — polling and animations back on — while its socket stays
+  // closed with nothing scheduled to reopen it.
+  useEffect(() => () => {
+    // This bridge only mounts in tab mode; when it goes away (tab mode turned
+    // off, or a hot reload) the frame must not stay marked inactive forever.
+    setFrameActive(true)
+    document.documentElement.removeAttribute('data-tab-inactive')
   }, [])
 
   useEffect(() => {
@@ -144,11 +165,16 @@ export function TabFrameBridge({ tabId }: { tabId: string }) {
         return
       }
       if (message.type === 'active') {
+        // The socket's own state is settled first. `setFrameActive` starts a
+        // render that is not a discrete event, so React may slice it, and the
+        // effects that ask whether the socket was closed while the frame was
+        // away can run at any point after this line.
+        if (!message.active) markFrameDeactivated()
+        idleSocketRef.current?.setActive(message.active)
         setFrameActive(message.active)
         // CSS has no way to ask the host, so the flag rides on the root element:
-        // `globals.css` pauses animations under it.
+        // `globals.css` collapses animations under it.
         document.documentElement.toggleAttribute('data-tab-inactive', !message.active)
-        idleSocketRef.current?.setActive(message.active)
         return
       }
       void runTabFlushHandlers().then((ok) => {
@@ -156,13 +182,7 @@ export function TabFrameBridge({ tabId }: { tabId: string }) {
       })
     }
     window.addEventListener('message', onMessage)
-    return () => {
-      window.removeEventListener('message', onMessage)
-      // This bridge only mounts in tab mode; on unmount (tab mode turned off,
-      // or a hot reload) the frame must not stay marked inactive forever.
-      setFrameActive(true)
-      document.documentElement.removeAttribute('data-tab-inactive')
-    }
+    return () => { window.removeEventListener('message', onMessage) }
   }, [router, tabId])
 
   return null

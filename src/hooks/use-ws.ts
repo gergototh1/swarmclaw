@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { subscribeWs, unsubscribeWs, isWsConnected, onWsStateChange, offWsStateChange } from '@/lib/ws-client'
 import { hmrSingleton } from '@/lib/shared-utils'
 import { usePageActive } from './use-page-active'
+import { hadSocketGap } from '@/lib/app/socket-gap'
 import { createCatchUp, type CatchUp } from '@/lib/app/ws-catch-up'
 
 /** Shared fallback intervals keyed by topic — multiple useWs instances share one interval. */
@@ -72,8 +73,9 @@ export function useWs(topic: string, handler: () => void | Promise<void>, fallba
     fallbackMsRef.current = fallbackMs
   }, [handler, fallbackMs])
 
-  const runHandler = () => {
-    if (inFlightRef.current) return
+  /** Runs the handler, unless the previous run is still in flight. Reports which. */
+  const runHandler = (): boolean => {
+    if (inFlightRef.current) return false
     try {
       const result = handlerRef.current()
       if (result && typeof (result as PromiseLike<void>).then === 'function') {
@@ -89,6 +91,7 @@ export function useWs(topic: string, handler: () => void | Promise<void>, fallba
     } catch {
       // Individual handlers already own their error reporting
     }
+    return true
   }
 
   const catchUpRef = useRef<CatchUp | null>(null)
@@ -100,9 +103,9 @@ export function useWs(topic: string, handler: () => void | Promise<void>, fallba
   // always set by the time that effect's callback can run.
   //
   // A reactivation can call for a refresh for two different reasons: a push
-  // event arrived while inactive (recorded by `onEvent`), or the frame's own
-  // socket (see idle-socket.ts) is still disconnected right now, so no push
-  // event could have arrived to be recorded as a miss in the first place.
+  // event arrived while inactive (recorded by `onEvent`), or this frame's own
+  // socket was closed while it was in the background (idle-socket.ts), so no
+  // push event could have arrived to be recorded as a miss in the first place.
   // Both go through the same `onActiveChange` call so at most one refresh
   // happens either way; a separate direct `runHandler()` call for the second
   // case (as this used to have, in the fallback effect below) would double it
@@ -113,27 +116,27 @@ export function useWs(topic: string, handler: () => void | Promise<void>, fallba
   // other push-only subscription — otherwise gets no refresh at all after a
   // background-closed socket reconnects; it would sit stale until the next
   // push event, which for a page-list or badge topic can be an arbitrarily
-  // long time. `isWsConnected()` reflects this frame's own socket exactly —
-  // idle-socket.ts's `connect`/`disconnect` are `connectWs`/`disconnectWs`
-  // from the same `ws-client.ts` this reads — so no extra plumbing is needed
-  // to ask "was it closed while I was away": right after `becameActive`, the
-  // new socket from `idleSocket.setActive(true)` has not reached `onopen` yet,
-  // so `isWsConnected()` is still false only when it really was closed.
+  // long time. The reconnect is read from `socket-gap.ts`, which the bridge
+  // records as it happens, rather than inferred from `isWsConnected()`: the
+  // replacement socket can reach `onopen` in the middle of the render this
+  // effect belongs to, and a connected-looking socket would then be read as
+  // "nothing was closed" on exactly the activation that needed the refresh.
   useEffect(() => {
+    if (!topic) return
     if (catchUpRef.current == null) {
       catchUpRef.current = createCatchUp(() => runHandler())
     }
     isActiveRef.current = isActive
     const becameActive = !wasActiveRef.current && isActive
     wasActiveRef.current = isActive
-    const stale = becameActive && !isWsConnected()
-    catchUpRef.current.onActiveChange(isActive, stale)
-  }, [isActive])
+    catchUpRef.current.onActiveChange(isActive, becameActive && hadSocketGap())
+  }, [isActive, topic])
 
   // WS subscription — only re-runs when topic changes. Re-subscribing on every
-  // tab switch would cost more than the handler runs it skips, and the socket
-  // connection itself is handled by a later task — so the subscription stays
-  // open while the frame is inactive; only the handler is skipped.
+  // tab switch would cost more than the handler runs it skips, and the frame's
+  // socket is closed and reopened underneath it (idle-socket.ts) without the
+  // subscription having to move — so it stays open while the frame is
+  // inactive; only the handler is skipped.
   useEffect(() => {
     if (!topic) return
 

@@ -2,13 +2,27 @@ import { jitteredBackoff, hmrSingleton } from '@/lib/shared-utils'
 
 type WsCallback = () => void
 
-let ws: WebSocket | null = null
-let wsEnabled = false
-let reconnectTimer: ReturnType<typeof setTimeout> | null = null
-let reconnectAttempt = 0
 const MAX_RECONNECT_DELAY = 30_000
+
+/**
+ * The socket and everything that describes its state.
+ *
+ * A Next.js hot reload re-executes this module, and bare module-level `let`s
+ * would come back at their initial values while the real socket carried on
+ * open. `connected` is the one that hurts: `isWsConnected()` would answer false
+ * for a live connection, so every subscription would start a fallback poll next
+ * to a socket that is already delivering. The reconnect bookkeeping is in here
+ * for the same reason — a timer the reloaded module has forgotten about would
+ * schedule a second connect on top of the first.
+ */
+const socket = hmrSingleton('wsClient_socket', () => ({
+  ws: null as WebSocket | null,
+  enabled: false,
+  connected: false,
+  reconnectTimer: null as ReturnType<typeof setTimeout> | null,
+  reconnectAttempt: 0,
+}))
 const listeners = hmrSingleton('wsClient_listeners', () => new Map<string, Set<WsCallback>>())
-let connected = false
 const connectionStateListeners = hmrSingleton('wsClient_connectionStateListeners', () => new Set<() => void>())
 
 function getWsUrl(): string {
@@ -43,45 +57,47 @@ function handleMessage(event: MessageEvent) {
 }
 
 function scheduleReconnect() {
-  if (reconnectTimer) return
-  const delay = jitteredBackoff(1000, reconnectAttempt, MAX_RECONNECT_DELAY)
-  reconnectAttempt++
-  reconnectTimer = setTimeout(() => {
-    reconnectTimer = null
-    if (!wsEnabled) return
+  if (socket.reconnectTimer) return
+  const delay = jitteredBackoff(1000, socket.reconnectAttempt, MAX_RECONNECT_DELAY)
+  socket.reconnectAttempt++
+  socket.reconnectTimer = setTimeout(() => {
+    socket.reconnectTimer = null
+    if (!socket.enabled) return
     connect()
   }, delay)
 }
 
 function connect() {
-  if (!wsEnabled) return
-  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return
+  if (!socket.enabled) return
+  if (socket.ws && (socket.ws.readyState === WebSocket.OPEN || socket.ws.readyState === WebSocket.CONNECTING)) return
 
+  let ws: WebSocket
   try {
     ws = new WebSocket(getWsUrl())
   } catch {
     scheduleReconnect()
     return
   }
+  socket.ws = ws
 
   ws.onopen = () => {
-    connected = true
+    socket.connected = true
     for (const cb of connectionStateListeners) cb()
-    reconnectAttempt = 0
+    socket.reconnectAttempt = 0
     // Subscribe to all currently registered topics
     const topics = Array.from(listeners.keys())
     if (topics.length > 0) {
-      ws?.send(JSON.stringify({ type: 'subscribe', topics }))
+      ws.send(JSON.stringify({ type: 'subscribe', topics }))
     }
   }
 
   ws.onmessage = handleMessage
 
   ws.onclose = () => {
-    connected = false
+    socket.connected = false
     for (const cb of connectionStateListeners) cb()
-    ws = null
-    if (wsEnabled) scheduleReconnect()
+    if (socket.ws === ws) socket.ws = null
+    if (socket.enabled) scheduleReconnect()
   }
 
   ws.onerror = () => {
@@ -90,23 +106,23 @@ function connect() {
 }
 
 export function connectWs() {
-  wsEnabled = true
-  reconnectAttempt = 0
+  socket.enabled = true
+  socket.reconnectAttempt = 0
   connect()
 }
 
 export function disconnectWs() {
-  wsEnabled = false
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer)
-    reconnectTimer = null
+  socket.enabled = false
+  if (socket.reconnectTimer) {
+    clearTimeout(socket.reconnectTimer)
+    socket.reconnectTimer = null
   }
-  if (ws) {
-    ws.onclose = null
-    ws.close()
-    ws = null
+  if (socket.ws) {
+    socket.ws.onclose = null
+    socket.ws.close()
+    socket.ws = null
   }
-  connected = false
+  socket.connected = false
 }
 
 export function subscribeWs(topic: string, callback: WsCallback) {
@@ -119,8 +135,8 @@ export function subscribeWs(topic: string, callback: WsCallback) {
   set.add(callback)
 
   // Tell server about new topic subscription
-  if (isNew && ws?.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'subscribe', topics: [topic] }))
+  if (isNew && socket.ws?.readyState === WebSocket.OPEN) {
+    socket.ws.send(JSON.stringify({ type: 'subscribe', topics: [topic] }))
   }
 }
 
@@ -130,14 +146,14 @@ export function unsubscribeWs(topic: string, callback: WsCallback) {
   set.delete(callback)
   if (set.size === 0) {
     listeners.delete(topic)
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'unsubscribe', topics: [topic] }))
+    if (socket.ws?.readyState === WebSocket.OPEN) {
+      socket.ws.send(JSON.stringify({ type: 'unsubscribe', topics: [topic] }))
     }
   }
 }
 
 export function isWsConnected(): boolean {
-  return connected
+  return socket.connected
 }
 
 export function onWsStateChange(cb: () => void): void {

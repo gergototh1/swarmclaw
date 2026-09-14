@@ -13,17 +13,22 @@ export interface CatchUp {
   /**
    * The frame's active state changed. Runs the handler once if anything was
    * missed, or if `stale` says the caller cannot trust "nothing missed" on its
-   * own — e.g. the frame's own socket (Task 4's idle-socket) was still
-   * disconnected at the moment of reactivation, so no push event could have
-   * arrived to be recorded as a miss in the first place. This is the single
-   * place that decides whether reactivation gets a refresh, so a caller with
-   * more than one reason to refresh (a missed event *and* a stale socket)
-   * still gets exactly one `run()`, not two.
+   * own — e.g. the frame's own socket was closed while it was in the background
+   * (idle-socket.ts), so no push event could have arrived to be recorded as a
+   * miss in the first place. This is the single place that decides whether
+   * reactivation gets a refresh, so a caller with more than one reason to
+   * refresh (a missed event *and* a reopened socket) still gets exactly one
+   * `run()`, not two.
    */
   onActiveChange(active: boolean, stale?: boolean): void
 }
 
-export function createCatchUp(run: () => void): CatchUp {
+/**
+ * `run` reports whether the handler actually ran. A caller that refuses to run
+ * — `useWs` skips a refresh while the previous one is still in flight — leaves
+ * the miss armed, so the next catch-up tries again instead of dropping it.
+ */
+export function createCatchUp(run: () => boolean): CatchUp {
   let missed = false
   return {
     onEvent(active) {
@@ -35,8 +40,7 @@ export function createCatchUp(run: () => void): CatchUp {
     },
     onActiveChange(active, stale = false) {
       if (!active || (!missed && !stale)) return
-      missed = false
-      run()
+      missed = !run()
     },
   }
 }
