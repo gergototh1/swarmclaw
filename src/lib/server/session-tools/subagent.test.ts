@@ -36,6 +36,68 @@ function runWithTempDataDir(script: string) {
   }
 }
 
+/*
+ * Egy tool teammate-enként, nem egy általános `agentId: string`.
+ *
+ * Lásd a `delegate-targets.ts` fejlécét: `'all'` módban a Sidekick soha nem
+ * kapott névsort, és emiatt két napon át a Claude Code saját `Agent` tooljával
+ * dolgozott ahelyett, hogy a Fejlesztőnek adta volna ki a munkát.
+ */
+describe('per-teammate delegation tools', () => {
+  it('offers no delegate_to_* tool when delegation is disabled', async () => {
+    const built = await buildSessionTools(process.cwd(), ['spawn_subagent'], {
+      sessionId: 'delegate-off-session',
+      agentId: 'delegate-off-agent',
+      delegationEnabled: false,
+      delegationTargetMode: 'all',
+      delegationTargetAgentIds: [],
+    })
+    try {
+      assert.equal(built.tools.some((tool) => tool.name.startsWith('delegate_to_')), false)
+    } finally {
+      await built.cleanup()
+    }
+  })
+
+  it('names the teammate in the tool rather than hiding it behind an id', async () => {
+    const built = await buildSessionTools(process.cwd(), ['spawn_subagent'], {
+      sessionId: 'delegate-on-session',
+      agentId: 'delegate-on-agent',
+      delegationEnabled: true,
+      delegationTargetMode: 'selected',
+      delegationTargetAgentIds: ['default'],
+    })
+    try {
+      const named = built.tools.filter((tool) => tool.name.startsWith('delegate_to_'))
+      assert.ok(named.length > 0, 'a delegable teammate must get its own tool')
+      for (const tool of named) {
+        assert.match(tool.name, /^delegate_to_[a-z0-9_]+$/)
+        assert.ok(String(tool.description || '').trim().length > 0, `${tool.name} needs a description`)
+      }
+      // A generikus tool megmarad: a batch/swarm/status/wait műveleteknek nincs
+      // teammate-enkénti alakja.
+      assert.ok(built.tools.some((tool) => tool.name === 'spawn_subagent'))
+    } finally {
+      await built.cleanup()
+    }
+  })
+
+  it('offers no tool for a teammate outside the selected list', async () => {
+    const built = await buildSessionTools(process.cwd(), ['spawn_subagent'], {
+      sessionId: 'delegate-restricted-session',
+      agentId: 'delegate-restricted-agent',
+      delegationEnabled: true,
+      delegationTargetMode: 'selected',
+      delegationTargetAgentIds: ['no-such-agent-id'],
+    })
+    try {
+      assert.equal(built.tools.some((tool) => tool.name.startsWith('delegate_to_')), false)
+    } finally {
+      await built.cleanup()
+    }
+  })
+})
+
 describe('spawn_subagent runtime access', () => {
   it('hides spawn_subagent unless delegation is enabled', async () => {
     const built = await buildSessionTools(process.cwd(), ['spawn_subagent'], {

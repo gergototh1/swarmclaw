@@ -31,6 +31,22 @@ const registry = hmrSingleton<Map<string, NativeCapabilityRecord>>(
   () => new Map<string, NativeCapabilityRecord>(),
 )
 
+/**
+ * Every native tool's JSON Schema, keyed by TOOL name rather than capability id.
+ *
+ * `registry` is keyed by capability id, and two modules register under the same
+ * id on purpose: `memory.ts` brings `memory_search`/`memory_store`/... and
+ * `memory-tool.ts` brings the umbrella `memory`. A Map keyed by id lets the
+ * second registration evict the first, so half those descriptors are not
+ * reachable from the registry at all. Tool names do not collide, so this second
+ * index keeps all of them -- which is what the MCP bridge needs when it has to
+ * render a schema the legacy LangChain bridge did not carry.
+ */
+const toolParameters = hmrSingleton<Map<string, Record<string, unknown>>>(
+  '__swarmclaw_native_tool_parameters__',
+  () => new Map<string, Record<string, unknown>>(),
+)
+
 function resolveEnabledFilter(enabledIds?: string[]): Set<string> | null {
   if (!Array.isArray(enabledIds) || enabledIds.length === 0) return null
   return new Set(expandExtensionIds(enabledIds))
@@ -117,6 +133,23 @@ export function registerNativeCapability(id: string, extension: Extension): void
     extension,
     hooks: buildExtensionHooks(id, extension.name, extension.hooks, extension.tools),
   })
+  for (const tool of Array.isArray(extension.tools) ? extension.tools : []) {
+    if (!tool || typeof tool.name !== 'string') continue
+    if (!tool.parameters || typeof tool.parameters !== 'object') continue
+    toolParameters.set(tool.name, tool.parameters as Record<string, unknown>)
+  }
+}
+
+/**
+ * The declared JSON Schema for one native tool, or null when it declares none.
+ *
+ * Read by the platform MCP bridge, which otherwise advertises whatever the
+ * legacy LangChain bridge happened to attach -- and that is an empty schema for
+ * roughly half the native tools.
+ */
+export function getNativeToolParameters(toolName: string): Record<string, unknown> | null {
+  if (typeof toolName !== 'string' || !toolName) return null
+  return toolParameters.get(toolName) || null
 }
 
 export function listNativeCapabilities(): ExtensionMeta[] {

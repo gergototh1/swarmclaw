@@ -140,8 +140,12 @@ function wakeFromWatch(job: WatchJob, result?: Record<string, unknown> | null) {
 }
 
 export async function createWatchJob(input: CreateWatchJobInput): Promise<WatchJob> {
-  if (input.type === 'time' && typeof input.runAt !== 'number') {
-    throw new Error('Time watches require runAt or delayMinutes.')
+  // `Number.isFinite`, not `typeof`: `typeof NaN === 'number'`, so a caller that
+  // computed `Date.now() + undefined * 60_000` used to pass this guard, get
+  // serialized to `runAt: null`, and leave a row that `checkTimeWatch` can never
+  // trigger (`runAt > 0`) -- active forever, silent, and shaped like success.
+  if (input.type === 'time' && !Number.isFinite(input.runAt)) {
+    throw new Error('Time watches require a finite runAt (or delayMinutes).')
   }
   if ((input.type === 'http' || input.type === 'page') && typeof input.target?.url !== 'string') {
     throw new Error(`${input.type} watches require a url target.`)

@@ -6,6 +6,7 @@ import { registerNativeCapability } from '../native-capabilities'
 import { normalizeToolInputArgs } from './normalize-tool-args'
 import { errorMessage, sleep } from '@/lib/shared-utils'
 import { loadAgents } from '@/lib/server/agents/agent-repository'
+import { resolveDelegationTargets, type DelegationTarget, type DelegationTargetAgent } from './delegate-targets'
 import { classifyMessage } from '@/lib/server/chat-execution/message-classifier'
 import {
   buildDelegationTaskProfile,
@@ -783,15 +784,17 @@ export function buildSubagentTools(bctx: ToolBuildContext): StructuredToolInterf
     }
   }
 
-  return [
+  const actionContext = {
+    agentId: bctx.ctx?.agentId || undefined,
+    sessionId: bctx.ctx?.sessionId || undefined,
+    cwd: bctx.cwd,
+    delegationTargetMode: bctx.ctx?.delegationTargetMode,
+    delegationTargetAgentIds: bctx.ctx?.delegationTargetAgentIds,
+  }
+
+  const tools: StructuredToolInterface[] = [
     tool(
-      async (args) => executeSubagentAction(args, {
-        agentId: bctx.ctx?.agentId || undefined,
-        sessionId: bctx.ctx?.sessionId || undefined,
-        cwd: bctx.cwd,
-        delegationTargetMode: bctx.ctx?.delegationTargetMode,
-        delegationTargetAgentIds: bctx.ctx?.delegationTargetAgentIds,
-      }),
+      async (args) => executeSubagentAction(args, actionContext),
       {
         name: 'spawn_subagent',
         description,
@@ -799,4 +802,54 @@ export function buildSubagentTools(bctx: ToolBuildContext): StructuredToolInterf
       }
     )
   ]
+
+  // One named tool per teammate, alongside the generic one. See
+  // `delegate-targets.ts` for why the generic tool alone was not enough.
+  let roster: DelegationTarget[] = []
+  try {
+    roster = resolveDelegationTargets(
+      {
+        agentId: bctx.ctx?.agentId,
+        delegationEnabled: true,
+        delegationTargetMode: bctx.ctx?.delegationTargetMode,
+        delegationTargetAgentIds: bctx.ctx?.delegationTargetAgentIds,
+      },
+      loadAgents() as unknown as Record<string, DelegationTargetAgent>,
+    )
+  } catch { /* a roster we cannot read costs the named tools, not the generic one */ }
+
+  for (const target of roster) {
+    tools.push(
+      tool(
+        async (args) => {
+          const raw = (args ?? {}) as Record<string, unknown>
+          return executeSubagentAction(
+            {
+              action: 'start',
+              // The target is fixed by the tool, never read from arguments:
+              // that is the whole point of a named handoff.
+              agentId: target.id,
+              message: raw.message,
+              cwd: raw.cwd,
+              waitForCompletion: raw.waitForCompletion,
+              background: raw.background,
+            },
+            actionContext,
+          )
+        },
+        {
+          name: target.toolName,
+          description: `Hand a task to ${target.name} [${target.id}]. ${target.description}`,
+          schema: z.object({
+            message: z.string().describe('The task, written as a full brief: what to do, where, and what "done" means.'),
+            cwd: z.string().optional().describe('Working directory for the teammate. Defaults to yours.'),
+            waitForCompletion: z.boolean().optional().describe('Wait for the result before returning. Default true.'),
+            background: z.boolean().optional().describe('Run without waiting and return a job id to poll with spawn_subagent.'),
+          }),
+        },
+      ),
+    )
+  }
+
+  return tools
 }

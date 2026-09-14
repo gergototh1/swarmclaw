@@ -39,6 +39,48 @@ const DEFAULT_VECTOR_SIMILARITY_THRESHOLD = 0.3
 const MAX_MERGED_RESULTS = 80
 /** Ceiling on the reinforcement multiplier — a tie-breaker, not a ranking. */
 const MAX_REINFORCEMENT_BOOST = 1.6
+/**
+ * The importance an entry gets when its writer supplied none.
+ *
+ * WHY THIS EXISTS. `importance` is a multiplier in the salience formula below,
+ * and in the live store 40 of the 42 recall-eligible memories carry 0 — so the
+ * multiplier is constant and the ranking signal does not exist. The recall
+ * rubric does ask the writer for a 1..10 score, but leaving it to the writer is
+ * fragile: the Generative Agents design scores each memory in a separate step at
+ * insert time rather than as an optional argument.
+ *
+ * There is no generation model to score with here — every agent in this install
+ * runs on a CLI provider — so the category carries the prior instead. A writer
+ * that supplies a score always wins; this only fills the blank.
+ *
+ * Returns 0 for machine-written tiers, meaning "deliberately unscored".
+ */
+export function defaultImportanceForCategory(category: unknown, pinned = false): number {
+  // Pinning is the operator saying "always load this", which outranks whatever
+  // the category would have said.
+  if (pinned) return 9
+  const normalized = typeof category === 'string' ? category.trim().toLowerCase() : ''
+  const head = normalized.split('/')[0] || normalized
+
+  // Who the user is and what they told us to do: the entries whose whole point
+  // is to stop the user repeating themselves.
+  if (head === 'identity') return 9
+  if (head === 'preference') return 8
+  if (head === 'decision' || head === 'credentials') return 7
+  // Machine bulk stays UNSCORED (0), not merely low. These tiers are filtered
+  // out of recall anyway, and they are the only rows that carry a reinforcement
+  // count — give them any prior at all and reinforcement plus that prior
+  // outranks a filed, high-importance fact. `0` is a real state here: it means
+  // "nobody scored this", and the salience formula reads it as a 1.0 multiplier.
+  if (normalized === 'session_archive' || normalized.startsWith('session_archive/')) return 0
+  if (normalized.startsWith('consolidated_insight')) return 0
+  if (head === 'operations' || head === 'working' || head === 'execution' || head === 'scratch' || head === 'breadcrumb') return 0
+  // An untyped jotting is the weakest thing an agent writes on purpose.
+  if (!normalized || normalized === 'note') return 2
+  // Everything the agent filed deliberately under some topic.
+  return 5
+}
+
 /** Ceiling on the writer-supplied importance multiplier. */
 const MAX_IMPORTANCE_BOOST = 1.8
 
@@ -849,6 +891,22 @@ function initDb() {
     }
   }
 
+  /**
+   * Keep only the ids that name a row that exists.
+   *
+   * `link()` already did this, but `add()` and `update()` wrote the caller's
+   * list straight into the row, so a link to a memory that was never created
+   * (or has since gone) stayed on disk: 17 such edges in the live store, all
+   * from auto-written digests. A dangling edge never errors — it is a silent
+   * dead end in a traversal, and the traversal now feeds recall.
+   */
+  function keepExistingMemoryIds(ids: string[]): string[] {
+    if (!ids.length) return ids
+    const rows = stmts.getByIds(ids) as Array<Record<string, unknown>>
+    const present = new Set(rows.map((row) => String(row.id)))
+    return ids.filter((id) => present.has(id))
+  }
+
   function traverseLinked(
     seedEntries: MemoryEntry[],
     limits: MemoryLookupLimits,
@@ -878,7 +936,7 @@ function initDb() {
       const references = normalizeReferences(data.references, data.filePaths)
       const legacyFilePaths = referencesToLegacyFilePaths(references)
       const image = normalizeImage(data.image, data.imagePath)
-      const linkedMemoryIds = normalizeLinkedMemoryIds(data.linkedMemoryIds, id)
+      const linkedMemoryIds = keepExistingMemoryIds(normalizeLinkedMemoryIds(data.linkedMemoryIds, id))
       const sessionId = data.sessionId || null
       const category = data.category || 'note'
       const title = data.title || 'Untitled'
@@ -895,12 +953,15 @@ function initDb() {
         : null
       const abstract = suppliedAbstract || (content ? summarizeWithoutModel(content) : null) || null
 
-      // 1..10, clamped. A number outside the scale is treated as unscored
-      // rather than rejected — a bad value must not cost the agent its write.
+      // 1..10, clamped. A number outside the scale falls back to the category
+      // default rather than being rejected — a bad value must not cost the agent
+      // its write, and it must not cost the entry its rank either.
       const rawImportance = typeof data.importance === 'number' && Number.isFinite(data.importance)
         ? Math.round(data.importance)
         : 0
-      const importance = rawImportance >= 1 && rawImportance <= 10 ? rawImportance : 0
+      const importance = rawImportance >= 1 && rawImportance <= 10
+        ? rawImportance
+        : defaultImportanceForCategory(category, data.pinned === true)
 
       // Content-hash dedup: if same content already exists for this agent, reinforce instead of duplicating
       const agentId = data.agentId || null
@@ -991,7 +1052,7 @@ function initDb() {
       const references = normalizeReferences(merged.references, merged.filePaths)
       const legacyFilePaths = referencesToLegacyFilePaths(references)
       const image = normalizeImage(merged.image, merged.imagePath)
-      const nextLinked = normalizeLinkedMemoryIds(merged.linkedMemoryIds, id)
+      const nextLinked = keepExistingMemoryIds(normalizeLinkedMemoryIds(merged.linkedMemoryIds, id))
       const prevLinked = normalizeLinkedMemoryIds(existingEntry.linkedMemoryIds, id)
       const now = Date.now()
       const pinnedVal = merged.pinned ? 1 : 0

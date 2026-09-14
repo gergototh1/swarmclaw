@@ -447,6 +447,36 @@ const PLATFORM_RESOURCES: Record<string, {
 // buildCrudTools
 // ---------------------------------------------------------------------------
 
+/** Actions every CRUD resource answers. */
+const BASE_CRUD_ACTIONS = ['list', 'get', 'create', 'update', 'delete'] as const
+
+/**
+ * Actions only one resource answers, keyed by that resource's tool name.
+ *
+ * Kept next to the base list rather than inside the schema so the enum and the
+ * `execute` branches cannot drift: every entry here has a matching
+ * `action === '<name>' && toolKey === '<key>'` guard below.
+ */
+const RESOURCE_ONLY_CRUD_ACTIONS: Record<string, readonly string[]> = {
+  manage_tasks: ['claim_task'],
+  manage_secrets: ['check', 'request'],
+}
+
+/**
+ * The action enum one CRUD tool should advertise.
+ *
+ * WHY PER RESOURCE. One shared enum used to go out on all of them --
+ * `list, get, create, update, delete, claim_task, check, request` -- so
+ * `manage_webhooks` advertised `claim_task` and `manage_tasks` advertised
+ * `request`, neither of which those tools implement. An enum listing values the
+ * tool rejects is worse than no enum at all: the whole point of an enum is to
+ * rule out plausible-but-invalid output, and this one invited it.
+ */
+export function crudActionsFor(toolKey: string, readOnly: boolean): string[] {
+  if (readOnly) return ['list', 'get']
+  return [...BASE_CRUD_ACTIONS, ...(RESOURCE_ONLY_CRUD_ACTIONS[toolKey] || [])]
+}
+
 export function buildCrudTools(bctx: ToolBuildContext): StructuredToolInterface[] {
   const tools: StructuredToolInterface[] = []
   const { cwd, ctx, hasExtension } = bctx
@@ -1165,7 +1195,7 @@ export function buildCrudTools(bctx: ToolBuildContext): StructuredToolInterface[
               if (!result.success) return `Error: ${result.error}`
               return JSON.stringify({ ok: true, taskId: id, claimedByAgentId: ctx?.agentId })
             }
-            return `Unknown action "${action}". Valid: list, get, create, update, delete, claim_task`
+            return `Unknown action "${action}". Valid for ${toolKey}: ${crudActionsFor(toolKey, !!res.readOnly).join(', ')}`
           } catch (err: unknown) {
             return `Error: ${errorMessage(err)}`
           }
@@ -1199,9 +1229,9 @@ export function buildCrudTools(bctx: ToolBuildContext): StructuredToolInterface[
                 data: z.string().optional().describe('JSON string of fields for create/update'),
               }).passthrough()
             : z.object({
-                action: z.enum(['list', 'get', 'create', 'update', 'delete', 'claim_task', 'check', 'request']).describe('The CRUD action to perform'),
+                action: z.enum(crudActionsFor(toolKey, !!res.readOnly) as [string, ...string[]]).describe('The CRUD action to perform'),
                 id: z.string().optional().describe('Resource ID (required for get, update, delete)'),
-                data: z.string().optional().describe('JSON string of fields for create/update'),
+                data: z.string().optional().describe('JSON string of fields for create/update. The fields themselves may also be passed as top-level arguments; this tool description lists the ones this resource takes.'),
               }).passthrough(),
         },
       ),

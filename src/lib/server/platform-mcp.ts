@@ -3,6 +3,8 @@ import type { StructuredToolInterface } from '@langchain/core/tools'
 import { getAgent } from '@/lib/server/agents/agent-repository'
 import { getEnabledCapabilityIds } from '@/lib/capability-selection'
 import { buildSessionTools } from '@/lib/server/session-tools'
+import { isDelegateToolName } from '@/lib/server/session-tools/delegate-targets'
+import { getNativeToolParameters } from '@/lib/server/native-capabilities'
 import { resolveActiveProjectContext } from '@/lib/server/project-context'
 import { log } from '@/lib/server/logger'
 import type { Agent } from '@/types'
@@ -89,6 +91,26 @@ export const PLATFORM_MCP_TOOL_NAMES: readonly string[] = [
 
 const ALLOWED = new Set(PLATFORM_MCP_TOOL_NAMES)
 
+/**
+ * Whether a tool may cross the bridge.
+ *
+ * The fixed list still governs everything that has a fixed name. The one
+ * exception is the per-teammate delegation family: those names are derived from
+ * the fleet at build time (`delegate-targets.ts`), so no static list can hold
+ * them, and filtering them out would mean the builder generates a named handoff
+ * for every teammate and the bridge silently drops all of them.
+ *
+ * This does not turn the allow-list into a pattern. The prefix is only honoured
+ * because `spawn_subagent` is itself allow-listed, and the tools carrying it are
+ * produced by the same `delegationEnabled`-gated builder — a name matching the
+ * shape but not produced by that builder is simply not in the array to expose.
+ */
+export function isPlatformMcpToolName(name: string): boolean {
+  if (typeof name !== 'string' || !name) return false
+  if (ALLOWED.has(name)) return true
+  return ALLOWED.has('spawn_subagent') && isDelegateToolName(name)
+}
+
 export interface PlatformMcpCaller {
   agentId?: string | null
   sessionId?: string | null
@@ -140,7 +162,7 @@ async function toolsForAgent(agentId: string, sessionId: string | null): Promise
     projectName: project.project?.name || null,
     projectDescription: project.project?.description || null,
   })
-  return { tools: built.tools.filter((t) => ALLOWED.has(t.name)), cleanup: built.cleanup }
+  return { tools: built.tools.filter((t) => isPlatformMcpToolName(t.name)), cleanup: built.cleanup }
 }
 
 export class PlatformMcpError extends Error {
@@ -152,12 +174,33 @@ export class PlatformMcpError extends Error {
   }
 }
 
-/** A LangChain tool's zod schema as the JSON Schema MCP advertises. */
-function inputSchemaOf(tool: StructuredToolInterface): Record<string, unknown> {
+/** True when a rendered schema tells the caller nothing about its arguments. */
+function describesNoArguments(schema: Record<string, unknown> | null | undefined): boolean {
+  if (!schema) return true
+  const props = schema.properties
+  if (!props || typeof props !== 'object') return true
+  return Object.keys(props as Record<string, unknown>).length === 0
+}
+
+/**
+ * A LangChain tool's zod schema as the JSON Schema MCP advertises.
+ *
+ * WHY THE FALLBACK. Native capabilities describe themselves twice: once in the
+ * Extension descriptor (`tools[].parameters`, a real JSON Schema) and once in
+ * the legacy LangChain bridge (`tool(fn, { schema })`). Roughly half the legacy
+ * bridges pass `z.object({}).passthrough()`, which costs nothing on the
+ * LangGraph path -- `execute` reads its arguments loosely anyway -- but is the
+ * ONLY source MCP has. Rendered straight, those tools reach the agent as
+ * `{"type":"object","properties":{}}`: a name, a sentence of prose, and no
+ * argument it can see. The descriptor already holds the answer, so use it
+ * rather than making every agent guess.
+ */
+export function inputSchemaOf(tool: StructuredToolInterface): Record<string, unknown> {
   const schema = (tool as unknown as { schema?: unknown }).schema
+  let rendered: Record<string, unknown> | null = null
   if (schema && typeof schema === 'object' && '_zod' in (schema as object)) {
     try {
-      return z.toJSONSchema(schema as z.ZodType, { io: 'input' }) as Record<string, unknown>
+      rendered = z.toJSONSchema(schema as z.ZodType, { io: 'input' }) as Record<string, unknown>
     } catch (err) {
       // A schema zod cannot render is advertised as open rather than dropped:
       // the tool still works, and hiding it would be a worse answer than a
@@ -165,8 +208,16 @@ function inputSchemaOf(tool: StructuredToolInterface): Record<string, unknown> {
       log.warn('platform-mcp', `could not render schema for ${tool.name}`, { error: String(err) })
     }
   }
-  if (schema && typeof schema === 'object') return schema as Record<string, unknown>
-  return { type: 'object', properties: {} }
+  if (!rendered && schema && typeof schema === 'object') rendered = schema as Record<string, unknown>
+
+  // Only when the rendered schema says nothing. A tool that carries a real zod
+  // schema keeps it, so a narrower bridge can never be widened by the descriptor.
+  if (describesNoArguments(rendered)) {
+    const declared = getNativeToolParameters(tool.name)
+    if (declared && !describesNoArguments(declared)) return declared
+  }
+
+  return rendered || { type: 'object', properties: {} }
 }
 
 export async function listPlatformMcpTools(caller: PlatformMcpCaller): Promise<PlatformMcpToolDescriptor[]> {
@@ -189,7 +240,7 @@ export async function callPlatformMcpTool(
   args: Record<string, unknown>,
 ): Promise<unknown> {
   const agentId = requireAgentId(caller)
-  if (!ALLOWED.has(toolName)) {
+  if (!isPlatformMcpToolName(toolName)) {
     throw new PlatformMcpError('unknown_tool', `"${toolName}" is not a platform tool offered over MCP`)
   }
   const { tools, cleanup } = await toolsForAgent(agentId, callerSessionId(caller))

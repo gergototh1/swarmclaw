@@ -155,3 +155,57 @@ test('canCreateDailyDigestForAgent allows CLI-only agents with a per-agent dream
     true,
   )
 })
+
+/*
+ * A hozzáférés-alapú tömörítés nem hízlalhatja a tárat.
+ *
+ * A 3. lépés minden idle ablakban ÚJ `consolidated_insight` sort írt, ha
+ * legalább két memória "gyakran elért" volt -- létezés-ellenőrzés és
+ * szuperszedálás nélkül. Mivel ugyanaz a top-lista jön vissza minden futásnál,
+ * ugyanaz a digest keletkezett újra és újra: az élő tárban 191 ilyen sor van
+ * (a 347-ből), egyetlen napon egy ügynökre 67, és 1174 gráf-él lóg rajtuk --
+ * miközben a felidézés kategória szerint mindet kiszűri. Írásra létező szemét.
+ *
+ * A referencia-rendszerek egyike sem így csinálja: a Letta sleep-time ügynöke
+ * a memória-blokkot HELYBEN írja át, a Zep/Graphiti a felülírt élt
+ * érvényteleníti, a mem0 pedig ADD/UPDATE/DELETE/NOOP-ot dönt vektoros
+ * hasonlóság alapján. Mind a három felülír, nem hozzáfűz.
+ */
+test('runAccessBasedCompaction keeps one digest per agent instead of appending one per run', async () => {
+  storage.saveSettings({})
+  const db = memDb.getMemoryDb()
+  const agentId = 'compaction-idempotent-agent'
+
+  storage.saveAgents({
+    [agentId]: {
+      id: agentId,
+      name: 'Compaction Agent',
+      provider: 'claude-cli',
+      description: '',
+      soul: '',
+      tools: ['memory'],
+    } as unknown as Agent,
+  })
+
+  // Two entries that read as "frequently accessed" so step 3 has something to
+  // merge on every run. `get` is what bumps the counter, and it does so on a
+  // timer, so the reads are real reads and the test waits for them.
+  for (const title of ['Gyakori A', 'Gyakori B']) {
+    const entry = db.add({ agentId, category: 'knowledge/facts', title, content: `${title} tartalma.` })
+    for (let i = 0; i < 6; i++) db.get(entry.id)
+  }
+  await new Promise((resolve) => setTimeout(resolve, 20))
+
+  const digests = () => db.list(agentId, 500).filter((m) => m.category === 'consolidated_insight')
+
+  await consolidation.runAccessBasedCompaction()
+  const afterFirst = digests()
+  assert.equal(afterFirst.length, 1, 'the first run writes the digest')
+
+  await consolidation.runAccessBasedCompaction()
+  await consolidation.runAccessBasedCompaction()
+  const afterThird = digests()
+
+  assert.equal(afterThird.length, 1, `three runs must leave one digest, found ${afterThird.length}`)
+  assert.equal(afterThird[0].id, afterFirst[0].id, 'the digest is rewritten in place, not replaced')
+})
