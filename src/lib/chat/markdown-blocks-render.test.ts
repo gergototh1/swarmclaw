@@ -66,6 +66,26 @@ const SHAPES: Array<[name: string, markdown: string]> = [
   ['an HTML comment spanning a blank line', '<!-- a\n\nb -->\n\ntext'],
   ['an HTML sample inside a code fence', '```html\n<div>\n\n</div>\n```\n\nafter'],
 
+  // A tab indents a list item's content just as two spaces do, and the fence
+  // regex already accepted one — so only the indentation rule saw a difference.
+  ['a tab-indented fence inside a list item', '- Run:\n\n\t```sh\n\tnpm test\n\t```\n\n- Then'],
+  ['a tab-indented continuation paragraph', '- Run:\n\n\tmore about it\n\n- Then'],
+  ['a tab-indented fence inside a list item, CRLF', '- Run:\r\n\r\n\t```sh\r\n\tnpm test\r\n\t```\r\n\r\n- Then'],
+  ['a space-then-tab indented fence inside a list item', '- Run:\n\n \t```sh\n \tnpm test\n \t```\n\n- Then'],
+
+  // A list item's text may run on to the next line without any indentation; that
+  // lazy continuation is still inside the item, so the list is still open.
+  ['a lazy continuation in a loose bullet list', '- item one\ncontinued lazily\n\n- item two'],
+  ['a lazy continuation in a loose ordered list', '1. item one\ncontinued lazily\n\n2. item two'],
+
+  // A fence is closed only by its own character, so a `~~~` run inside a
+  // ```-fence is code, not the end of the block.
+  ['a fence closed by a different fence character', '```\nx\n~~~~\n\nafter'],
+
+  // Definitions carry their blockquote prefix; the whole-text rule has to see past it.
+  ['a link reference definition inside a block quote', '> [d]: https://example.com\n\n[see][d]'],
+  ['a footnote definition inside a block quote', 'a[^1]\n\n> [^1]: body'],
+
   ['a loose list', '- item one\n\n- item two\n\n- item three'],
   ['a loose list with an indented sublist', '- one\n\n  - sub a\n  - sub b\n\n- two\n\n- three'],
   ['a loose task list', '- [ ] a\n\n- [x] b'],

@@ -10,16 +10,18 @@
  * What the rules below guarantee: rendering the blocks one by one and
  * concatenating the HTML gives the same HTML as rendering the whole text in one
  * pass. That is a promise about the reader's screen, and it is only as good as
- * the shapes it is checked against — `markdown-blocks-render.test.tsx` asserts it
+ * the shapes it is checked against — `markdown-blocks-render.test.ts` asserts it
  * with the app's own react-markdown pipeline over the constructs an agent answer
  * actually produces.
  *
  * How it holds:
  *  - A blank line ends a block, except where markdown treats both sides as one
- *    unit: the next line is indented by 2+ spaces (a continuation paragraph,
- *    nested list or code fence inside a list item), the block and the next line
- *    are both list items (a loose list must stay one list), or both are block
- *    quotes.
+ *    unit: the next line is indented by 2+ columns, a tab counting as one (a
+ *    continuation paragraph, nested list or code fence inside a list item), the
+ *    block and the next line are both list items (a loose list must stay one
+ *    list), or both are block quotes. A list item's text may also run on to the
+ *    next line with no indentation at all, so the "is the block a list item?"
+ *    side of that test looks past such lazy continuations.
  *  - A fenced code block is never split. An indented fence belongs to the list
  *    item above it, so it neither opens nor closes a block. A closing run must be
  *    the same character as the opening one and at least as long, so a ````-fence
@@ -39,7 +41,14 @@ const FENCE = /^\s{0,3}(`{3,}|~{3,})/
 // markdown, so the item the model has only half-typed must not split the list.
 const LIST_ITEM_RE = /^\s{0,3}(?:[-*+]|\d+[.)])(?:\s|$)/
 const BLOCKQUOTE_RE = /^\s{0,3}>/
-const INDENTED_RE = /^ {2,}\S/
+const HEADING_RE = /^\s{0,3}#{1,6}(?:\s|$)/
+const THEMATIC_BREAK_RE = /^\s{0,3}(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$/
+// A tab indents to the next 4-column stop, so it indents at least as far as the
+// two spaces this rule asks for — and `FENCE` already accepted one, which is how
+// a tab-indented fence used to escape the list item it belongs to.
+const INDENTED_RE = /^(?: {0,3}\t| {2,})\S/
+/** A block quote's `>` markers, so a line inside one can be judged on what follows them. */
+const BLOCKQUOTE_PREFIX_RE = /^(?:\s{0,3}>\s?)+/
 
 /** Line shapes that cannot be split away from the rest of the document. */
 const WHOLE_TEXT_LINE = [
@@ -80,20 +89,54 @@ function lastBaseLine(lines: string[]): string | null {
   return lastNonEmpty
 }
 
+/** Whether a base line opens a construct of its own, rather than continuing the line above it. */
+function opensBlock(line: string): boolean {
+  return LIST_ITEM_RE.test(line)
+    || BLOCKQUOTE_RE.test(line)
+    || FENCE.test(line)
+    || HEADING_RE.test(line)
+    || THEMATIC_BREAK_RE.test(line)
+}
+
+/**
+ * The base line that opened the block's last construct, looking past lazy continuations.
+ *
+ * A list item's text may run on to the next line with no indentation at all
+ * (`- item one` / `continued lazily`), and that line is still inside the item —
+ * the list is still open. `lastBaseLine` would hand back the continuation, which
+ * is not a list item, and the loose list would be split into two tight ones.
+ * Stop at the first line that opens something: past a heading, a block quote, a
+ * fence or a thematic break the list really has ended.
+ */
+function lastBlockStartLine(lines: string[]): string | null {
+  let lastNonEmpty: string | null = null
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i]
+    if (line.trim() === '') continue
+    if (lastNonEmpty === null) lastNonEmpty = line
+    if (INDENTED_RE.test(line)) continue
+    if (opensBlock(line)) return line
+  }
+  return lastNonEmpty
+}
+
 /** Whether a blank-line run between `current`'s last line and `nextLine` should NOT split the block. */
 function keepsBlockTogether(current: string[], nextLine: string): boolean {
   if (INDENTED_RE.test(nextLine)) return true
   const prevLine = lastBaseLine(current)
   if (prevLine === null) return false
-  if (LIST_ITEM_RE.test(prevLine) && LIST_ITEM_RE.test(nextLine)) return true
   if (BLOCKQUOTE_RE.test(prevLine) && BLOCKQUOTE_RE.test(nextLine)) return true
-  return false
+  if (!LIST_ITEM_RE.test(nextLine)) return false
+  const listStart = lastBlockStartLine(current)
+  return listStart !== null && LIST_ITEM_RE.test(listStart)
 }
 
 /**
  * Whether the message carries a construct that may not be split from the rest of
  * the document. Lines inside a code fence are literal text, so a `<div>` or a
- * `[ref]:` in a code sample does not cost the message its memoization.
+ * `[ref]:` in a code sample does not cost the message its memoization. A
+ * definition inside a block quote still binds document-wide, so the `>` markers
+ * are stripped before the line is judged.
  */
 function requiresWholeText(lines: string[]): boolean {
   let fence: string | null = null
@@ -107,7 +150,8 @@ function requiresWholeText(lines: string[]): boolean {
       fence = fenceMatch[1]
       continue
     }
-    if (WHOLE_TEXT_LINE.some((re) => re.test(line))) return true
+    const bare = line.replace(BLOCKQUOTE_PREFIX_RE, '')
+    if (WHOLE_TEXT_LINE.some((re) => re.test(bare))) return true
   }
   return false
 }
@@ -132,8 +176,8 @@ export function splitMarkdownBlocks(text: string): string[] {
   }
 
   let i = 0
-  while (i < lines.length) {
-    const line = lines[i]
+  while (i < kept.length) {
+    const line = kept[i]
     const fenceMatch = line.match(FENCE)
 
     if (fence === null && fenceMatch) {
@@ -162,16 +206,16 @@ export function splitMarkdownBlocks(text: string): string[] {
     if (line.trim() === '') {
       // Look past the whole run of blank lines to the next real line.
       let j = i
-      while (j < lines.length && lines[j].trim() === '') j++
-      if (j >= lines.length) {
+      while (j < kept.length && kept[j].trim() === '') j++
+      if (j >= kept.length) {
         // Trailing blank lines: nothing left to decide.
         i = j
         continue
       }
-      const nextLine = lines[j]
+      const nextLine = kept[j]
       if (current.length > 0 && keepsBlockTogether(current, nextLine)) {
         // Keep the blank-line run itself — it's part of the block's markdown.
-        for (let k = i; k < j; k++) current.push(lines[k])
+        for (let k = i; k < j; k++) current.push(kept[k])
       } else {
         closeBlock()
       }

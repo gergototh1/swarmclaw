@@ -58,6 +58,42 @@ describe('splitMarkdownBlocks', () => {
     assert.deepEqual(splitMarkdownBlocks(text), [text])
   })
 
+  it('treats a tab as indentation, like the 4 spaces it stands for', () => {
+    const tabbed = '- Run it:\n\n\t```sh\n\tnpm test\n\t```\n\n- Then check'
+    assert.deepEqual(splitMarkdownBlocks(tabbed), [tabbed])
+    const spaced = '- Run it:\n\n    ```sh\n    npm test\n    ```\n\n- Then check'
+    assert.deepEqual(splitMarkdownBlocks(spaced), [spaced])
+    const continuation = '- Run it:\n\n\tmore about it\n\n- Then check'
+    assert.deepEqual(splitMarkdownBlocks(continuation), [continuation])
+    const spaceThenTab = '- Run it:\n\n \t```sh\n \tnpm test\n \t```\n\n- Then check'
+    assert.deepEqual(splitMarkdownBlocks(spaceThenTab), [spaceThenTab])
+  })
+
+  it('keeps a loose list together across a lazy continuation line', () => {
+    const bullets = '- item one\ncontinued lazily\n\n- item two'
+    assert.deepEqual(splitMarkdownBlocks(bullets), [bullets])
+    const ordered = '1. item one\ncontinued lazily\n\n2. item two'
+    assert.deepEqual(splitMarkdownBlocks(ordered), [ordered])
+  })
+
+  it('stops the lazy-continuation walk at a line that opens a block of its own', () => {
+    // The heading ends the list; the bullet after the blank line starts a new one.
+    assert.deepEqual(splitMarkdownBlocks('# Title\ntext\n\n- item'), ['# Title\ntext', '- item'])
+    assert.deepEqual(splitMarkdownBlocks('para one\n\npara two\n\n- item'), ['para one', 'para two', '- item'])
+  })
+
+  it('does not let a fence of the other character close the block', () => {
+    const text = '```\nx\n~~~~\n\nafter'
+    assert.deepEqual(splitMarkdownBlocks(text), [text])
+  })
+
+  it('sees a definition through its block-quote prefix', () => {
+    const linkRef = '> [d]: https://example.com\n\n[see][d]'
+    assert.deepEqual(splitMarkdownBlocks(linkRef), [linkRef])
+    const footnote = 'a[^1]\n\n> [^1]: body'
+    assert.deepEqual(splitMarkdownBlocks(footnote), [footnote])
+  })
+
   it('keeps a line\'s leading indentation, so an indented code block stays code', () => {
     assert.deepEqual(splitMarkdownBlocks('    const a = 1\n\nafter'), ['    const a = 1', 'after'])
   })
