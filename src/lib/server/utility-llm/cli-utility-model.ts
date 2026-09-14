@@ -104,6 +104,21 @@ function unwrapJsonEnvelope(raw: string): string {
   return trimmed
 }
 
+/**
+ * True while this process is a build or a test run.
+ *
+ * Spawning the CLI there would spend real quota and make a test's result depend
+ * on the network — two memory tests, which exercise the no-model fallback,
+ * started receiving real summaries the moment this adapter existed. Relying on
+ * each test file to set a flag would be the same class of bug this whole branch
+ * has been fixing, so the runner's own marker is checked too.
+ */
+function isNonProductionRun(): boolean {
+  return Boolean(process.env.SWARMCLAW_BUILD_MODE)
+    || Boolean(process.env.NODE_TEST_CONTEXT)
+    || process.env.NODE_ENV === 'test'
+}
+
 const defaultRunner: CliRunner = (binary, args, input, timeoutMs) => new Promise((resolve, reject) => {
   const child = spawn(binary, args, { env: buildCliEnv(), stdio: ['pipe', 'pipe', 'pipe'] })
   let stdout = ''
@@ -142,6 +157,7 @@ export class CliUtilityChatModel extends SimpleChatModel {
   private readonly run: CliRunner
   private readonly claim: () => UtilityClaim
   private readonly release: () => void
+  private readonly spawnsRealProcess: boolean
 
   constructor(params: CliUtilityChatModelParams) {
     super(params)
@@ -150,6 +166,7 @@ export class CliUtilityChatModel extends SimpleChatModel {
     this.responseFormat = params.responseFormat ?? null
     this.timeoutMs = params.timeoutMs ?? DEFAULT_UTILITY_TIMEOUT_MS
     this.run = params.run ?? defaultRunner
+    this.spawnsRealProcess = !params.run
     const sessionId = params.sessionId ?? null
     this.claim = params.claim ?? (() => claimUtilityCall({ sessionId, budget: resolveUtilityBudget(loadSettings()) }))
     this.release = params.release ?? releaseUtilityCall
@@ -160,6 +177,11 @@ export class CliUtilityChatModel extends SimpleChatModel {
   }
 
   async _call(messages: BaseMessage[]): Promise<string> {
+    // Only the real spawn is blocked. A caller that injected its own runner is
+    // a test exercising this class, and it starts nothing.
+    if (this.spawnsRealProcess && isNonProductionRun()) {
+      throw new Error('utility model is disabled during build/test runs')
+    }
     if (!this.binary) {
       throw new Error('utility CLI binary not found: install the Claude CLI or configure an API provider as the utility model')
     }

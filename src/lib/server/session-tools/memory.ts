@@ -1014,6 +1014,29 @@ export const MemoryExtension: Extension = {
       if (!agentId) return
       const msg = (ctx.message || '').trim()
       const resp = (ctx.response || '').trim()
+
+      /*
+       * Distil the turn into candidate facts.
+       *
+       * Deliberately not awaited: the user's turn is finished and must not wait
+       * on housekeeping. The extractor has its own budget (daily cap,
+       * concurrency, per-session cooldown) and swallows its own failures, so
+       * the worst case here is that nothing is extracted.
+       *
+       * This is the piece that was missing. Everything the host captured
+       * automatically landed in tiers recall filters out; the only thing that
+       * ever reached an agent was what it chose to write by hand, about one
+       * memory per five to eight sessions.
+       */
+      void import('@/lib/server/memory/memory-extraction')
+        .then((mod) => mod.extractTurnCandidates({
+          agentId,
+          sessionId: ctx.session.id,
+          message: msg,
+          response: resp,
+        }))
+        .catch(() => { /* extraction is best-effort by design */ })
+
       const shouldCapture = ctx.internal
         ? shouldAutoCaptureAutonomousTurn(ctx)
         : ((ctx.source === 'chat' || ctx.source === 'connector') && shouldAutoCaptureMemoryTurn(msg, resp))

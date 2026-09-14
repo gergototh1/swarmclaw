@@ -38,6 +38,12 @@ export function registerCompactionIdleCallback(): void {
   })
 }
 
+/** A helper that declined for budget or environment reasons, not a real failure. */
+function isUtilityUnavailable(err: unknown): boolean {
+  const message = errorMessage(err)
+  return /utility model is disabled|utility model refused by budget|utility CLI binary not found/i.test(message)
+}
+
 export function canCreateDailyDigestForAgent(
   agentId: string,
   agents: ReturnType<typeof loadAgents>,
@@ -154,6 +160,11 @@ export async function runDailyConsolidation(): Promise<{
 
       digestsCreated++
     } catch (err: unknown) {
+      // The utility model saying "not now" is not a failure. It refuses on a
+      // spent budget, and during builds and test runs it refuses outright —
+      // neither is something an operator can act on, and reporting them as
+      // errors would bury the ones that are.
+      if (isUtilityUnavailable(err)) continue
       errors.push(`Agent ${agentId}: ${errorMessage(err)}`)
     }
   }

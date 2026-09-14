@@ -81,6 +81,36 @@ export function defaultImportanceForCategory(category: unknown, pinned = false):
   return 5
 }
 
+export type MemoryCandidateState = 'candidate' | 'promoted' | 'rejected'
+
+export interface MemoryCandidate {
+  id: string
+  agentId: string | null
+  sessionId: string | null
+  text: string
+  source: string
+  state: MemoryCandidateState
+  memoryId: string | null
+  contentHash: string
+  createdAt: number
+  updatedAt: number
+}
+
+function rowToCandidate(row: Record<string, unknown>): MemoryCandidate {
+  return {
+    id: String(row.id || ''),
+    agentId: typeof row.agentId === 'string' ? row.agentId : null,
+    sessionId: typeof row.sessionId === 'string' ? row.sessionId : null,
+    text: typeof row.text === 'string' ? row.text : '',
+    source: typeof row.source === 'string' ? row.source : 'chat-turn',
+    state: (row.state === 'promoted' || row.state === 'rejected') ? row.state : 'candidate',
+    memoryId: typeof row.memoryId === 'string' ? row.memoryId : null,
+    contentHash: typeof row.contentHash === 'string' ? row.contentHash : '',
+    createdAt: typeof row.createdAt === 'number' ? row.createdAt : 0,
+    updatedAt: typeof row.updatedAt === 'number' ? row.updatedAt : 0,
+  }
+}
+
 /** Ceiling on the writer-supplied importance multiplier. */
 const MAX_IMPORTANCE_BOOST = 1.8
 
@@ -659,6 +689,34 @@ function initDb() {
   ]) {
     try { db.exec(`ALTER TABLE memories ADD COLUMN ${col}`) } catch { /* already exists */ }
   }
+
+  /*
+   * Extraction produces CANDIDATES, not memories.
+   *
+   * The utility model runs often and is cheap, and a bad turn would otherwise
+   * leave rubbish in recall that nobody can tell from a real fact. A candidate
+   * is disposable: a later pass promotes it, rejects it, and either way the
+   * decision is recorded so the same sentence is not extracted forever.
+   *
+   * `contentHash` is scoped per agent: two agents may legitimately learn the
+   * same fact, and one of them noticing it must not silence the other.
+   */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS memory_candidates (
+      id TEXT PRIMARY KEY,
+      agentId TEXT,
+      sessionId TEXT,
+      text TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'chat-turn',
+      state TEXT NOT NULL DEFAULT 'candidate',
+      memoryId TEXT,
+      contentHash TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL
+    )
+  `)
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_memory_candidates_hash ON memory_candidates(contentHash)`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_memory_candidates_state ON memory_candidates(state, createdAt)`)
 
   // Partial index for fast pinned-memory lookups
   db.exec(`CREATE INDEX IF NOT EXISTS idx_memories_pinned ON memories(agentId, updatedAt DESC) WHERE pinned = 1`)
@@ -1428,6 +1486,61 @@ function initDb() {
 
     listKnowledgeSourceChunks(sourceId: string): MemoryEntry[] {
       return (stmts.listKnowledgeSourceChunks.all(sourceId) as Record<string, unknown>[]).map(rowToEntry)
+    },
+
+    /**
+     * Record an extracted fact for later judgement.
+     *
+     * Returns the existing row when the same agent already holds that text, in
+     * any state: the extractor runs on every turn and notices the same fact
+     * repeatedly, and a decision already taken must not be re-queued.
+     */
+    addCandidate(data: { agentId?: string | null; sessionId?: string | null; text: string; source?: string }): MemoryCandidate {
+      const text = typeof data.text === 'string' ? data.text.trim() : ''
+      if (!text) throw new Error('memory candidate text is empty')
+      const agentId = data.agentId || null
+      const contentHash = createHash('sha256')
+        .update(`${agentId || ''}|${text.replace(/\s+/g, ' ').toLowerCase()}`)
+        .digest('hex')
+        .slice(0, 32)
+      const existing = db.prepare(`SELECT * FROM memory_candidates WHERE contentHash = ?`).get(contentHash) as Record<string, unknown> | undefined
+      if (existing) return rowToCandidate(existing)
+      const now = Date.now()
+      const id = genId(6)
+      db.prepare(`
+        INSERT INTO memory_candidates (id, agentId, sessionId, text, source, state, memoryId, contentHash, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, 'candidate', NULL, ?, ?, ?)
+      `).run(id, agentId, data.sessionId || null, text, data.source || 'chat-turn', contentHash, now, now)
+      return {
+        id, agentId, sessionId: data.sessionId || null, text,
+        source: data.source || 'chat-turn', state: 'candidate', memoryId: null,
+        contentHash, createdAt: now, updatedAt: now,
+      }
+    },
+
+    listCandidates(opts: { state?: MemoryCandidateState; agentId?: string | null; limit?: number } = {}): MemoryCandidate[] {
+      const limit = Math.max(1, Math.min(500, Math.trunc(opts.limit ?? 50)))
+      const clauses: string[] = []
+      const params: unknown[] = []
+      if (opts.state) { clauses.push('state = ?'); params.push(opts.state) }
+      if (opts.agentId) { clauses.push('agentId = ?'); params.push(opts.agentId) }
+      const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''
+      // Oldest first: a queue that serves the newest would starve whatever
+      // arrived during a busy hour.
+      const rows = db.prepare(`SELECT * FROM memory_candidates ${where} ORDER BY createdAt ASC LIMIT ?`).all(...params, limit) as Record<string, unknown>[]
+      return rows.map(rowToCandidate)
+    },
+
+    markCandidate(id: string, state: MemoryCandidateState, extra?: { memoryId?: string | null }): void {
+      db.prepare(`UPDATE memory_candidates SET state = ?, memoryId = ?, updatedAt = ? WHERE id = ?`)
+        .run(state, extra?.memoryId ?? null, Date.now(), id)
+    },
+
+    countCandidates(state?: MemoryCandidateState): number {
+      const row = state
+        ? db.prepare(`SELECT COUNT(*) AS n FROM memory_candidates WHERE state = ?`).get(state) as { n: number }
+        : db.prepare(`SELECT COUNT(*) AS n FROM memory_candidates`).get() as { n: number }
+      return row?.n ?? 0
     },
 
     listPinned(agentId?: string, limit = 20): MemoryEntry[] {

@@ -157,9 +157,15 @@ function formatLine(entry: MemoryEntry): string {
   if (title && body.toLowerCase().startsWith(title.toLowerCase())) {
     body = body.slice(title.length).replace(/^[\s:.\u2014-]+/, '')
   }
-  const snippet = body.length > SNIPPET_CHARS ? `${body.slice(0, SNIPPET_CHARS).trimEnd()}...` : body
+  const truncated = body.length > SNIPPET_CHARS
+  const snippet = truncated ? `${body.slice(0, SNIPPET_CHARS).trimEnd()}...` : body
   const pin = entry.pinned ? ' [pinned]' : ''
-  return snippet ? `- [${category}]${pin} ${title}: ${snippet}` : `- [${category}]${pin} ${title}`
+  // A truncated entry names its id, so the agent can pull the rest with
+  // `memory_get`. Without it the recall block shows that something is known and
+  // gives no way to reach it. A complete entry gets no id: there is nothing
+  // left to fetch, and the id would be noise on every line.
+  const ref = truncated && entry.id ? ` (full: memory_get id ${entry.id})` : ''
+  return snippet ? `- [${category}]${pin} ${title}: ${snippet}${ref}` : `- [${category}]${pin} ${title}`
 }
 
 export function buildCliMemoryPreamble(input: CliMemoryPreambleInput): CliMemoryPreambleResult {

@@ -42,9 +42,9 @@ export interface UtilityBudgetSettings {
 
 function intOr(value: unknown, fallback: number, min: number, max: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return fallback
-  const rounded = Math.trunc(value)
-  if (rounded < min || rounded > max) return fallback
-  return rounded
+  const whole = Math.trunc(value)
+  if (whole < min || whole > max) return fallback
+  return whole
 }
 
 export function resolveUtilityBudget(settings: UtilityBudgetSettings | null | undefined): UtilityBudget {

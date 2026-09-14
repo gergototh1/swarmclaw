@@ -108,10 +108,17 @@ test('canCreateDailyDigestForAgent allows CLI-only agents when a dream model is 
     } as Agent,
   })
 
+  /*
+   * Ez korábban `false` volt: CLI-only ügynöknek nem volt modellje, tehát a
+   * napi digest némán kimaradt. Ez volt az egyik oka, hogy a tár megtelt nyers
+   * átirattal, amit senki nem desztillált. Az utility-modell tartaléka óta van
+   * modell akkor is, ha az operátor semmit nem állított be -- a beállított
+   * dream-modell ettől még előrébb van a sorban.
+   */
   storage.saveSettings({})
   assert.equal(
     consolidation.canCreateDailyDigestForAgent(agentId, storage.loadAgents({ includeTrashed: true }), storage.loadSettings()),
-    false,
+    true,
   )
 
   storage.saveSettings({

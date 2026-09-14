@@ -169,3 +169,32 @@ describe('CliUtilityChatModel budget', () => {
     assert.equal(released, 1)
   })
 })
+
+/*
+ * Build és teszt közben nem indul processz.
+ *
+ * A `SWARMCLAW_BUILD_MODE` azt jelenti, hogy a folyamat nem éles kiszolgálás --
+ * next build, teszt-futtatás. Ilyenkor egy segédhívás valódi CLI-processzt
+ * indítana, valódi kvótát költene, és a tesztek eredménye a hálózattól függene.
+ * Két memória-teszt pont ezen bukott meg: a tartalék ágat vizsgálták, és
+ * hirtelen valódi összefoglalót kaptak.
+ */
+describe('CliUtilityChatModel outside production', () => {
+  it('refuses to spawn under the test runner', async () => {
+    // A node test runner a `NODE_TEST_CONTEXT`-et állítja; a build a
+    // `SWARMCLAW_BUILD_MODE`-ot. Mindkettő elég.
+    const started = 0
+    {
+      // Szándékosan NINCS injektált runner: ez az az eset, amikor valódi
+      // processzt indítana.
+      const model = new CliUtilityChatModel({
+        model: 'm',
+        binary: '/bin/claude',
+        claim: () => ({ ok: true }),
+        release: () => {},
+      })
+      await assert.rejects(model.invoke([new HumanMessage('x')]), /build|test/i)
+      assert.equal(started, 0)
+    }
+  })
+})

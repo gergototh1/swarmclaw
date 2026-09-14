@@ -474,3 +474,56 @@ describe('buildCliMemoryPreamble prefers a precise match over loose noise', () =
     assert.ok(out.preamble!.includes('Billingo'), out.preamble!)
   })
 })
+
+/*
+ * A mindig betöltött réteg mutasson a részletre.
+ *
+ * A Hermes `MEMORY.md`-je pár rövid bejegyzés, és mindegyik visszahivatkozik a
+ * kereshető tárra: "Részletek search_memory-ban (id 749)". Így a mindig
+ * betöltött réteg kicsi marad, de semmi nem vész el belőle -- az ügynök a
+ * hivatkozás mentén bármikor előhozza a teljeset.
+ *
+ * Nálunk a felidézési sor 220 karakternél levágja a tartalmat, és az azonosító
+ * nélkül a levágott rész elérhetetlen: az ügynök látja, hogy tud valamit, de
+ * nem tudja megnézni, mit.
+ */
+describe('buildCliMemoryPreamble points at the full entry', () => {
+  const ID_AGENT = 'cli-preamble-id-agent'
+
+  it('prints the id of a truncated memory, so the agent can fetch the rest', () => {
+    const db = memDb.getMemoryDb()
+    const entry = db.add({
+      agentId: ID_AGENT,
+      category: 'knowledge/facts',
+      title: 'Hosszú jegyzet a telepítésről',
+      content: `A telepítés lépései: ${'nagyon hosszú részletes leírás, '.repeat(30)}vége.`,
+      pinned: true,
+    })
+    const out = mod.buildCliMemoryPreamble({
+      session: { id: 'i1', agentId: ID_AGENT },
+      agent: { id: ID_AGENT, tools: ['memory'], proactiveMemory: true },
+      message: 'Mit tudsz a telepítésről és a lépéseiről?',
+    })
+    assert.ok(out.preamble, 'expected a preamble')
+    assert.ok(out.preamble!.includes(entry.id), `the id must be printed so memory_get can reach it:\n${out.preamble}`)
+  })
+
+  it('does not clutter a short entry that is already complete', () => {
+    // Ha a bejegyzés teljes egészében kifért, nincs mit előhozni.
+    const db = memDb.getMemoryDb()
+    const agentId = 'cli-preamble-short-id-agent'
+    const entry = db.add({
+      agentId,
+      category: 'preference/nyelv',
+      title: 'Nyelv',
+      content: 'Magyarul válaszolj.',
+    })
+    const out = mod.buildCliMemoryPreamble({
+      session: { id: 'i2', agentId },
+      agent: { id: agentId, tools: ['memory'], proactiveMemory: true },
+      message: 'Milyen nyelven válaszoljak neki egyébként?',
+    })
+    assert.ok(out.preamble)
+    assert.equal(out.preamble!.includes(entry.id), false, out.preamble!)
+  })
+})
