@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import type { Message, DevServerStatus, SSEEvent, ChatTraceBlock } from '../types'
 import type { ToolPanelRef } from '@/lib/chat/tool-panel-refs'
 import { streamChat } from '@/lib/chat/chat'
+import { createStreamBatch } from '@/lib/chat/stream-batch'
 import {
   clearSessionQueue,
   enqueueSessionQueueMessage,
@@ -485,7 +486,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (ownsLiveStream()) set(patch)
     }
 
+    // Text chunks arrive faster than any display refreshes; one write per 50 ms
+    // is invisible to the reader and stops the live bubble re-parsing its
+    // markdown per chunk. Anything that is not text flushes first, so the order
+    // of text, tool events and phase changes is exactly what the server sent.
+    const textBatch = createStreamBatch<ChatState>({ intervalMs: 50, apply: (patch) => setIfOwner(patch) })
+
     let fullText = ''
+    let thinkingText = ''
     let suggestions: string[] | null = null
     let toolCallCounter = 0
     let soundFiredStart = false
@@ -513,8 +521,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
           patch.streamPhase = 'responding'
         }
 
-        setIfOwner(patch)
+        textBatch.push(patch)
       } else if (event.t === 'md') {
+        // Not a text chunk — flush so this metadata lands after any pending text.
+        textBatch.flush()
         // Parse metadata events (usage/run/queue/thinking). Ignore unknown keys.
         try {
           const meta = JSON.parse(event.text || '{}')
@@ -526,6 +536,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
             suggestions = meta.suggestions
           }
           if (meta.thinking && typeof meta.thinking === 'string') {
+            // Server sends the full accumulated thinking text here, replacing
+            // (not appending to) what the incremental 'thinking' events built —
+            // keep the local accumulator in sync so a later 'thinking' event
+            // doesn't append onto a stale base.
+            thinkingText = meta.thinking
             mdPatch.thinkingText = meta.thinking
           }
           if (meta.run?.status === 'queued') {
@@ -543,10 +558,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
           // Ignore non-JSON metadata payloads.
         }
       } else if (event.t === 'r') {
+        // Full-text replace, not an incremental chunk — flush first.
+        textBatch.flush()
         fullText = event.text || ''
         const visibleText = stripHiddenControlTokens(fullText)
         setIfOwner({ streamText: visibleText, displayText: visibleText })
       } else if (event.t === 'tool_call') {
+        textBatch.flush()
         // Dedup: skip if the last tool event matches name+input and is still running
         const currentEvents = get().toolEvents
         const lastEvent = currentEvents[currentEvents.length - 1]
@@ -571,6 +589,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           })
         }
       } else if (event.t === 'tool_result') {
+        textBatch.flush()
         const soundOn = get().soundEnabled
         const currentEvents = get().toolEvents
         const idx = currentEvents.findLastIndex(
@@ -607,14 +626,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
           setIfOwner({ toolEvents: events })
         }
       } else if (event.t === 'reset') {
+        textBatch.flush()
         // Server rolled back state after a transient error — clear accumulated
         // text and tool events so the retry starts with a clean slate.
         fullText = event.text || ''
+        thinkingText = ''
         const visibleText = stripHiddenControlTokens(fullText)
         toolCallCounter = 0
         soundFiredStart = false
         setIfOwner({ streamText: visibleText, displayText: visibleText, toolEvents: [], streamPhase: 'connecting' })
       } else if (event.t === 'err') {
+        textBatch.flush()
         const errText = event.text || 'Unknown'
         if (!shouldIgnoreTransientError(errText)) {
           fullText += '\n[Error: ' + errText + ']'
@@ -623,8 +645,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
           if (get().soundEnabled && ownsLiveStream()) playError()
         }
       } else if (event.t === 'thinking') {
-        setIfOwner((s) => ({ thinkingText: s.thinkingText + (event.text || '') }))
+        thinkingText += event.text || ''
+        textBatch.push({ thinkingText })
       } else if (event.t === 'status') {
+        textBatch.flush()
         try {
           const parsed = JSON.parse(event.text || '{}')
           if (
@@ -638,7 +662,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           // ignore malformed status
         }
       } else if (event.t === 'done') {
-        // done
+        textBatch.flush()
       }
     }, attachedFiles, { replyToId })
 
@@ -703,6 +727,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     void useAppStore.getState().refreshSession(sessionId)
 
     } finally {
+      // Whatever happens — normal completion, a detached stream, or a thrown
+      // error — no batched patch may outlive this turn.
+      textBatch.flush()
+      textBatch.dispose()
       if (get().streaming && ownsLiveStream()) {
         set({
           streaming: false,
