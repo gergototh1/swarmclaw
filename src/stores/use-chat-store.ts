@@ -666,6 +666,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     }, attachedFiles, { replyToId })
 
+    // The turn is over, but a `done` event is not guaranteed — a transport drop
+    // or a server restart just ends the body. Anything still batched has to land
+    // before the final writes below: otherwise they read a stale `thinkingText`
+    // into the persisted message, and the `finally` flush writes a dead
+    // `streamText`/`streamPhase` back on top of the reset.
+    textBatch.flush()
+
     if (get().soundEnabled && soundFiredStart) playStreamEnd()
     if (!ownsLiveStream()) {
       // Another session owns the live slot now. The reply is already persisted
@@ -728,8 +735,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     } finally {
       // Whatever happens — normal completion, a detached stream, or a thrown
-      // error — no batched patch may outlive this turn.
-      textBatch.flush()
+      // error — no batched patch may outlive this turn. Only `dispose()` here:
+      // the successful path already flushed before its final writes, and
+      // flushing again after them would put the dead stream back on screen.
       textBatch.dispose()
       if (get().streaming && ownsLiveStream()) {
         set({

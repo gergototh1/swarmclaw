@@ -889,3 +889,182 @@ describe('useChatStore cross-session stream isolation', () => {
     )
   })
 })
+
+/*
+ * `createStreamBatch` holds text for up to 50 ms, so the order in which patches
+ * reach the store is not the order the server sent them unless every non-text
+ * event flushes first — and unless the turn's own final writes flush first too.
+ *
+ * The turn does not get a guaranteed `done`: a transport drop or a server
+ * restart just ends the body. Without a flush right after `streamChat` returns,
+ * the code that builds the persisted message reads a `thinkingText` that is
+ * still 50 ms behind, and the `finally` flush writes a dead `streamText` back
+ * on top of the reset that already cleared it.
+ *
+ * The batch defaults to `window` timers, which node does not have — and
+ * `chat.ts` swallows anything the event callback throws, so without this shim
+ * every patch would silently apply straight away and the test would prove
+ * nothing.
+ */
+describe('useChatStore stream batch ordering', () => {
+  interface TimerWindow {
+    setTimeout(fn: () => void, ms: number): number
+    clearTimeout(id: number): void
+    dispatchEvent(event: unknown): boolean
+  }
+  const globalWithWindow = globalThis as unknown as { window?: TimerWindow }
+
+  function installTimerWindow(): () => void {
+    const pending = new Map<number, ReturnType<typeof setTimeout>>()
+    let nextId = 1
+    globalWithWindow.window = {
+      setTimeout(fn, ms) {
+        const id = nextId++
+        pending.set(id, setTimeout(() => { pending.delete(id); fn() }, ms))
+        return id
+      },
+      clearTimeout(id) {
+        const handle = pending.get(id)
+        if (handle !== undefined) { clearTimeout(handle); pending.delete(id) }
+      },
+      dispatchEvent() { return true },
+    }
+    return () => {
+      for (const handle of pending.values()) clearTimeout(handle)
+      pending.clear()
+      delete globalWithWindow.window
+    }
+  }
+
+  function resetChatState() {
+    useChatStore.setState({
+      messages: [],
+      pendingFiles: [],
+      replyingTo: null,
+      toolEvents: [],
+      streamText: '',
+      displayText: '',
+      streaming: false,
+      streamingSessionId: null,
+      streamSource: null,
+      assistantRenderId: null,
+      streamPhase: 'thinking',
+      streamToolName: '',
+      thinkingText: '',
+      thinkingStartTime: 0,
+      queuedMessages: [],
+      agentStatus: null,
+      lastUsage: null,
+      soundEnabled: false,
+      ttsEnabled: false,
+      hasMoreMessages: false,
+      loadingMore: false,
+      totalMessages: 0,
+    })
+  }
+
+  /** SSE response whose events are pushed manually so the test controls timing. */
+  function controlledSse() {
+    const encoder = new TextEncoder()
+    let controller!: ReadableStreamDefaultController<Uint8Array>
+    const response = new Response(new ReadableStream<Uint8Array>({
+      start(c) { controller = c },
+    }), { status: 200, headers: { 'content-type': 'text/event-stream' } })
+    return {
+      response,
+      push(event: unknown) { controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n`)) },
+      close() { controller.close() },
+    }
+  }
+
+  function startSession() {
+    const session = makeSession()
+    useAppStore.setState({
+      agents: { 'agent-1': makeAgent() },
+      sessions: { [session.id]: session },
+      currentAgentId: 'agent-1',
+    })
+    resetChatState()
+    const stream = controlledSse()
+    global.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/api/chats/session-1/chat') return stream.response
+      if (url === '/api/chats/session-1') return jsonResponse(session)
+      throw new Error(`Unexpected fetch: ${url}`)
+    }) as unknown as typeof fetch
+    return stream
+  }
+
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+  it('shows the text that came before a tool event by the time the tool event lands', async () => {
+    const restoreWindow = installTimerWindow()
+    const stream = startSession()
+    let textWhenToolLanded: string | null = null
+    const unsubscribe = useChatStore.subscribe((state) => {
+      if (textWhenToolLanded === null && state.toolEvents.length > 0) textWhenToolLanded = state.streamText
+    })
+    try {
+      const send = useChatStore.getState().sendMessage('Hi', { sessionId: 'session-1' })
+      await tick()
+
+      stream.push({ t: 'd', text: 'Hello' })
+      stream.push({ t: 'd', text: ' world' })
+      stream.push({ t: 'tool_call', toolName: 'files', toolInput: '{"path":"a"}' })
+      stream.push({ t: 'd', text: '!' })
+      stream.push({ t: 'done' })
+      stream.close()
+      await send
+      await tick()
+
+      // The second chunk was still inside the 50 ms window; the tool event must
+      // flush it, or the reader sees the tool card jump ahead of the sentence.
+      assert.equal(textWhenToolLanded, 'Hello world')
+      const state = useChatStore.getState()
+      assert.equal(state.streamText, '', 'no text patch may survive the turn')
+      assert.equal(
+        state.messages.map((m) => [m.role, m.text]).at(-1)?.[1],
+        'Hello world!',
+      )
+    } finally {
+      unsubscribe()
+      restoreWindow()
+    }
+  })
+
+  it('flushes pending text before the final writes when the stream ends without a done event', async () => {
+    const restoreWindow = installTimerWindow()
+    const stream = startSession()
+    try {
+      const send = useChatStore.getState().sendMessage('Hi', { sessionId: 'session-1' })
+      await tick()
+
+      stream.push({ t: 'd', text: 'Hello world' })
+      // Inside the 50 ms window the first chunk opened, so still pending.
+      stream.push({ t: 'thinking', text: 'weighing it up' })
+      // A dropped transport: the body just ends, no `done`.
+      stream.close()
+      await send
+      await tick()
+
+      const state = useChatStore.getState()
+      const last = state.messages.at(-1)
+      assert.equal(last?.role, 'assistant')
+      assert.equal(last?.text, 'Hello world')
+      assert.equal(
+        last?.thinking,
+        'weighing it up',
+        'the persisted message must not be built from a thinkingText the batch has not applied yet',
+      )
+
+      // Past the window: a stale patch would land here, on top of the reset.
+      await new Promise((resolve) => setTimeout(resolve, 80))
+      const after = useChatStore.getState()
+      assert.equal(after.streamText, '', 'a batched patch must not outlive the turn that made it')
+      assert.equal(after.displayText, '')
+      assert.equal(after.streaming, false)
+    } finally {
+      restoreWindow()
+    }
+  })
+})
