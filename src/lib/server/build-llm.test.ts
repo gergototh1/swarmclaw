@@ -20,6 +20,7 @@ let encryptKey: Awaited<typeof import('./storage')>['encryptKey']
 let saveAgents: Awaited<typeof import('./storage')>['saveAgents']
 let saveCredentials: Awaited<typeof import('./storage')>['saveCredentials']
 let saveSessions: Awaited<typeof import('./storage')>['saveSessions']
+let saveSettings: Awaited<typeof import('./storage')>['saveSettings']
 
 before(async () => {
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-build-llm-'))
@@ -40,12 +41,14 @@ before(async () => {
   saveAgents = storage.saveAgents
   saveCredentials = storage.saveCredentials
   saveSessions = storage.saveSessions
+  saveSettings = storage.saveSettings
 })
 
 beforeEach(() => {
   saveAgents({})
   saveCredentials({})
   saveSessions({})
+  saveSettings({})
 })
 
 after(() => {
@@ -430,4 +433,61 @@ test('resolveGenerationModelConfig defaults legacy Ollama preferences to local w
   assert.equal(resolved.model, 'glm-5:cloud')
   assert.equal(resolved.apiEndpoint, 'http://localhost:11434')
   assert.equal(resolved.ollamaMode, undefined)
+})
+
+/*
+ * A segédmunkának mindig van modellje.
+ *
+ * Ezen a telepítésen MINDEN agent CLI-providert használ, és nincs egyetlen LLM
+ * API-kulcs sem. A `resolveGenerationModelConfig` a CLI-providereket kizárja
+ * (`NON_LANGGRAPH_PROVIDER_IDS`), tehát minden segédhívó eldobta magát: 696
+ * "No generation-compatible model" sor egyetlen naplóban, a napi konszolidáció
+ * pedig -- ami ezt a függvényt PRÓBAKÉNT hívja -- némán kihagyta magát.
+ *
+ * Az utolsó tartalék ezért a már telepített CLI, egyszeri `--print` hívásként.
+ * Nem helyi modell: gyenge gépen a helyi inferencia pont azt a gépet terheli,
+ * amin az app fut.
+ */
+test('resolveGenerationModelConfig falls back to the CLI instead of throwing', () => {
+  saveAgents({ a1: { id: 'a1', name: 'CLI Agent', provider: 'claude-cli', model: 'claude-opus-5' } as never })
+  const resolved = resolveGenerationModelConfig({ agentId: 'a1' })
+  assert.equal(resolved.provider, 'claude-cli')
+  assert.match(resolved.model, /haiku/i)
+})
+
+test('an operator-set utility model wins over the CLI fallback', () => {
+  saveSettings({ utilityProvider: 'claude-cli', utilityModel: 'claude-sonnet-5' } as never)
+  saveAgents({ a1: { id: 'a1', name: 'CLI Agent', provider: 'claude-cli', model: 'claude-opus-5' } as never })
+  const resolved = resolveGenerationModelConfig({ agentId: 'a1' })
+  assert.equal(resolved.model, 'claude-sonnet-5')
+})
+
+test('a real API provider still wins over the fallback', () => {
+  // A tartalék az utolsó lehetőség, nem az első: ha van rendes providere az
+  // agentnek, azt kell használni.
+  saveCredentials({
+    c1: { id: 'c1', provider: 'openai', name: 'OpenAI', encryptedKey: encryptKey('sk-test'), createdAt: Date.now() },
+  } as never)
+  saveAgents({
+    a1: {
+      id: 'a1', name: 'API Agent', provider: 'openai', model: 'gpt-5-mini', credentialId: 'c1',
+    } as never,
+  })
+  const resolved = resolveGenerationModelConfig({ agentId: 'a1' })
+  assert.equal(resolved.provider, 'openai')
+})
+
+test('buildChatModel returns the CLI adapter for a CLI provider', () => {
+  const llm = buildChatModel({ provider: 'claude-cli', model: 'claude-haiku-4-5-20251001', apiKey: null })
+  assert.match(String((llm as { _llmType?: () => string })._llmType?.() || ''), /cli/)
+  assert.equal(typeof (llm as { invoke?: unknown }).invoke, 'function')
+})
+
+test('the CLI fallback carries the session, so the per-session cooldown can work', () => {
+  // A hűtés sessiononkénti; ha az azonosító nem jut el az adapterig, a fék
+  // minden hívást ugyanabba a névtelen vödörbe tesz.
+  saveSessions({ s1: { id: 's1', name: 'S', provider: 'claude-cli', model: 'claude-opus-5', cwd: workspaceDir } as never })
+  const resolved = resolveGenerationModelConfig({ sessionId: 's1' })
+  assert.equal(resolved.provider, 'claude-cli')
+  assert.equal(resolved.sessionId, 's1')
 })
