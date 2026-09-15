@@ -20,6 +20,7 @@ import { MessageBubble } from './message-bubble'
 import { ThinkingIndicator } from './thinking-indicator'
 import { SuggestionsBar } from './suggestions-bar'
 import { ExecApprovalCard } from './exec-approval-card'
+import { QuestionCard } from './question-card'
 import { HeartbeatMoment, ActivityMoment, isNotableTool } from './activity-moment'
 import { useApprovalStore } from '@/stores/use-approval-store'
 import { useWs } from '@/hooks/use-ws'
@@ -452,6 +453,14 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
               </button>
             )}
             <div className="flex-1 h-px bg-amber-400/20" />
+          </div>
+        )
+      }
+
+      if (msg.kind === 'question' && msg.question && msg.questionState) {
+        return (
+          <div key={`question-${msg.time}-${i}`} className="py-2">
+            <QuestionCard message={msg} sessionId={sessionId || ''} />
           </div>
         )
       }
