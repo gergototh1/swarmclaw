@@ -1283,6 +1283,19 @@ function runConsolidationTick() {
     // Wire idle-window callbacks so consolidation, compaction, and dreaming run during quiet periods
     registerConsolidationIdleCallback()
     registerCompactionIdleCallback()
+
+    // Turn the turn-extractor's candidates into durable memories. Runs on the
+    // same tick as consolidation because it is the same kind of work: cheap,
+    // deferrable, and pointless to do while the user is waiting.
+    import('@/lib/server/memory/memory-extraction').then(({ promoteCandidates }) => (
+      promoteCandidates({ limit: 50 }).then((result) => {
+        if (result.promoted > 0 || result.rejected > 0) {
+          log.info(TAG, `[daemon] Memory extraction: ${result.promoted} promoted, ${result.rejected} rejected`)
+        }
+      })
+    )).catch((err: unknown) => {
+      log.error(TAG, '[daemon] Candidate promotion failed:', errorMessage(err))
+    })
     import('@/lib/server/memory/dream-idle-callback').then(({ registerDreamIdleCallback }) => {
       registerDreamIdleCallback()
     }).catch((err: unknown) => {

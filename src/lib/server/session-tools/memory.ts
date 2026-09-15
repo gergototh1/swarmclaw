@@ -1014,6 +1014,29 @@ export const MemoryExtension: Extension = {
       if (!agentId) return
       const msg = (ctx.message || '').trim()
       const resp = (ctx.response || '').trim()
+
+      /*
+       * Distil the turn into candidate facts.
+       *
+       * Deliberately not awaited: the user's turn is finished and must not wait
+       * on housekeeping. The extractor has its own budget (daily cap,
+       * concurrency, per-session cooldown) and swallows its own failures, so
+       * the worst case here is that nothing is extracted.
+       *
+       * This is the piece that was missing. Everything the host captured
+       * automatically landed in tiers recall filters out; the only thing that
+       * ever reached an agent was what it chose to write by hand, about one
+       * memory per five to eight sessions.
+       */
+      void import('@/lib/server/memory/memory-extraction')
+        .then((mod) => mod.extractTurnCandidates({
+          agentId,
+          sessionId: ctx.session.id,
+          message: msg,
+          response: resp,
+        }))
+        .catch(() => { /* extraction is best-effort by design */ })
+
       const shouldCapture = ctx.internal
         ? shouldAutoCaptureAutonomousTurn(ctx)
         : ((ctx.source === 'chat' || ctx.source === 'connector') && shouldAutoCaptureMemoryTurn(msg, resp))
@@ -1141,10 +1164,14 @@ export const MemoryExtension: Extension = {
       parameters: {
         type: 'object',
         properties: {
-          title: { type: 'string' },
-          value: { type: 'string' },
-          category: { type: 'string' },
+          title: { type: 'string', description: 'Short human-readable title. Without one the entry is filed as "Untitled" and is unreadable in a recall list.' },
+          value: { type: 'string', description: 'The fact itself, as one self-contained sentence that still makes sense in a month.' },
+          category: { type: 'string', description: 'Category, e.g. identity/preferences, preference/<topic>, knowledge/facts, decision/<topic>.' },
           key: { type: 'string' },
+          importance: { type: 'number', description: 'How much this matters: 1 (routine) to 10 (changes how the fleet works). This is the ranking signal -- an entry left unscored never outranks anything.' },
+          abstract: { type: 'string', description: 'One-sentence summary, used when this memory is recalled into a prompt.' },
+          pinned: { type: 'boolean', description: 'Pin this memory so it always loads in context.' },
+          linkedMemoryIds: { type: 'array', items: { type: 'string' }, description: 'IDs of related memories to link, so recall can reach them from this one.' },
           scope: { type: 'string', enum: ['auto', 'all', 'global', 'shared', 'agent', 'session', 'project'] },
           sharedWith: { type: 'array', items: { type: 'string' } },
         },
@@ -1193,6 +1220,10 @@ export const MemoryExtension: Extension = {
           title: { type: 'string' },
           value: { type: 'string' },
           category: { type: 'string' },
+          importance: { type: 'number', description: 'How much this matters: 1 (routine) to 10 (changes how the fleet works). Used for ranking.' },
+          abstract: { type: 'string', description: 'One-sentence summary, used when this memory is recalled into a prompt.' },
+          pinned: { type: 'boolean', description: 'Pin this memory so it always loads in context.' },
+          linkedMemoryIds: { type: 'array', items: { type: 'string' }, description: 'IDs of related memories to link, so recall can reach them from this one.' },
           query: { type: 'string' },
           scope: { type: 'string', enum: ['auto', 'all', 'global', 'shared', 'agent', 'session', 'project'] },
         },

@@ -14,6 +14,7 @@ import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-tex
 import { buildCliMemoryPreamble } from '@/lib/server/memory/cli-memory-preamble'
 import { patchSession } from '@/lib/server/sessions/session-repository'
 import { currentHostBinding, refreshShimEnv, staleShimVars, type McpHostBinding } from '@/lib/server/runtime/mcp-host-binding'
+import { withPlatformBridge } from '@/lib/server/platform-mcp-bridge-server'
 
 const TAG = 'provider-claude-cli'
 
@@ -365,7 +366,10 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
   // read to the user as "Claude CLI is broken".
   try {
     const agentForMcp = session.agentId ? getAgent(session.agentId as string) : null
-    const agentMcpServerIds: string[] = agentForMcp?.mcpServerIds || []
+    // The platform bridge rides along whatever the operator assigned: it
+    // fronts SwarmClaw's own tools, and which of them this agent may call is
+    // already decided by its capability list, not by this field.
+    const agentMcpServerIds: string[] = withPlatformBridge(agentForMcp?.mcpServerIds, loadMcpServers() as unknown as Record<string, Record<string, unknown>>)
     if (agentMcpServerIds.length > 0) {
       const before = Object.keys(mcpServers).length
       const binding = currentHostBinding()

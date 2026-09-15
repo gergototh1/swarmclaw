@@ -38,6 +38,12 @@ export function registerCompactionIdleCallback(): void {
   })
 }
 
+/** A helper that declined for budget or environment reasons, not a real failure. */
+function isUtilityUnavailable(err: unknown): boolean {
+  const message = errorMessage(err)
+  return /utility model is disabled|utility model refused by budget|utility CLI binary not found/i.test(message)
+}
+
 export function canCreateDailyDigestForAgent(
   agentId: string,
   agents: ReturnType<typeof loadAgents>,
@@ -154,6 +160,11 @@ export async function runDailyConsolidation(): Promise<{
 
       digestsCreated++
     } catch (err: unknown) {
+      // The utility model saying "not now" is not a failure. It refuses on a
+      // spent budget, and during builds and test runs it refuses outright —
+      // neither is something an operator can act on, and reporting them as
+      // errors would bury the ones that are.
+      if (isUtilityUnavailable(err)) continue
       errors.push(`Agent ${agentId}: ${errorMessage(err)}`)
     }
   }
@@ -229,24 +240,51 @@ export async function runAccessBasedCompaction(): Promise<{
         }
       }
 
-      // 3. Merge frequently co-accessed entries into consolidated insights
+      // 3. Merge frequently co-accessed entries into ONE digest per agent,
+      //    rewritten in place.
+      //
+      //    This used to `add` on every run. The top-access list barely changes
+      //    between runs, so the same digest was written again and again: 191 of
+      //    the 347 rows in the live store, 67 in a single day for one agent,
+      //    1174 graph edges hanging off rows that recall filters out anyway.
+      //    Letta rewrites its memory block in place and Zep invalidates the
+      //    superseded edge rather than appending; this is the same idea at the
+      //    smallest size that fixes it.
       const frequent = memDb.getFrequentlyAccessedByAgent(agentId, 5, 7)
+        // A digest is itself a memory, and reading it bumps its own counter --
+        // left in, the digest summarises itself on the next run.
+        .filter((m) => m.category !== 'consolidated_insight')
       if (frequent.length >= 2) {
         const contentLines = frequent.slice(0, 6).map((m) => {
           return `- [${m.category}] ${m.title}: ${(m.content || '').slice(0, 200)}`
         })
         const consolidatedContent = `Consolidated insight from ${frequent.length} frequently accessed memories:\n${contentLines.join('\n')}`
         const linkedIds = frequent.slice(0, 6).map((m) => m.id)
+        const title = `Consolidated insight: ${new Date().toISOString().slice(0, 10)}`
+        const metadata = { tier: 'durable', origin: 'access-compaction', autoWritten: true }
 
-        memDb.add({
-          agentId,
-          sessionId: null,
-          category: 'consolidated_insight',
-          title: `Consolidated insight: ${new Date().toISOString().slice(0, 10)}`,
-          content: consolidatedContent,
-          linkedMemoryIds: linkedIds,
-          metadata: { tier: 'durable', origin: 'access-compaction', autoWritten: true },
-        })
+        const existing = allEntries.find((entry) => (
+          entry.category === 'consolidated_insight'
+          && entry.metadata?.origin === 'access-compaction'
+        ))
+        if (existing) {
+          memDb.update(existing.id, {
+            title,
+            content: consolidatedContent,
+            linkedMemoryIds: linkedIds,
+            metadata: { ...existing.metadata, ...metadata },
+          })
+        } else {
+          memDb.add({
+            agentId,
+            sessionId: null,
+            category: 'consolidated_insight',
+            title,
+            content: consolidatedContent,
+            linkedMemoryIds: linkedIds,
+            metadata,
+          })
+        }
         merged++
       }
     } catch (err: unknown) {

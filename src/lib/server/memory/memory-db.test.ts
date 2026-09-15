@@ -339,14 +339,17 @@ describe('memory-db', () => {
       // difference can overcome.
       const db = memDb.getMemoryDb()
       const agentId = `rank-${Date.now()}`
+      // A real digest, filed under the category the machine actually uses: the
+      // importance default is derived from it, so a stand-in category would
+      // measure the wrong prior.
       const digest = db.add({
         agentId,
-        category: 'note',
+        category: 'consolidated_insight',
         title: 'Consolidated digest',
         content: 'kubernetes klaszter összefoglaló a gépi digestből',
       })
       for (let i = 0; i < 400; i++) {
-        db.add({ agentId, category: 'note', title: 'Consolidated digest', content: 'kubernetes klaszter összefoglaló a gépi digestből' })
+        db.add({ agentId, category: 'consolidated_insight', title: 'Consolidated digest', content: 'kubernetes klaszter összefoglaló a gépi digestből' })
       }
       const reinforced = db.get(digest.id)
       assert.ok((reinforced?.reinforcementCount || 0) > 100, `expected heavy reinforcement, got ${reinforced?.reinforcementCount}`)
@@ -384,7 +387,7 @@ describe('memory-db', () => {
       assert.equal(db.get(entry.id)?.importance, 9)
     })
 
-    it('treats an out-of-range score as unscored rather than failing the write', () => {
+    it('falls back to the category default when the score is out of range', () => {
       const db = memDb.getMemoryDb()
       for (const [i, bad] of [0, -3, 42, Number.NaN].entries()) {
         const entry = db.add({
@@ -394,19 +397,180 @@ describe('memory-db', () => {
           content: `Tartalom ${i}.`,
           importance: bad as number,
         })
-        assert.equal(db.get(entry.id)?.importance, 0, `importance=${String(bad)}`)
+        assert.equal(
+          db.get(entry.id)?.importance,
+          memDb.defaultImportanceForCategory('note', false),
+          `importance=${String(bad)}`,
+        )
       }
     })
 
-    it('defaults to unscored when nothing is supplied', () => {
+    /*
+     * MIÉRT NEM MARAD 0.
+     *
+     * Az élő tárban a 42 tartós memóriából 40-en `importance = 0` -- és a
+     * salience-képlet (`importanceBoost`, memory-db.ts) emiatt konstans, vagyis
+     * a rangsorolási jel nem létezik. A rubrika kéri a pontszámot, de az író
+     * ügynökre hagyni törékeny: a Stanford Generative Agents is KÜLÖN
+     * beszúrási lépésben pontoztat, nem opcionális paraméterként. Itt nincs
+     * generációs modell (minden ügynök CLI provideren fut), tehát a kategória
+     * adja az alappontszámot, és az író felülírhatja.
+     */
+    it('scores an unscored write from its category instead of leaving it at zero', () => {
       const db = memDb.getMemoryDb()
       const entry = db.add({
         agentId: `imp-none-${Date.now()}`,
-        category: 'note',
+        category: 'preference/dev-workflow',
         title: 'Pontszám nélkül',
         content: 'Nincs megadva fontosság.',
       })
-      assert.equal(db.get(entry.id)?.importance, 0)
+      const stored = db.get(entry.id)?.importance || 0
+      assert.ok(stored > 0, `a preference must not be stored unscored, got ${stored}`)
+    })
+
+    it('never lets the writer\'s own score be overridden by the default', () => {
+      const db = memDb.getMemoryDb()
+      const entry = db.add({
+        agentId: `imp-explicit-${Date.now()}`,
+        category: 'note',
+        title: 'Szándékosan alacsony',
+        content: 'Tartalom.',
+        importance: 1,
+      })
+      assert.equal(db.get(entry.id)?.importance, 1)
+    })
+  })
+
+  /*
+   * Lógó élek.
+   *
+   * A `link()` már szűr létező célra, a `delete()` pedig bontja a visszamutató
+   * éleket — de az `add()` és az `update()` bármit elfogadott
+   * `linkedMemoryIds`-ként. Az élő tárban 17 ilyen él van, mind
+   * `consolidated_insight` sorokról. Egy lógó él nem hibázik, csak néma
+   * zsákutca a bejárásban, ami most már a felidézésben is ott van.
+   */
+  describe('linkedMemoryIds integrity', () => {
+    it('drops a link to a memory that does not exist', () => {
+      const db = memDb.getMemoryDb()
+      const agentId = `dangling-${Date.now()}`
+      const real = db.add({ agentId, category: 'knowledge/facts', title: 'Létező', content: 'Létező tartalom.' })
+      const entry = db.add({
+        agentId,
+        category: 'knowledge/facts',
+        title: 'Hivatkozó',
+        content: 'Hivatkozik egy létezőre és egy nemlétezőre.',
+        linkedMemoryIds: [real.id, 'nincs-ilyen-id'],
+      })
+      assert.deepEqual(db.get(entry.id)?.linkedMemoryIds, [real.id])
+    })
+
+    it('drops a dangling link on update too', () => {
+      const db = memDb.getMemoryDb()
+      const agentId = `dangling-upd-${Date.now()}`
+      const real = db.add({ agentId, category: 'knowledge/facts', title: 'Létező', content: 'Létező tartalom 2.' })
+      const entry = db.add({ agentId, category: 'knowledge/facts', title: 'Hivatkozó', content: 'Hivatkozó tartalom 2.' })
+      db.update(entry.id, { linkedMemoryIds: [real.id, 'szinten-nincs'] })
+      assert.deepEqual(db.get(entry.id)?.linkedMemoryIds, [real.id])
+    })
+  })
+
+  /*
+   * Globális memória: mindenkié, tehát senki nem éri el.
+   *
+   * A `memory_store` sémája kínálja a `scope: "global"` értéket, és az író
+   * ügynök ésszerűen választja egy géptől független tényre. A tárolás ekkor
+   * `agentId: null`-t ír (memory.ts: `scopeMode === 'global' ? null :
+   * currentAgentId`), a lekérdezések viszont `agentId = ? OR sharedWith LIKE ?`
+   * alakúak -- amire a NULL soha nem illeszkedik.
+   *
+   * Az eredmény pontosan az a hibaosztály, amit ez a kör javít: az írás
+   * sikeresnek jelenik meg, az ügynök vissza is mondja az azonosítót, és a
+   * bejegyzés örökre elérhetetlen marad. ÉLES MÉRÉS (2026-09-14, csomagolt
+   * build, adatmásolat): a Sidekick `scope:"global"`-lal mentette a "Kreatív
+   * angol app ... localhost:8765" tényt, `importance: 7`-tel, és a következő
+   * felidézés nem hozta elő.
+   *
+   * A `filterMemoriesByScope` egyébként már látónak tekinti a gazdátlan sort
+   * (`!m.agentId || m.agentId === currentAgentId`); csak az SQL elő-szűrő ejti.
+   */
+  describe('global memories', () => {
+    it('returns a global memory to the agent that searches', () => {
+      const db = memDb.getMemoryDb()
+      const agentId = `global-search-${Date.now()}`
+      db.add({
+        agentId: null,
+        category: 'knowledge/dev-environment',
+        title: 'Kreatív angol app helye',
+        content: 'A Kreatív angol app a localhost:8765 porton fut, a repo ~/DEV/kreativ-angol.',
+        importance: 7,
+      })
+      const hits = db.search('kreatív angol localhost', agentId)
+      assert.ok(
+        hits.some((m) => m.title === 'Kreatív angol app helye'),
+        'a memory owned by nobody must still be searchable by everybody',
+      )
+    })
+
+    it('lists a global memory for the agent', () => {
+      const db = memDb.getMemoryDb()
+      const agentId = `global-list-${Date.now()}`
+      db.add({
+        agentId: null,
+        category: 'knowledge/facts',
+        title: 'Globális tény listához',
+        content: 'Ez a tény nem egyetlen ügynöké.',
+      })
+      const listed = db.list(agentId, 200)
+      assert.ok(listed.some((m) => m.title === 'Globális tény listához'))
+    })
+
+    it('still keeps another agent\'s private memory out', () => {
+      // A gazdátlan sor látható mindenkinek; a MÁSIK ügynöké nem.
+      const db = memDb.getMemoryDb()
+      const owner = `global-owner-${Date.now()}`
+      const stranger = `global-stranger-${Date.now()}`
+      db.add({
+        agentId: owner,
+        category: 'knowledge/facts',
+        title: 'Privát tény idegennek',
+        content: 'Ezt csak a tulajdonos ügynök láthatja.',
+      })
+      const listed = db.list(stranger, 200)
+      assert.equal(listed.some((m) => m.title === 'Privát tény idegennek'), false)
+    })
+  })
+
+  describe('defaultImportanceForCategory', () => {
+    it('ranks who the user is and what they asked for above everything else', () => {
+      const identity = memDb.defaultImportanceForCategory('identity/owner', false)
+      const preference = memDb.defaultImportanceForCategory('preference/dev-workflow', false)
+      const fact = memDb.defaultImportanceForCategory('knowledge/facts', false)
+      const note = memDb.defaultImportanceForCategory('note', false)
+      assert.ok(identity >= preference, `${identity} >= ${preference}`)
+      assert.ok(preference > fact, `${preference} > ${fact}`)
+      assert.ok(fact > note, `${fact} > ${note}`)
+    })
+
+    it('leaves machine bulk unscored rather than giving it a prior', () => {
+      // These tiers are the only rows carrying a reinforcement count, and they
+      // are filtered out of recall anyway. Any prior at all, combined with
+      // reinforcement, lifts them over a filed high-importance fact.
+      for (const category of ['session_archive', 'consolidated_insight', 'operations/execution', 'working/scratch']) {
+        assert.equal(memDb.defaultImportanceForCategory(category, false), 0, category)
+      }
+    })
+
+    it('treats a pinned entry as important whatever its category', () => {
+      assert.ok(memDb.defaultImportanceForCategory('note', true) >= 8)
+    })
+
+    it('never returns a score the store would reject', () => {
+      // 0 is "unscored"; anything else must sit on the 1..10 scale the store clamps to.
+      for (const category of ['identity/owner', 'note', 'session_archive', '', 'nonsense/xyz']) {
+        const score = memDb.defaultImportanceForCategory(category, false)
+        assert.ok(score === 0 || (score >= 1 && score <= 10), `${category} scored ${score}`)
+      }
     })
   })
 

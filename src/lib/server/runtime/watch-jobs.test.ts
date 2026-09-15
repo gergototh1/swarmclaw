@@ -52,8 +52,35 @@ describe('watch-jobs', () => {
         target: { source: 'test' },
         condition: {},
       }),
-      /runAt or delayMinutes/,
+      /runAt/,
     )
+  })
+
+  /*
+   * `typeof NaN === 'number'`, tehát a `typeof input.runAt !== 'number'` őr
+   * átengedte a NaN-t, a JSON-szerializálás pedig `null`-t csinált belőle. Az
+   * élő tárban pont egy ilyen sor ül (`1df02819902d384c2365`, "Scheduled wake
+   * in undefined minutes"): `status: active`, `runAt: null`,
+   * `lastTriggeredAt: null` -- a `checkTimeWatch` `runAt > 0` feltétele soha
+   * nem teljesül, tehát örökre aktív marad és soha nem tüzel.
+   *
+   * A hívó oldalt a `normalizeWakeRequest` már lezárja; ez a réteg azért is
+   * őrködik, hogy egy másik hívó ne tudjon ugyanilyen holt sort létrehozni.
+   */
+  it('rejects a non-finite runAt instead of storing a job that can never fire', async () => {
+    for (const bad of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      await assert.rejects(
+        watchJobs.createWatchJob({
+          type: 'time',
+          resumeMessage: 'resume',
+          target: { source: 'test' },
+          condition: {},
+          runAt: bad,
+        }),
+        /runAt/,
+        `runAt=${String(bad)} must be rejected`,
+      )
+    }
   })
 
   it('triggers time and task watches durably', async () => {

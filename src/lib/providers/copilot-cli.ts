@@ -9,6 +9,7 @@ import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, symlin
 import { getAgent } from '@/lib/server/agents/agent-repository'
 import { loadMcpServers } from '@/lib/server/storage'
 import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
+import { withPlatformBridge } from '@/lib/server/platform-mcp-bridge-server'
 
 /**
  * GitHub Copilot CLI provider — spawns `copilot -p <message> --output-format=json -s --yolo`.
@@ -75,7 +76,8 @@ export async function streamCopilotCliChat({ session, message, imagePath, attach
   let mcpAdditionalConfigPath: string | null = null
   try {
     const agentForMcp = session.agentId ? getAgent(session.agentId as string) : null
-    const agentMcpServerIds: string[] = agentForMcp?.mcpServerIds || []
+    // See claude-cli.ts: the platform bridge is not a per-agent choice.
+    const agentMcpServerIds: string[] = withPlatformBridge(agentForMcp?.mcpServerIds, loadMcpServers() as unknown as Record<string, Record<string, unknown>>)
     if (agentMcpServerIds.length > 0) {
       const allMcpServers = loadMcpServers()
       const mcpServerEntries: Record<string, Record<string, unknown>> = {}

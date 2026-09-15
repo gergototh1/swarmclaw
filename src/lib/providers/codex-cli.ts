@@ -9,6 +9,7 @@ import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, symlin
 import { getAgent } from '@/lib/server/agents/agent-repository'
 import { loadMcpServers } from '@/lib/server/storage'
 import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
+import { withPlatformBridge } from '@/lib/server/platform-mcp-bridge-server'
 
 const TAG = 'provider-codex'
 
@@ -85,7 +86,8 @@ export async function streamCodexCliChat({ session, message, imagePath, attached
   // the next turn needs the same local metadata to resume that thread.
   const sessionCodexHome = perSessionHome
   const agentForMcp = session.agentId ? getAgent(session.agentId as string) : null
-  const agentMcpServerIds: string[] = agentForMcp?.mcpServerIds || []
+  // See claude-cli.ts: the platform bridge is not a per-agent choice.
+  const agentMcpServerIds: string[] = withPlatformBridge(agentForMcp?.mcpServerIds, loadMcpServers() as unknown as Record<string, Record<string, unknown>>)
   const realCodexHome = process.env.CODEX_HOME || path.join(os.homedir(), '.codex')
   fs.mkdirSync(sessionCodexHome, { recursive: true })
 

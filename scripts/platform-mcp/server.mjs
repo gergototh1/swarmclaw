@@ -51,6 +51,31 @@ import { setTimeout as sleep } from 'node:timers/promises'
  */
 
 const PROTOCOL_VERSION = '2024-11-05'
+
+/**
+ * What the client is told about this server before it sees a single tool.
+ *
+ * WHY THIS FIELD. An agent on a CLI provider gets its system prompt frozen on
+ * the conversation's first request (`--system-prompt-snapshot`), and the host's
+ * `getAgentContext` / `getOperatingGuidance` hooks do not run for CLI providers
+ * at all. MCP `instructions` is the one channel that still reaches the system
+ * prompt on every launch, resumes included.
+ *
+ * WHY IT IS STATIC. The spec calls this a hint the client MAY use, and some
+ * clients ignore it outright, so it must never be the only place a rule lives —
+ * every tool here is usable from its own description and schema. It is also
+ * answered without touching the host: an `initialize` that waits on a round
+ * trip turns one slow host into a client with no server.
+ */
+const INSTRUCTIONS = [
+  'SwarmClaw platform tools. You are one agent in a fleet, and these are the capabilities your CLI does not have on its own.',
+  '',
+  'Delegation. `delegate_to_<name>` hands a task to a named teammate — one tool per teammate, each described by what that teammate does. Prefer these over your own in-process subagents for work that belongs to a specialist (coding, research, review): a teammate has its own tools, its own memory and its own workspace, and its result is recorded against the fleet. Use `spawn_subagent` for batch and swarm runs, and to poll or cancel jobs you started.',
+  '',
+  'Durable memory. `memory_search` before answering anything about earlier work, decisions, people or preferences; `memory_store` the moment the user states a preference, corrects you, or a decision is made. Give every write an `importance` from 1 to 10 and a title — an unscored, untitled entry is stored but never ranks into a later conversation.',
+  '',
+  'Promises. You cannot speak again after a turn ends. If you tell the user you will report back when something finishes, arm it: `schedule_wake` with `delayMinutes` and `message`, or a schedule via `manage_schedules`. Without one of those, "I will let you know" never happens.',
+].join('\n')
 const SERVER_INFO = { name: 'swarmclaw-platform', version: '0.1.0' }
 
 /** A `startedAt` this far before boot is still accepted; clocks and uptime disagree by a little. */
@@ -358,7 +383,7 @@ async function handle(msg) {
   // A notification carries no id and gets no reply, whatever its method.
   if (id === undefined || id === null) return null
   if (method === 'initialize') {
-    return reply(id, { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: {} }, serverInfo: SERVER_INFO })
+    return reply(id, { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: {} }, serverInfo: SERVER_INFO, instructions: INSTRUCTIONS })
   }
   if (method === 'tools/list') return reply(id, { tools: await listTools() })
   if (method === 'tools/call') return callTool(id, params)

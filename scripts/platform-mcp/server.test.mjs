@@ -210,3 +210,53 @@ test('the shim exits when its stdin closes', async () => {
   const code = await shim.stop()
   assert.equal(code, 0)
 })
+
+/*
+ * Az `initialize` `instructions` mezője.
+ *
+ * Ez az EGYETLEN megbízható csatorna, amivel a híd keresztmetszeti szabályt
+ * adhat egy claude-cli agentnek: a `--system-prompt-snapshot` befagyasztja a
+ * rendszerpromptot az első kérésnél, a `getAgentContext` / `getOperatingGuidance`
+ * hookok pedig CLI providernél el sem futnak (`hasExtensions` hamis). Az MCP
+ * instructions ellenben minden indításkor frissen kerül a promptba, `--resume`
+ * esetén is (lemérve 2026-09-11).
+ *
+ * Amit hordoznia kell: hogy van flotta, és hogy a kódoló munkát a nevesített
+ * `delegate_to_*` toolokkal kell kiadni, nem a CLI saját in-process
+ * subagentjével. Ennek hiánya miatt ment el két nap úgy, hogy a Fejlesztő
+ * ügynök egyetlen feladatot sem kapott.
+ *
+ * A spec szerint az instructions "hint" -- a kliens figyelmen kívül hagyhatja
+ * (a Claude Desktop pl. nem olvassa), ezért a tool-leírásoknak önmagukban is
+ * működniük kell. Ez a mező csak kiegészít.
+ */
+test('initialize carries instructions telling the agent the fleet exists', async () => {
+  const host = await fakeHost(({ body }) => (
+    body?.op === 'tools' ? { status: 200, json: TOOL_TABLE } : { status: 404, json: {} }
+  ))
+  const shim = startShim({ SWARMCLAW_PORT_FILE: liveFile(host.port), SWARMCLAW_ACCESS_KEY: 'kulcs' })
+  try {
+    const init = await shim.call('initialize', {})
+    const instructions = init.result.instructions
+    assert.equal(typeof instructions, 'string', 'initialize must carry instructions')
+    assert.ok(instructions.length > 0)
+    assert.match(instructions, /delegate_to_/, 'the named handoff family must be introduced')
+    assert.match(instructions, /memory/i, 'durable memory is the other thing a CLI has none of')
+  } finally {
+    await shim.stop()
+    await host.close()
+  }
+})
+
+test('initialize needs no host round-trip for its instructions', async () => {
+  // A dead host must still produce a usable handshake: an initialize that
+  // depends on the host turns one slow start into a client with no server.
+  const shim = startShim({ SWARMCLAW_PORT_FILE: liveFile(1), SWARMCLAW_ACCESS_KEY: 'kulcs' })
+  try {
+    const init = await shim.call('initialize', {})
+    assert.equal(init.result.serverInfo.name, 'swarmclaw-platform')
+    assert.match(String(init.result.instructions), /delegate_to_/)
+  } finally {
+    await shim.stop()
+  }
+})

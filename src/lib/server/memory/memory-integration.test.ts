@@ -15,6 +15,7 @@ let tempDir = ''
 let memDb: ReturnType<Awaited<typeof import('@/lib/server/memory/memory-db')>['getMemoryDb']>
 let executeMemoryAction: Awaited<typeof import('@/lib/server/session-tools/memory')>['executeMemoryAction']
 let memoryPolicy: typeof import('@/lib/server/memory/memory-policy')
+let messages: typeof import('@/lib/server/messages/message-repository')
 
 before(async () => {
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'swarmclaw-memory-int-'))
@@ -31,6 +32,7 @@ before(async () => {
   executeMemoryAction = memoryMod.executeMemoryAction
 
   memoryPolicy = await import('@/lib/server/memory/memory-policy')
+  messages = await import('@/lib/server/messages/message-repository')
 })
 
 after(() => {
@@ -107,14 +109,20 @@ describe('Memory CRUD lifecycle via executeMemoryAction', () => {
   })
 
   it('falls back to the latest user fact when store omits value', async () => {
+    // A transzkript a message repositoryban van, nem a session objektumon:
+    // `latestUserFactFromSession` `getMessages(session.id)`-t hív. Egy inline
+    // `messages` tömb sosem ért el odáig, ezért bukott ez a teszt.
     const sessionContext: Partial<Session> = {
       id: 'session-implicit',
       name: 'Implicit store',
+      // `isSessionContext` megköveteli az id/name/provider hármast, különben a
+      // kontextus nem számít sessionnek és a visszaesés meg sem próbálkozik.
+      provider: 'openai',
       agentId: 'agent-crud',
-      messages: [
-        { role: 'user', text: 'Remember this exactly: Project Kodiak uses amber-fox and the freeze date is April 21, 2026.', time: Date.now() },
-      ],
     }
+    messages.appendMessages('session-implicit', [
+      { role: 'user', text: 'Remember this exactly: Project Kodiak uses amber-fox and the freeze date is April 21, 2026.', time: Date.now() },
+    ])
     const result = await executeMemoryAction(
       { action: 'store', key: 'implicit-fact-store' },
       sessionContext,

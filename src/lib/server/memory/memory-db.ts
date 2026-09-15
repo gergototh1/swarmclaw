@@ -39,6 +39,78 @@ const DEFAULT_VECTOR_SIMILARITY_THRESHOLD = 0.3
 const MAX_MERGED_RESULTS = 80
 /** Ceiling on the reinforcement multiplier — a tie-breaker, not a ranking. */
 const MAX_REINFORCEMENT_BOOST = 1.6
+/**
+ * The importance an entry gets when its writer supplied none.
+ *
+ * WHY THIS EXISTS. `importance` is a multiplier in the salience formula below,
+ * and in the live store 40 of the 42 recall-eligible memories carry 0 — so the
+ * multiplier is constant and the ranking signal does not exist. The recall
+ * rubric does ask the writer for a 1..10 score, but leaving it to the writer is
+ * fragile: the Generative Agents design scores each memory in a separate step at
+ * insert time rather than as an optional argument.
+ *
+ * There is no generation model to score with here — every agent in this install
+ * runs on a CLI provider — so the category carries the prior instead. A writer
+ * that supplies a score always wins; this only fills the blank.
+ *
+ * Returns 0 for machine-written tiers, meaning "deliberately unscored".
+ */
+export function defaultImportanceForCategory(category: unknown, pinned = false): number {
+  // Pinning is the operator saying "always load this", which outranks whatever
+  // the category would have said.
+  if (pinned) return 9
+  const normalized = typeof category === 'string' ? category.trim().toLowerCase() : ''
+  const head = normalized.split('/')[0] || normalized
+
+  // Who the user is and what they told us to do: the entries whose whole point
+  // is to stop the user repeating themselves.
+  if (head === 'identity') return 9
+  if (head === 'preference') return 8
+  if (head === 'decision' || head === 'credentials') return 7
+  // Machine bulk stays UNSCORED (0), not merely low. These tiers are filtered
+  // out of recall anyway, and they are the only rows that carry a reinforcement
+  // count — give them any prior at all and reinforcement plus that prior
+  // outranks a filed, high-importance fact. `0` is a real state here: it means
+  // "nobody scored this", and the salience formula reads it as a 1.0 multiplier.
+  if (normalized === 'session_archive' || normalized.startsWith('session_archive/')) return 0
+  if (normalized.startsWith('consolidated_insight')) return 0
+  if (head === 'operations' || head === 'working' || head === 'execution' || head === 'scratch' || head === 'breadcrumb') return 0
+  // An untyped jotting is the weakest thing an agent writes on purpose.
+  if (!normalized || normalized === 'note') return 2
+  // Everything the agent filed deliberately under some topic.
+  return 5
+}
+
+export type MemoryCandidateState = 'candidate' | 'promoted' | 'rejected'
+
+export interface MemoryCandidate {
+  id: string
+  agentId: string | null
+  sessionId: string | null
+  text: string
+  source: string
+  state: MemoryCandidateState
+  memoryId: string | null
+  contentHash: string
+  createdAt: number
+  updatedAt: number
+}
+
+function rowToCandidate(row: Record<string, unknown>): MemoryCandidate {
+  return {
+    id: String(row.id || ''),
+    agentId: typeof row.agentId === 'string' ? row.agentId : null,
+    sessionId: typeof row.sessionId === 'string' ? row.sessionId : null,
+    text: typeof row.text === 'string' ? row.text : '',
+    source: typeof row.source === 'string' ? row.source : 'chat-turn',
+    state: (row.state === 'promoted' || row.state === 'rejected') ? row.state : 'candidate',
+    memoryId: typeof row.memoryId === 'string' ? row.memoryId : null,
+    contentHash: typeof row.contentHash === 'string' ? row.contentHash : '',
+    createdAt: typeof row.createdAt === 'number' ? row.createdAt : 0,
+    updatedAt: typeof row.updatedAt === 'number' ? row.updatedAt : 0,
+  }
+}
+
 /** Ceiling on the writer-supplied importance multiplier. */
 const MAX_IMPORTANCE_BOOST = 1.8
 
@@ -221,7 +293,10 @@ export function filterMemoriesByScope(entries: MemoryEntry[], scope?: MemoryScop
 
   if (mode === 'agent') {
     if (!agentId) return []
-    return entries.filter((entry) => scopeAllowsAgentAccess(entry, agentId))
+    // An unowned row is a GLOBAL memory, which belongs to everyone -- the same
+    // reading `auto` already applies below. Without this, `scope: "global"`
+    // wrote a memory that no agent-scoped read could ever return.
+    return entries.filter((entry) => !entry.agentId || scopeAllowsAgentAccess(entry, agentId))
   }
 
   if (mode === 'session') {
@@ -615,6 +690,34 @@ function initDb() {
     try { db.exec(`ALTER TABLE memories ADD COLUMN ${col}`) } catch { /* already exists */ }
   }
 
+  /*
+   * Extraction produces CANDIDATES, not memories.
+   *
+   * The utility model runs often and is cheap, and a bad turn would otherwise
+   * leave rubbish in recall that nobody can tell from a real fact. A candidate
+   * is disposable: a later pass promotes it, rejects it, and either way the
+   * decision is recorded so the same sentence is not extracted forever.
+   *
+   * `contentHash` is scoped per agent: two agents may legitimately learn the
+   * same fact, and one of them noticing it must not silence the other.
+   */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS memory_candidates (
+      id TEXT PRIMARY KEY,
+      agentId TEXT,
+      sessionId TEXT,
+      text TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'chat-turn',
+      state TEXT NOT NULL DEFAULT 'candidate',
+      memoryId TEXT,
+      contentHash TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL
+    )
+  `)
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_memory_candidates_hash ON memory_candidates(contentHash)`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_memory_candidates_state ON memory_candidates(state, createdAt)`)
+
   // Partial index for fast pinned-memory lookups
   db.exec(`CREATE INDEX IF NOT EXISTS idx_memories_pinned ON memories(agentId, updatedAt DESC) WHERE pinned = 1`)
 
@@ -748,32 +851,58 @@ function initDb() {
     },
     listAll: db.prepare(`SELECT * FROM memories ORDER BY updatedAt DESC LIMIT ?`),
     listByAgent: db.prepare(`SELECT * FROM memories WHERE agentId=? ORDER BY updatedAt DESC LIMIT ?`),
-    listByAgentOrShared: db.prepare(`SELECT * FROM memories WHERE agentId=? OR sharedWith LIKE ? OR sharedWith IN ('global','all','*') ORDER BY updatedAt DESC LIMIT ?`),
+    /*
+     * `agentId IS NULL` is a GLOBAL memory, not an orphan.
+     *
+     * `memory_store` with `scope: "global"` deliberately writes a null owner
+     * (session-tools/memory.ts), and `filterMemoriesByScope` already treats an
+     * unowned row as visible to everyone. These pre-filters did not, so a
+     * global write was confirmed to the agent and then never returned to
+     * anybody -- the same silent-success shape this whole area suffers from.
+     */
+    listByAgentOrShared: db.prepare(`SELECT * FROM memories WHERE agentId=? OR agentId IS NULL OR sharedWith LIKE ? OR sharedWith IN ('global','all','*') ORDER BY updatedAt DESC LIMIT ?`),
     listByCategoryAll: db.prepare(`SELECT * FROM memories WHERE category=? ORDER BY updatedAt DESC LIMIT ?`),
-    listByCategoryAgentOrShared: db.prepare(`SELECT * FROM memories WHERE category=? AND (agentId=? OR sharedWith LIKE ? OR sharedWith IN ('global','all','*')) ORDER BY updatedAt DESC LIMIT ?`),
+    listByCategoryAgentOrShared: db.prepare(`SELECT * FROM memories WHERE category=? AND (agentId=? OR agentId IS NULL OR sharedWith LIKE ? OR sharedWith IN ('global','all','*')) ORDER BY updatedAt DESC LIMIT ?`),
     listKnowledgeSourceChunks: db.prepare(`
       SELECT * FROM memories
       WHERE category='knowledge' AND json_extract(metadata, '$.sourceId') = ?
       ORDER BY COALESCE(json_extract(metadata, '$.chunkIndex'), 0) ASC, createdAt ASC
     `),
-    listPinnedByAgent: db.prepare(`SELECT * FROM memories WHERE pinned = 1 AND agentId = ? ORDER BY updatedAt DESC LIMIT ?`),
+    listPinnedByAgent: db.prepare(`SELECT * FROM memories WHERE pinned = 1 AND (agentId = ? OR agentId IS NULL) ORDER BY updatedAt DESC LIMIT ?`),
     listPinnedAll: db.prepare(`SELECT * FROM memories WHERE pinned = 1 ORDER BY updatedAt DESC LIMIT ?`),
+    /*
+     * ORDER BY bm25 BEFORE the LIMIT.
+     *
+     * These used to cap at `MAX_FTS_RESULT_ROWS` with no ordering at all, so
+     * SQLite returned an arbitrary (rowid-ordered) slice and everything that
+     * ranks the results -- semantic similarity, recency, importance -- only ever
+     * saw that slice. An `any` query ORs every word of a question, so in a store
+     * of a few hundred rows the cap fills with one-word matches and the entry
+     * matching every term is cut before anything scores it. Worse, rowid order
+     * means the NEWEST memory is the first to be dropped.
+     *
+     * Measured on the live store (351 memories): the target ranked first under
+     * `all` and was absent entirely under `any`.
+     */
     search: db.prepare(`
       SELECT m.* FROM memories m
       INNER JOIN memories_fts f ON m.rowid = f.rowid
       WHERE memories_fts MATCH ?
+      ORDER BY bm25(memories_fts)
       LIMIT ${MAX_FTS_RESULT_ROWS}
     `),
     searchByAgent: db.prepare(`
       SELECT m.* FROM memories m
       INNER JOIN memories_fts f ON m.rowid = f.rowid
       WHERE memories_fts MATCH ? AND m.agentId = ?
+      ORDER BY bm25(memories_fts)
       LIMIT ${MAX_FTS_RESULT_ROWS}
     `),
     searchByAgentOrShared: db.prepare(`
       SELECT m.* FROM memories m
       INNER JOIN memories_fts f ON m.rowid = f.rowid
-      WHERE memories_fts MATCH ? AND (m.agentId = ? OR m.sharedWith LIKE ? OR m.sharedWith IN ('global','all','*'))
+      WHERE memories_fts MATCH ? AND (m.agentId = ? OR m.agentId IS NULL OR m.sharedWith LIKE ? OR m.sharedWith IN ('global','all','*'))
+      ORDER BY bm25(memories_fts)
       LIMIT ${MAX_FTS_RESULT_ROWS}
     `),
     // Remove a linked ID from all memories that reference it (cleanup on delete)
@@ -849,6 +978,22 @@ function initDb() {
     }
   }
 
+  /**
+   * Keep only the ids that name a row that exists.
+   *
+   * `link()` already did this, but `add()` and `update()` wrote the caller's
+   * list straight into the row, so a link to a memory that was never created
+   * (or has since gone) stayed on disk: 17 such edges in the live store, all
+   * from auto-written digests. A dangling edge never errors — it is a silent
+   * dead end in a traversal, and the traversal now feeds recall.
+   */
+  function keepExistingMemoryIds(ids: string[]): string[] {
+    if (!ids.length) return ids
+    const rows = stmts.getByIds(ids) as Array<Record<string, unknown>>
+    const present = new Set(rows.map((row) => String(row.id)))
+    return ids.filter((id) => present.has(id))
+  }
+
   function traverseLinked(
     seedEntries: MemoryEntry[],
     limits: MemoryLookupLimits,
@@ -868,7 +1013,7 @@ function initDb() {
     `SELECT * FROM memories WHERE embedding IS NOT NULL`
   )
   const getAllWithEmbeddingsByAgentOrShared = db.prepare(
-    `SELECT * FROM memories WHERE embedding IS NOT NULL AND (agentId = ? OR sharedWith LIKE ?)`
+    `SELECT * FROM memories WHERE embedding IS NOT NULL AND (agentId = ? OR agentId IS NULL OR sharedWith LIKE ?)`
   )
 
   return {
@@ -878,7 +1023,7 @@ function initDb() {
       const references = normalizeReferences(data.references, data.filePaths)
       const legacyFilePaths = referencesToLegacyFilePaths(references)
       const image = normalizeImage(data.image, data.imagePath)
-      const linkedMemoryIds = normalizeLinkedMemoryIds(data.linkedMemoryIds, id)
+      const linkedMemoryIds = keepExistingMemoryIds(normalizeLinkedMemoryIds(data.linkedMemoryIds, id))
       const sessionId = data.sessionId || null
       const category = data.category || 'note'
       const title = data.title || 'Untitled'
@@ -895,12 +1040,15 @@ function initDb() {
         : null
       const abstract = suppliedAbstract || (content ? summarizeWithoutModel(content) : null) || null
 
-      // 1..10, clamped. A number outside the scale is treated as unscored
-      // rather than rejected — a bad value must not cost the agent its write.
+      // 1..10, clamped. A number outside the scale falls back to the category
+      // default rather than being rejected — a bad value must not cost the agent
+      // its write, and it must not cost the entry its rank either.
       const rawImportance = typeof data.importance === 'number' && Number.isFinite(data.importance)
         ? Math.round(data.importance)
         : 0
-      const importance = rawImportance >= 1 && rawImportance <= 10 ? rawImportance : 0
+      const importance = rawImportance >= 1 && rawImportance <= 10
+        ? rawImportance
+        : defaultImportanceForCategory(category, data.pinned === true)
 
       // Content-hash dedup: if same content already exists for this agent, reinforce instead of duplicating
       const agentId = data.agentId || null
@@ -991,7 +1139,7 @@ function initDb() {
       const references = normalizeReferences(merged.references, merged.filePaths)
       const legacyFilePaths = referencesToLegacyFilePaths(references)
       const image = normalizeImage(merged.image, merged.imagePath)
-      const nextLinked = normalizeLinkedMemoryIds(merged.linkedMemoryIds, id)
+      const nextLinked = keepExistingMemoryIds(normalizeLinkedMemoryIds(merged.linkedMemoryIds, id))
       const prevLinked = normalizeLinkedMemoryIds(existingEntry.linkedMemoryIds, id)
       const now = Date.now()
       const pinnedVal = merged.pinned ? 1 : 0
@@ -1340,6 +1488,61 @@ function initDb() {
       return (stmts.listKnowledgeSourceChunks.all(sourceId) as Record<string, unknown>[]).map(rowToEntry)
     },
 
+    /**
+     * Record an extracted fact for later judgement.
+     *
+     * Returns the existing row when the same agent already holds that text, in
+     * any state: the extractor runs on every turn and notices the same fact
+     * repeatedly, and a decision already taken must not be re-queued.
+     */
+    addCandidate(data: { agentId?: string | null; sessionId?: string | null; text: string; source?: string }): MemoryCandidate {
+      const text = typeof data.text === 'string' ? data.text.trim() : ''
+      if (!text) throw new Error('memory candidate text is empty')
+      const agentId = data.agentId || null
+      const contentHash = createHash('sha256')
+        .update(`${agentId || ''}|${text.replace(/\s+/g, ' ').toLowerCase()}`)
+        .digest('hex')
+        .slice(0, 32)
+      const existing = db.prepare(`SELECT * FROM memory_candidates WHERE contentHash = ?`).get(contentHash) as Record<string, unknown> | undefined
+      if (existing) return rowToCandidate(existing)
+      const now = Date.now()
+      const id = genId(6)
+      db.prepare(`
+        INSERT INTO memory_candidates (id, agentId, sessionId, text, source, state, memoryId, contentHash, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, 'candidate', NULL, ?, ?, ?)
+      `).run(id, agentId, data.sessionId || null, text, data.source || 'chat-turn', contentHash, now, now)
+      return {
+        id, agentId, sessionId: data.sessionId || null, text,
+        source: data.source || 'chat-turn', state: 'candidate', memoryId: null,
+        contentHash, createdAt: now, updatedAt: now,
+      }
+    },
+
+    listCandidates(opts: { state?: MemoryCandidateState; agentId?: string | null; limit?: number } = {}): MemoryCandidate[] {
+      const limit = Math.max(1, Math.min(500, Math.trunc(opts.limit ?? 50)))
+      const clauses: string[] = []
+      const params: unknown[] = []
+      if (opts.state) { clauses.push('state = ?'); params.push(opts.state) }
+      if (opts.agentId) { clauses.push('agentId = ?'); params.push(opts.agentId) }
+      const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''
+      // Oldest first: a queue that serves the newest would starve whatever
+      // arrived during a busy hour.
+      const rows = db.prepare(`SELECT * FROM memory_candidates ${where} ORDER BY createdAt ASC LIMIT ?`).all(...params, limit) as Record<string, unknown>[]
+      return rows.map(rowToCandidate)
+    },
+
+    markCandidate(id: string, state: MemoryCandidateState, extra?: { memoryId?: string | null }): void {
+      db.prepare(`UPDATE memory_candidates SET state = ?, memoryId = ?, updatedAt = ? WHERE id = ?`)
+        .run(state, extra?.memoryId ?? null, Date.now(), id)
+    },
+
+    countCandidates(state?: MemoryCandidateState): number {
+      const row = state
+        ? db.prepare(`SELECT COUNT(*) AS n FROM memory_candidates WHERE state = ?`).get(state) as { n: number }
+        : db.prepare(`SELECT COUNT(*) AS n FROM memory_candidates`).get() as { n: number }
+      return row?.n ?? 0
+    },
+
     listPinned(agentId?: string, limit = 20): MemoryEntry[] {
       const safeLimit = Math.max(1, Math.min(100, Math.trunc(limit)))
       const rows = agentId
@@ -1372,7 +1575,7 @@ function initDb() {
       const safeLimit = Math.max(1, Math.min(500, Math.trunc(limit)))
       const rows = db.prepare(
         `SELECT id, content, embedding FROM memories
-         WHERE (agentId = ? OR sharedWith LIKE ?)
+         WHERE (agentId = ? OR agentId IS NULL OR sharedWith LIKE ?)
            AND category LIKE 'reflection/%'
            AND updatedAt >= ?
          ORDER BY updatedAt DESC LIMIT ?`,

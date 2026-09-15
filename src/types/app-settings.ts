@@ -28,6 +28,21 @@ export interface AppSettings {
   embeddingModel?: string | null
   embeddingCredentialId?: string | null
   embeddingEndpoint?: string | null
+  /**
+   * The model the host's own helpers use — working-state extraction, the
+   * message classifier, autonomy observation, memory extraction. Never the
+   * agent's own model: on a CLI-backed fleet there is no such model to borrow,
+   * which is why these helpers used to fail outright. Left unset, the installed
+   * coding CLI answers on a cheap model.
+   */
+  utilityProvider?: string | null
+  utilityModel?: string | null
+  /** Utility calls allowed per day across the fleet. 0 disables the helpers. */
+  utilityDailyCap?: number | null
+  /** Utility calls allowed to run at once; the rest queue. */
+  utilityMaxConcurrent?: number | null
+  /** Shortest gap between two utility calls for one session. */
+  utilityPerSessionCooldownSec?: number | null
   // Optional model override for memory consolidation and dream cycles.
   dreamProvider?: string | null
   dreamModel?: string | null

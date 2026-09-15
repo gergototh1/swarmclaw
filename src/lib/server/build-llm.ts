@@ -12,7 +12,13 @@ import { resolveProviderApiEndpoint, resolveProviderCredentialId } from './provi
 import { getAgent } from './agents/agent-repository'
 import { resolveCredentialSecret } from './credentials/credential-service'
 import { getSession } from './sessions/session-repository'
+import { loadSettings } from './settings/settings-repository'
+import { resolveUtilityModelChoice } from './utility-llm/utility-model-settings'
+import { CliUtilityChatModel } from './utility-llm/cli-utility-model'
 import type { Agent } from '@/types'
+
+/** The CLI the utility adapter drives. Every agent here already runs on it. */
+const CLI_UTILITY_PROVIDER_ID = 'claude-cli'
 
 const OLLAMA_CLOUD_URL = 'https://ollama.com/v1'
 const OLLAMA_LOCAL_URL = 'http://localhost:11434/v1'
@@ -39,6 +45,10 @@ interface ResolvedGenerationModelConfig {
   apiEndpoint: string | null
   thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high'
   responseFormat?: GenerationResponseFormat
+  /** Carried to the utility adapter, which rate-limits per conversation. */
+  sessionId?: string | null
+  /** Carried to the utility adapter; the cooldown is per session AND per purpose. */
+  purpose?: string | null
 }
 
 type OpenAiReasoningEffort = 'low' | 'medium' | 'high'
@@ -73,6 +83,8 @@ export function buildChatModel(opts: {
   apiEndpoint?: string | null
   thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high'
   responseFormat?: GenerationResponseFormat
+  sessionId?: string | null
+  purpose?: string | null
 }) {
   const { provider, model, ollamaMode, apiKey, credentialId, apiEndpoint, thinkingLevel, responseFormat } = opts
   const resolvedCredentialId = resolveProviderCredentialId({ provider, ollamaMode: ollamaMode ?? null, credentialId })
@@ -91,6 +103,13 @@ export function buildChatModel(opts: {
   const endpoint = provider === 'openclaw'
     ? normalizeOpenClawEndpoint(endpointRaw)
     : endpointRaw
+
+  // A CLI provider has no chat-completions endpoint — it is a process. The
+  // adapter drives it as a one-shot `--print` call, which is all the host's
+  // helpers need (none of them binds tools or streams).
+  if (NON_LANGGRAPH_PROVIDER_IDS.has(provider)) {
+    return new CliUtilityChatModel({ model, responseFormat: responseFormat ?? null, sessionId: opts.sessionId ?? null, purpose: opts.purpose ?? null })
+  }
 
   if (provider === 'anthropic') {
     const anthropicOpts: Record<string, unknown> = {
@@ -242,6 +261,8 @@ export function resolveGenerationModelConfig(options?: {
   agentId?: string | null
   excludeProviders?: string[]
   responseFormat?: GenerationResponseFormat
+  /** Names this helper so its rate limit is its own. */
+  purpose?: string | null
 }): ResolvedGenerationModelConfig {
   const providers = getProviderList()
   const excludeProviders = new Set((options?.excludeProviders || []).map((value) => normalizePreferenceValue(value)).filter(Boolean))
@@ -266,6 +287,39 @@ export function resolveGenerationModelConfig(options?: {
     ? { ...resolved, responseFormat: options.responseFormat }
     : resolved
 
+  // Last resort: the utility model.
+  //
+  // Everything above wants a provider the host can talk to directly, and on an
+  // install where every agent runs on a coding CLI there is none — so every
+  // helper (working-state, classifier, autonomy observation, the daily digest,
+  // the abstract writer) used to throw here, hundreds of times a day, and the
+  // memory store filled with transcripts nobody distilled. The operator's
+  // `utilityProvider`/`utilityModel` answers this, and failing that the CLI
+  // that is already installed and authenticated. See utility-model-settings.ts.
+  const utility = resolveUtilityModelChoice(loadSettings())
+  if (utility.kind === 'cli') {
+    const cliProvider = CLI_UTILITY_PROVIDER_ID
+    if (!excludeProviders.has(cliProvider)) {
+      return {
+        provider: cliProvider,
+        model: utility.model,
+        apiKey: null,
+        apiEndpoint: null,
+        sessionId: options?.sessionId ?? null,
+        purpose: options?.purpose ?? null,
+        ...(options?.responseFormat ? { responseFormat: options.responseFormat } : {}),
+      }
+    }
+  } else if (!excludeProviders.has(utility.provider)) {
+    const fromUtility = resolvePreferredGenerationConfig(providers, [{
+      provider: utility.provider,
+      model: utility.model,
+    }], excludeProviders)
+    if (fromUtility) {
+      return options?.responseFormat ? { ...fromUtility, responseFormat: options.responseFormat } : fromUtility
+    }
+  }
+
   const sessionLabel = options?.sessionId ? `session "${options.sessionId}"` : null
   const agentLabel = options?.agentId ? `agent "${options.agentId}"` : null
   const label = [sessionLabel, agentLabel].filter(Boolean).join(' / ') || 'this request'
@@ -284,6 +338,7 @@ export async function buildLLM(options?: {
   agentId?: string | null
   excludeProviders?: string[]
   responseFormat?: GenerationResponseFormat
+  purpose?: string | null
 }) {
   const resolved = resolveGenerationModelConfig(options)
   return {

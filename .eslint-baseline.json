@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-10T14:26:09.403Z",
-  "totalIssues": 375,
-  "uniqueIssues": 121,
+  "generatedAt": "2026-09-14T17:42:12.798Z",
+  "totalIssues": 373,
+  "uniqueIssues": 120,
   "issues": [
     {
       "filePath": "bin/worker-cmd.js",
@@ -759,13 +759,6 @@
       "severity": 2,
       "message": "Unexpected any. Specify a different type.",
       "count": 1
-    },
-    {
-      "filePath": "src/lib/server/session-tools/schedule.ts",
-      "ruleId": "@typescript-eslint/no-explicit-any",
-      "severity": 2,
-      "message": "Unexpected any. Specify a different type.",
-      "count": 2
     },
     {
       "filePath": "src/lib/server/session-tools/session-info.ts",
