@@ -213,10 +213,11 @@ describe('session-mailbox', () => {
 
     const found = mailbox.findPendingHumanRequestEnvelope({
       sessionId: 'mb-human-request',
-      question: '  what is   brendon\'s phone number? ',
-      options: [],
-      expectedFormat: null,
-      notes: 'use digits only',
+      payload: {
+        questions: [{ question: '  what is   brendon\'s phone number? ', options: [] }],
+        expectedFormat: null,
+        notes: 'use digits only',
+      },
       fromSessionId: 'agent-chat',
       fromAgentId: 'agent-1',
     })

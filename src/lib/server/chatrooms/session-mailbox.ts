@@ -1,17 +1,11 @@
 import { genId } from '@/lib/id'
 import type { MailboxEnvelope } from '@/types'
 import { loadSession, patchSession } from '@/lib/server/sessions/session-repository'
+import { normalizeHumanQuestionInput, type HumanQuestionPayload } from '@/lib/human-question'
 
 interface MailboxOptions {
   limit?: number
   includeAcked?: boolean
-}
-
-interface HumanRequestPayload {
-  question: string
-  options: string[]
-  expectedFormat: string | null
-  notes: string | null
 }
 
 function normalizeMailboxList(raw: unknown): MailboxEnvelope[] {
@@ -36,41 +30,30 @@ function normalizeHumanRequestValue(value: unknown): string {
     : ''
 }
 
-function parseHumanRequestPayload(payload: string): HumanRequestPayload | null {
+function parseHumanRequestPayload(payload: string): HumanQuestionPayload | null {
   try {
     const parsed = JSON.parse(payload) as Record<string, unknown>
-    const question = typeof parsed.question === 'string' ? parsed.question.trim() : ''
-    if (!question) return null
-    return {
-      question,
-      options: Array.isArray(parsed.options)
-        ? parsed.options.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-        : [],
-      expectedFormat: typeof parsed.expectedFormat === 'string' && parsed.expectedFormat.trim()
-        ? parsed.expectedFormat.trim()
-        : null,
-      notes: typeof parsed.notes === 'string' && parsed.notes.trim()
-        ? parsed.notes.trim()
-        : null,
-    }
+    const normalized = normalizeHumanQuestionInput(parsed)
+    return normalized.ok ? normalized.payload : null
   } catch {
     return null
   }
 }
 
 function normalizeHumanRequestSignature(input: {
-  question: string
-  options?: string[]
-  expectedFormat?: string | null
-  notes?: string | null
+  payload: HumanQuestionPayload
   fromSessionId?: string | null
   fromAgentId?: string | null
 }): string {
   return JSON.stringify({
-    question: normalizeHumanRequestValue(input.question),
-    options: (input.options || []).map((value) => normalizeHumanRequestValue(value)).filter(Boolean),
-    expectedFormat: normalizeHumanRequestValue(input.expectedFormat),
-    notes: normalizeHumanRequestValue(input.notes),
+    questions: input.payload.questions.map((question) => ({
+      header: normalizeHumanRequestValue(question.header),
+      question: normalizeHumanRequestValue(question.question),
+      multiSelect: question.multiSelect === true,
+      options: question.options.map((option) => normalizeHumanRequestValue(option.label)),
+    })),
+    expectedFormat: normalizeHumanRequestValue(input.payload.expectedFormat),
+    notes: normalizeHumanRequestValue(input.payload.notes),
     fromSessionId: normalizeHumanRequestValue(input.fromSessionId),
     fromAgentId: normalizeHumanRequestValue(input.fromAgentId),
   })
@@ -99,10 +82,7 @@ function findLatestPendingHumanRequestEnvelope(
 
 export function findPendingHumanRequestEnvelope(params: {
   sessionId: string
-  question: string
-  options?: string[]
-  expectedFormat?: string | null
-  notes?: string | null
+  payload: HumanQuestionPayload
   fromSessionId?: string | null
   fromAgentId?: string | null
 }): MailboxEnvelope | null {
@@ -116,12 +96,9 @@ export function findPendingHumanRequestEnvelope(params: {
       const parsed = parseHumanRequestPayload(envelope.payload)
       if (!parsed) return false
       return normalizeHumanRequestSignature({
-        question: parsed.question,
-        options: parsed.options,
-        expectedFormat: parsed.expectedFormat,
-        notes: parsed.notes,
-        fromSessionId: envelope.fromSessionId || null,
-        fromAgentId: envelope.fromAgentId || null,
+        payload: parsed,
+        fromSessionId: params.fromSessionId,
+        fromAgentId: params.fromAgentId,
       }) === expectedSignature
     }) || null
 }

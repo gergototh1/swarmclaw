@@ -14,6 +14,8 @@ import { loadApprovals } from '../storage'
 import { requestApproval } from '../approvals'
 import { createWatchJob, getWatchJob } from '@/lib/server/runtime/watch-jobs'
 import { errorMessage } from '@/lib/shared-utils'
+import { appendMessage } from '@/lib/server/messages/message-repository'
+import { normalizeHumanQuestionInput, renderHumanQuestionText } from '@/lib/human-question'
 
 async function executeHumanLoopAction(args: Record<string, unknown>, bctx: { sessionId?: string | null; agentId?: string | null }) {
   const normalized = normalizeToolInputArgs(args)
@@ -23,50 +25,62 @@ async function executeHumanLoopAction(args: Record<string, unknown>, bctx: { ses
     if (action === 'request_input') {
       const toSessionId = typeof normalized.toSessionId === 'string' ? normalized.toSessionId : bctx.sessionId
       if (!toSessionId) return 'Error: toSessionId or current session is required.'
-      const question = typeof normalized.question === 'string' ? normalized.question.trim() : ''
-      if (!question) return 'Error: question is required.'
-      const correlationId = typeof normalized.correlationId === 'string' ? normalized.correlationId.trim() : `human-${Date.now()}`
-      const options = Array.isArray(normalized.options)
-        ? normalized.options.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-        : []
+
+      const normalizedQuestion = normalizeHumanQuestionInput(normalized)
+      if (!normalizedQuestion.ok) return `Error: ${normalizedQuestion.error}`
+      const payload = normalizedQuestion.payload
+
+      const correlationId = typeof normalized.correlationId === 'string' && normalized.correlationId.trim()
+        ? normalized.correlationId.trim()
+        : `human-${Date.now()}`
       const requestType = typeof normalized.type === 'string' ? normalized.type : 'human_request'
+
       const existing = requestType === 'human_request'
         ? findPendingHumanRequestEnvelope({
             sessionId: toSessionId,
-            question,
-            options,
-            expectedFormat: typeof normalized.expectedFormat === 'string' ? normalized.expectedFormat : null,
-            notes: typeof normalized.notes === 'string' ? normalized.notes : null,
+            payload,
             fromSessionId: bctx.sessionId || null,
             fromAgentId: bctx.agentId || null,
           })
         : null
-      const envelope = existing || sendMailboxEnvelope({
-        toSessionId,
-        type: requestType,
-        payload: JSON.stringify({
-          question,
-          options,
-          expectedFormat: typeof normalized.expectedFormat === 'string' ? normalized.expectedFormat : null,
-          notes: typeof normalized.notes === 'string' ? normalized.notes : null,
-        }),
-        fromSessionId: bctx.sessionId || null,
-        fromAgentId: bctx.agentId || null,
-        correlationId,
-        ttlSec: typeof normalized.ttlSec === 'number' ? normalized.ttlSec : null,
-      })
+
+      let envelope = existing
+      if (!envelope) {
+        // A kártya a naplóból él, ezért az üzenet előbb kell, mint a boríték:
+        // a boríték hordozza a sorszámát, és a válasz azon találja meg.
+        const messageSeq = appendMessage(toSessionId, {
+          role: 'assistant',
+          text: renderHumanQuestionText(payload),
+          time: Date.now(),
+          kind: 'question',
+          question: payload,
+          questionState: { correlationId, status: 'pending' },
+          historyExcluded: true,
+        })
+        envelope = sendMailboxEnvelope({
+          toSessionId,
+          type: requestType,
+          payload: JSON.stringify({ ...payload, messageSeq }),
+          fromSessionId: bctx.sessionId || null,
+          fromAgentId: bctx.agentId || null,
+          correlationId,
+          ttlSec: typeof normalized.ttlSec === 'number' ? normalized.ttlSec : null,
+        })
+      }
+
       const effectiveCorrelationId = envelope.correlationId || correlationId
       return JSON.stringify({
         ok: true,
         envelope,
         correlationId: effectiveCorrelationId,
+        questions: payload.questions.length,
         reused: existing ? true : undefined,
         nextAction: {
           action: 'wait_for_reply',
           correlationId: effectiveCorrelationId,
           guidance: 'If this turn should pause for the human reply, call wait_for_reply once with this correlationId, then stop after the durable wait is active. Do not request the same pending input again before the reply arrives.',
         },
-        hint: `A human can answer via POST /api/chats/${toSessionId}/mailbox with action="send", type="human_reply", correlationId="${effectiveCorrelationId}", and payload set to the response.`,
+        hint: `A human answers this in the chat. It also arrives via POST /api/chats/${toSessionId}/mailbox with action="answer" and this correlationId.`,
       })
     }
 
@@ -201,7 +215,7 @@ const HumanLoopExtension: Extension = {
   description: 'Request structured human input or approvals, then wait durably for the response.',
   hooks: {
     getCapabilityDescription: () =>
-      'I can request structured human input or explicit approvals with `ask_human`, then pause on durable wait handles until the response arrives. I should not repeat the same pending human question before that wait resumes.',
+      'I can ask the human a structured multiple-choice question with `ask_human` action `request_input` and a `questions` array — it renders as a card with buttons in the chat, so I should use it instead of asking in plain text and hoping for an answer. After asking I call `wait_for_reply` and stop; the reply wakes me on the next turn. I should not repeat the same pending question before that.',
     getApprovalGuidance: ({ approval, phase, approved }) => {
       if (approval.category !== 'human_loop') return null
       if (phase === 'request') {
@@ -225,12 +239,37 @@ const HumanLoopExtension: Extension = {
   tools: [
     {
       name: 'ask_human',
-      description: 'Human-loop tool. Use request_input(question, ...) once to ask a human, wait_for_reply(correlationId) for durable waiting, then stop when the wait becomes active. Do not repeat the same pending question before the reply arrives. Use list_mailbox to read replies, ack_mailbox(envelopeId) to acknowledge them, and status(approvalId or watchJobId) only when you have an id.',
+      description: 'Human-loop tool. To ask the human a choice, call request_input with a `questions` array (up to 4 questions, each with up to 4 options that carry a short label and description) — the chat renders it as a card with buttons. Then call wait_for_reply(correlationId) and stop. Do not repeat the same pending question before the reply arrives. Use list_mailbox to read replies, ack_mailbox(envelopeId) to acknowledge them, and status(approvalId or watchJobId) only when you have an id.',
       parameters: {
         type: 'object',
         properties: {
           action: { type: 'string', enum: ['request_input', 'request_approval', 'wait_for_reply', 'wait_for_approval', 'list_mailbox', 'ack_mailbox', 'status'] },
           question: { type: 'string' },
+          questions: {
+            type: 'array',
+            maxItems: 4,
+            items: {
+              type: 'object',
+              properties: {
+                header: { type: 'string', description: 'Two or three word label for this question.' },
+                question: { type: 'string' },
+                multiSelect: { type: 'boolean' },
+                options: {
+                  type: 'array',
+                  maxItems: 4,
+                  items: {
+                    type: 'object',
+                    properties: {
+                      label: { type: 'string' },
+                      description: { type: 'string' },
+                    },
+                    required: ['label'],
+                  },
+                },
+              },
+              required: ['question', 'options'],
+            },
+          },
           title: { type: 'string' },
           description: { type: 'string' },
           options: { type: 'array', items: { type: 'string' } },
