@@ -184,20 +184,22 @@ describe('supervisor-reflection', () => {
     assert.deepEqual(output.incidentKinds, ['no_progress', 'repeated_tool'])
     assert.equal(output.reflectionSummary, 'Deployment repair reflection')
     assert.equal(output.reflectionCount, 1)
-    assert.equal(output.autoMemoryCount, 10)
+    /*
+     * Tíz volt, mielőtt a körönkénti plafon bekerült.
+     *
+     * Egy reflexiós kör minden fajtából írt, korlát nélkül -- élesben 4-7 sor
+     * futásonként, egyetlen napon 99. A `confidence` addig csak metaadatként
+     * utazott; most ez rangsorol, és körönként a legjobb három marad.
+     */
+    assert.equal(output.autoMemoryCount, 3)
     assert.deepEqual(output.profileNotes, ['The user is directly responsible for the deployment workflow.'])
     assert.deepEqual(output.boundaryNotes, ['Do not claim the repair is complete without concrete verification evidence.'])
     assert.deepEqual(output.openLoopNotes, ['Follow up with the final verification result once the repair path succeeds.'])
+    // A három legmagabiztosabb fajta marad: profil, határ és jelentős esemény
+    // 0.82-vel, a többi 0.72-vel indul (`resolveReflectionMemoryConfidence`).
     assert.deepEqual(output.memoryCategories, [
       'reflection/boundary',
-      'reflection/communication',
-      'reflection/derived',
-      'reflection/failure',
-      'reflection/invariant',
-      'reflection/lesson',
-      'reflection/open_loop',
       'reflection/profile',
-      'reflection/relationship',
       'reflection/significant_event',
     ])
   })

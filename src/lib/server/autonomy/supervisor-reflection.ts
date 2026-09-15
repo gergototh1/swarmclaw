@@ -691,7 +691,51 @@ type ReflectionMemoryKind =
   | 'boundary'
   | 'open_loop'
 
-function buildMemoryTitle(kind: ReflectionMemoryKind, summary: string): string {
+/**
+ * Name a reflection entry after the note it holds.
+ *
+ * It used to be named after the RUN's summary, and a run writes four to seven
+ * notes, so they all carried one title. Measured live: 99 entries in a day, all
+ * with different content, sharing 44 titles — four distinct invariants filed as
+ * "Reflection Invariant: Located and analyzed a macOS-inst...". In a recall
+ * line that title takes half the width and says nothing about which fact it is.
+ */
+export function buildReflectionMemoryTitle(kind: ReflectionMemoryKind, note: string): string {
+  const body = trimText(String(note || ''), 100).trim()
+  // A note that trims away to nothing would leave a bare "Reflection Lesson:".
+  return body ? `${reflectionTitlePrefix(kind)}: ${body}` : reflectionTitlePrefix(kind)
+}
+
+/**
+ * Which notes a single reflection run may keep.
+ *
+ * A run wrote everything it produced, uncapped — four to seven rows each time,
+ * 99 in one measured day. `resolveReflectionMemoryConfidence` already scores
+ * each kind and until now only travelled as metadata; here it decides what
+ * survives, so a profile or boundary note outranks a generic invariant.
+ * Order inside one kind is preserved: the model puts its best first.
+ */
+export const MAX_REFLECTION_NOTES_PER_RUN = 3
+
+export function selectReflectionNotes(
+  groups: Array<{ kind: ReflectionMemoryKind; notes: string[] }>,
+  limit: number = MAX_REFLECTION_NOTES_PER_RUN,
+): Array<{ kind: ReflectionMemoryKind; note: string }> {
+  const flat: Array<{ kind: ReflectionMemoryKind; note: string; confidence: number; order: number }> = []
+  let order = 0
+  for (const group of groups) {
+    for (const note of Array.isArray(group.notes) ? group.notes : []) {
+      const text = typeof note === 'string' ? note.trim() : ''
+      if (!text) continue
+      flat.push({ kind: group.kind, note: text, confidence: resolveReflectionMemoryConfidence(group.kind), order: order++ })
+    }
+  }
+  flat.sort((a, b) => (b.confidence - a.confidence) || (a.order - b.order))
+  const cap = Math.max(0, Math.trunc(limit))
+  return flat.slice(0, cap).map(({ kind, note }) => ({ kind, note }))
+}
+
+function reflectionTitlePrefix(kind: ReflectionMemoryKind): string {
   const prefix = kind === 'invariant'
     ? 'Reflection Invariant'
     : kind === 'derived'
@@ -711,7 +755,7 @@ function buildMemoryTitle(kind: ReflectionMemoryKind, summary: string): string {
                 : kind === 'boundary'
                   ? 'Interaction Boundary'
                   : 'Open Loop'
-  return `${prefix}: ${trimText(summary, 100)}`
+  return prefix
 }
 
 function memoryCategoryForKind(kind: ReflectionMemoryKind): string {
@@ -848,46 +892,47 @@ async function writeReflectionMemories(params: {
     }
   }
 
-  for (const group of groups) {
-    for (const note of group.notes) {
-      const norm = normalizeNote(note)
-      if (!norm) continue
-      if (seenNormalized.has(norm)) continue
-      if (semanticSkip.has(norm)) continue
-      seenNormalized.add(norm)
-      const metadata: Record<string, unknown> = {
-        origin: 'autonomy-reflection',
-        reflectionId: params.reflectionId,
-        reflectionKind: group.kind,
-        runId: params.runId,
-        incidentIds,
-        autoWritten: true,
-        tier: 'durable',
-        confidence: resolveReflectionMemoryConfidence(group.kind),
-        sourceRunId: params.runId,
-      }
-      if (group.kind === 'communication' || group.kind === 'relationship' || group.kind === 'profile' || group.kind === 'boundary') {
-        metadata.memoryFacet = 'human'
-      }
-      if (group.kind === 'significant_event') {
-        metadata.memoryFacet = 'event'
-        metadata.eventSalience = 'high'
-      }
-      if (group.kind === 'open_loop') {
-        metadata.memoryFacet = 'followup'
-        metadata.followUpAt = inferFollowUpAt(note, createdAt)
-        metadata.resolvedAt = null
-      }
-      const entry = memoryDb.add({
-        agentId: params.agentId || null,
-        sessionId: params.sessionId,
-        category: memoryCategoryForKind(group.kind),
-        title: buildMemoryTitle(group.kind, params.summary),
-        content: note,
-        metadata,
-      })
-      memoryIds.push(entry.id)
+  // Capped and confidence-ranked before anything is written. A run used to keep
+  // everything it produced -- four to seven rows each time, 99 in one measured
+  // day -- and the dedup below only ever removed repeats, never volume.
+  for (const { kind, note } of selectReflectionNotes(groups)) {
+    const norm = normalizeNote(note)
+    if (!norm) continue
+    if (seenNormalized.has(norm)) continue
+    if (semanticSkip.has(norm)) continue
+    seenNormalized.add(norm)
+    const metadata: Record<string, unknown> = {
+      origin: 'autonomy-reflection',
+      reflectionId: params.reflectionId,
+      reflectionKind: kind,
+      runId: params.runId,
+      incidentIds,
+      autoWritten: true,
+      tier: 'durable',
+      confidence: resolveReflectionMemoryConfidence(kind),
+      sourceRunId: params.runId,
     }
+    if (kind === 'communication' || kind === 'relationship' || kind === 'profile' || kind === 'boundary') {
+      metadata.memoryFacet = 'human'
+    }
+    if (kind === 'significant_event') {
+      metadata.memoryFacet = 'event'
+      metadata.eventSalience = 'high'
+    }
+    if (kind === 'open_loop') {
+      metadata.memoryFacet = 'followup'
+      metadata.followUpAt = inferFollowUpAt(note, createdAt)
+      metadata.resolvedAt = null
+    }
+    const entry = memoryDb.add({
+      agentId: params.agentId || null,
+      sessionId: params.sessionId,
+      category: memoryCategoryForKind(kind),
+      title: buildReflectionMemoryTitle(kind, note),
+      content: note,
+      metadata,
+    })
+    memoryIds.push(entry.id)
   }
 
   return [...new Set(memoryIds)]
