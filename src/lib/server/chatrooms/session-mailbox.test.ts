@@ -256,4 +256,61 @@ describe('session-mailbox', () => {
     const ackedRequest = all.find((item) => item.id === request.id)
     assert.equal(ackedRequest?.status, 'ack')
   })
+
+  it('does not bridge a chat reply into a question the chat shows as a card', () => {
+    // A `questions` array is the shape `request_input` writes alongside a card.
+    // Acking it here would leave the card with live buttons whose answer 404s.
+    createTestSession('mb-bridge-card')
+    const request = mailbox.sendMailboxEnvelope({
+      toSessionId: 'mb-bridge-card',
+      type: 'human_request',
+      payload: JSON.stringify({
+        questions: [{ header: 'Adatbázis', question: 'Melyik legyen?', options: [{ label: 'SQLite' }, { label: 'Postgres' }] }],
+        expectedFormat: null,
+        notes: null,
+      }),
+      fromSessionId: 'mb-bridge-card',
+      fromAgentId: 'agent-1',
+      correlationId: 'corr-card',
+    })
+
+    const reply = mailbox.bridgeHumanReplyFromChat({ sessionId: 'mb-bridge-card', payload: 'SQLite' })
+
+    assert.equal(reply, null)
+    const all = mailbox.listMailbox('mb-bridge-card', { includeAcked: true })
+    assert.equal(all.find((item) => item.id === request.id)?.status, 'new')
+    assert.equal(all.some((item) => item.type === 'human_reply'), false)
+  })
+
+  it('bridges into the latest legacy question even when a newer card question is open', () => {
+    createTestSession('mb-bridge-mixed')
+    const legacy = mailbox.sendMailboxEnvelope({
+      toSessionId: 'mb-bridge-mixed',
+      type: 'human_request',
+      payload: JSON.stringify({ question: 'What is the port?', options: [], expectedFormat: null, notes: null }),
+      correlationId: 'corr-legacy',
+    })
+    const card = mailbox.sendMailboxEnvelope({
+      toSessionId: 'mb-bridge-mixed',
+      type: 'human_request',
+      payload: JSON.stringify({
+        questions: [{ question: 'Melyik legyen?', options: [{ label: 'SQLite' }, { label: 'Postgres' }] }],
+        expectedFormat: null,
+        notes: null,
+      }),
+      correlationId: 'corr-card-newer',
+    })
+    // createdAt is millisecond-resolution; make the ordering unambiguous.
+    const sessions = storage.loadSessions()
+    const stored = sessions['mb-bridge-mixed']
+    stored.mailbox = (stored.mailbox || []).map((item) => item.id === card.id ? { ...item, createdAt: legacy.createdAt + 1000 } : item)
+    storage.saveSessions(sessions)
+
+    const reply = mailbox.bridgeHumanReplyFromChat({ sessionId: 'mb-bridge-mixed', payload: '3000' })
+
+    assert.equal(reply?.correlationId, 'corr-legacy')
+    const all = mailbox.listMailbox('mb-bridge-mixed', { includeAcked: true })
+    assert.equal(all.find((item) => item.id === legacy.id)?.status, 'ack')
+    assert.equal(all.find((item) => item.id === card.id)?.status, 'new')
+  })
 })

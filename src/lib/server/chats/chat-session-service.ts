@@ -18,6 +18,7 @@ import {
   getSessionRunState,
 } from '@/lib/server/runtime/session-run-manager'
 import { deleteSession, getSession, listSessions, saveSession } from '@/lib/server/sessions/session-repository'
+import { supersedePendingHumanQuestions } from '@/lib/server/human-question-answer'
 import {
   clearMessages,
   deleteSessionMessages,
@@ -398,6 +399,10 @@ export function queueChatMessage(sessionId: string, body: Record<string, unknown
   if (!message.trim() && !hasFiles) {
     return serviceFail(400, 'message or file is required')
   }
+  // The user typed instead of answering, as in the /chat route. No `internal`
+  // guard: this endpoint only ever carries what the user typed while a turn
+  // runs, never a heartbeat or other autonomous wake.
+  supersedePendingHumanQuestions(sessionId)
   const queued = enqueueSessionRun({
     sessionId,
     message,

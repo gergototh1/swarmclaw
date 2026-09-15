@@ -63,7 +63,23 @@ function normalizeMailbox(target: { mailbox?: MailboxEnvelope[] | null }, now = 
   return pruneExpired(normalizeMailboxList(target.mailbox || []), now)
 }
 
-function findLatestPendingHumanRequestEnvelope(
+/**
+ * Does the chat show this request as a question card?
+ *
+ * Only `request_input` writes a `questions` array, and it always writes the
+ * card message next to it. A request written before cards existed carries a
+ * single `question` string and has no card.
+ */
+function isCardBackedHumanRequest(envelope: MailboxEnvelope): boolean {
+  try {
+    const parsed: unknown = JSON.parse(envelope.payload)
+    return !!parsed && typeof parsed === 'object' && Array.isArray((parsed as Record<string, unknown>).questions)
+  } catch {
+    return false
+  }
+}
+
+function findLatestBridgeableHumanRequestEnvelope(
   sessionId: string,
   target = loadSession(sessionId),
 ): MailboxEnvelope | null {
@@ -77,6 +93,11 @@ function findLatestPendingHumanRequestEnvelope(
   return envelopes
     .filter((envelope) => envelope.type === 'human_request' && envelope.status !== 'ack')
     .filter((envelope) => !envelope.correlationId || !repliedCorrelationIds.has(envelope.correlationId))
+    // A card question is closed only by answering it (`answerHumanQuestion`) or
+    // by superseding it where the user types. Acking it here would leave its
+    // card with live buttons that 404, and the answer turn of one card would
+    // be recorded as the reply to another card that is still open.
+    .filter((envelope) => !isCardBackedHumanRequest(envelope))
     .sort((a, b) => b.createdAt - a.createdAt)[0] || null
 }
 
@@ -217,7 +238,7 @@ export function bridgeHumanReplyFromChat(input: {
 }): MailboxEnvelope | null {
   const payload = String(input.payload || '').trim()
   if (!payload) return null
-  const pending = findLatestPendingHumanRequestEnvelope(input.sessionId)
+  const pending = findLatestBridgeableHumanRequestEnvelope(input.sessionId)
   if (!pending) return null
   const envelope = sendMailboxEnvelope({
     toSessionId: input.sessionId,

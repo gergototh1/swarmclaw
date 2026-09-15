@@ -27,7 +27,7 @@ export type AnswerHumanQuestionResult =
 /**
  * A kérdés-üzenet lezárása.
  *
- * correlationId alapján keressük, nem a boríték `messageSeq`-je alapján. A seq
+ * correlationId alapján keressük, nem a naplóbeli sorszáma alapján. A seq
  * nem stabil: a kör végén a napló újraíródik (`replaceAllMessages`), és egy
  * kör közben elkapott seq már egy másik sorra mutat. Élesben pont így maradt a
  * kártya örökre `pending`. A correlationId magán az üzeneten van, azt az

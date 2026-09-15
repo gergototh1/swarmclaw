@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { after, before, describe, it } from 'node:test'
+import { renderHumanAnswerText } from '@/lib/human-question'
 
 const originalEnv = {
   DATA_DIR: process.env.DATA_DIR,
@@ -71,15 +72,11 @@ function createTestSession(id: string): void {
 
 /**
  * Registers the durable wait an agent leaves behind when it calls
- * `wait_for_reply`, so `answerHumanQuestion` takes the waiter branch and never
- * reaches the real `enqueueSessionRun`.
+ * `wait_for_reply`, so a test can check that answering cancels it.
  *
- * Every integration test in this file seeds one. A genuine fallback run starts
- * a real chat turn whose post-turn steps leak a 15s timer that keeps the whole
- * process alive (`generateAbstract` in memory-abstract.ts races a hardcoded
- * `setTimeout` it never clears) — a pre-existing bug, out of scope here, and
- * the reason the fallback's *decision* is covered by the predicate tests below
- * instead of by executing a turn.
+ * It does not keep the turn from starting: every answer enqueues a real chat
+ * turn, waiter or not. The session points at an unbound port, so that turn
+ * fails fast.
  */
 async function seedWaiter(sessionId: string, correlationId: string): Promise<void> {
   await watchJobs.createWatchJob({
@@ -92,8 +89,8 @@ async function seedWaiter(sessionId: string, correlationId: string): Promise<voi
 }
 
 /**
- * A `human_request` envelope with no `messageSeq`, the shape written before the
- * question message existed. Nothing for `closeQuestionMessage` to point at.
+ * A `human_request` envelope with no question message behind it in the
+ * transcript. Nothing for `closeQuestionMessage` to find.
  */
 function seedLegacyQuestion(sessionId: string, correlationId: string): void {
   createTestSession(sessionId)
@@ -122,7 +119,7 @@ function seedQuestion(sessionId: string, correlationId: string): number {
   mailbox.sendMailboxEnvelope({
     toSessionId: sessionId,
     type: 'human_request',
-    payload: JSON.stringify({ ...payload, messageSeq: seq }),
+    payload: JSON.stringify(payload),
     fromSessionId: sessionId,
     fromAgentId: 'a1',
     correlationId,
@@ -222,7 +219,7 @@ describe('answerHumanQuestion', () => {
     assert.ok(execution.hasRunningNonHeartbeat || execution.hasQueuedNonHeartbeat, 'a registered waiter must not suppress the turn')
   })
 
-  it('succeeds without throwing when the stored request has no messageSeq (legacy envelope)', async () => {
+  it('succeeds without throwing when the stored request has no question message in the transcript', async () => {
     seedLegacyQuestion('s-legacy', 'c-legacy')
     await seedWaiter('s-legacy', 'c-legacy')
     const result = answerModule.answerHumanQuestion({
@@ -235,6 +232,45 @@ describe('answerHumanQuestion', () => {
     const envelopes = mailbox.listMailbox('s-legacy', { includeAcked: true })
     assert.ok(envelopes.some((envelope) => envelope.type === 'human_reply' && envelope.correlationId === 'c-legacy'))
     assert.equal(envelopes.find((envelope) => envelope.type === 'human_request')?.status, 'ack')
+  })
+
+  it('answering one of two open questions leaves the other one open, even through the chat bridge', () => {
+    // The answer starts a `source: 'chat'` turn, and preparing that turn runs
+    // `bridgeHumanReplyFromChat` with the answer text. Before the bridge learned
+    // to skip card questions, that recorded A's answer against B and acked B,
+    // while B's card kept its buttons.
+    const seqA = seedQuestion('s-two', 'c-a')
+    const seqB = repo.appendMessage('s-two', {
+      role: 'assistant',
+      text: 'Melyik legyen?',
+      time: Date.now(),
+      kind: 'question',
+      question: payload,
+      questionState: { correlationId: 'c-b', status: 'pending' },
+      historyExcluded: true,
+    })
+    mailbox.sendMailboxEnvelope({
+      toSessionId: 's-two',
+      type: 'human_request',
+      payload: JSON.stringify(payload),
+      fromSessionId: 's-two',
+      fromAgentId: 'a1',
+      correlationId: 'c-b',
+      ttlSec: null,
+    })
+
+    const answers = [{ header: 'Adatbázis', question: 'Melyik legyen?', selected: ['SQLite'] }]
+    const result = answerModule.answerHumanQuestion({ sessionId: 's-two', correlationId: 'c-a', answers })
+    assert.equal(result.ok, true)
+
+    // What the answer turn's preparation does with the rendered answer text.
+    mailbox.bridgeHumanReplyFromChat({ sessionId: 's-two', payload: renderHumanAnswerText(answers) })
+
+    assert.equal(repo.getMessageBySeq('s-two', seqA)?.questionState?.status, 'answered')
+    assert.equal(repo.getMessageBySeq('s-two', seqB)?.questionState?.status, 'pending')
+    const envelopes = mailbox.listMailbox('s-two', { includeAcked: true })
+    assert.equal(envelopes.find((envelope) => envelope.type === 'human_request' && envelope.correlationId === 'c-b')?.status, 'new')
+    assert.equal(envelopes.some((envelope) => envelope.type === 'human_reply' && envelope.correlationId === 'c-b'), false)
   })
 
   it('rejects an option that is not on the list', () => {

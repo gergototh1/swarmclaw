@@ -53,8 +53,9 @@ function createTestSession(id: string): void {
   sessions[id] = {
     id, name: 'Test Session', cwd: '/tmp', user: 'tester',
     provider: 'ollama', model: 'test-model', claudeSessionId: null,
-    // Port 1 is never bound, so a fallback chat turn fails fast (ECONNREFUSED)
-    // instead of hanging or reaching a real local Ollama daemon.
+    // Port 1 is never bound, so the chat turn an answer or a typed message
+    // starts fails fast (ECONNREFUSED) instead of hanging or reaching a real
+    // local Ollama daemon.
     apiEndpoint: 'http://127.0.0.1:1',
     agentId: 'agent-1', messages: [], createdAt: Date.now(), lastActiveAt: Date.now(),
   }
@@ -75,7 +76,7 @@ function seedQuestion(sessionId: string, correlationId: string): number {
   mailbox.sendMailboxEnvelope({
     toSessionId: sessionId,
     type: 'human_request',
-    payload: JSON.stringify({ ...payload, messageSeq: seq }),
+    payload: JSON.stringify(payload),
     fromSessionId: sessionId,
     fromAgentId: 'a1',
     correlationId,
@@ -144,6 +145,26 @@ describe('POST /api/chats/:id/chat supersedes a pending question only for a real
       { params: Promise.resolve({ id: 's-guard-user' }) },
     )
     assert.equal(repo.getMessageBySeq('s-guard-user', seq)?.questionState?.status, 'superseded')
+  })
+
+  it('closes an open question when the user types into the queue while a turn runs', async () => {
+    // The composer posts here instead of /chat while a turn is running. Without
+    // a supersede, the queued turn's chat bridge acked the request behind the
+    // card's back: the card kept its buttons and every click returned 404.
+    const seq = seedQuestion('s-guard-queue', 'c-queue')
+    const queueRoute = await import('@/app/api/chats/[id]/queue/route')
+    const response = await queueRoute.POST(
+      new Request('http://localhost/api/chats/s-guard-queue/queue', {
+        method: 'POST',
+        body: JSON.stringify({ message: 'actually, use Postgres' }),
+      }),
+      { params: Promise.resolve({ id: 's-guard-queue' }) },
+    )
+    assert.equal(response.status, 200)
+    assert.equal(repo.getMessageBySeq('s-guard-queue', seq)?.questionState?.status, 'superseded')
+    const request = mailbox.listMailbox('s-guard-queue', { includeAcked: true })
+      .find((envelope) => envelope.type === 'human_request')
+    assert.equal(request?.status, 'ack')
   })
 
   it('leaves an open question open for an internal (heartbeat) turn', async () => {

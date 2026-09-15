@@ -46,9 +46,10 @@ async function executeHumanLoopAction(args: Record<string, unknown>, bctx: { ses
 
       let envelope = existing
       if (!envelope) {
-        // A kártya a naplóból él, ezért az üzenet előbb kell, mint a boríték:
-        // a boríték hordozza a sorszámát, és a válasz azon találja meg.
-        const messageSeq = appendMessage(toSessionId, {
+        // A kártya a naplóból él, ezért az üzenet előbb kell, mint a boríték.
+        // A válasz a correlationId alapján találja meg az üzenetet, nem a
+        // sorszáma alapján: a kör végén a napló újraíródik, és a seq elmozdul.
+        appendMessage(toSessionId, {
           role: 'assistant',
           text: renderHumanQuestionText(payload),
           time: Date.now(),
@@ -60,7 +61,7 @@ async function executeHumanLoopAction(args: Record<string, unknown>, bctx: { ses
         envelope = sendMailboxEnvelope({
           toSessionId,
           type: requestType,
-          payload: JSON.stringify({ ...payload, messageSeq }),
+          payload: JSON.stringify(payload),
           fromSessionId: bctx.sessionId || null,
           fromAgentId: bctx.agentId || null,
           correlationId,

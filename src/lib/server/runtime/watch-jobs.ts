@@ -518,10 +518,11 @@ export interface MailboxWatchCandidate {
  * Does this mailbox watch job fire for this envelope?
  *
  * Exported because two places need the answer and a second copy already drifted
- * from this one twice: `answerHumanQuestion` asks it to decide whether the
- * reply envelope will wake a durably waiting agent, and if it guesses "yes"
- * where this says "no", the fallback run is skipped and the human's answer is
- * silently dropped. One predicate, one answer.
+ * from this one twice: `answerHumanQuestion` asks it which active waits the
+ * reply envelope it is about to send would fire, and cancels exactly those
+ * before starting the turn itself. If the two disagreed, an agent with
+ * heartbeat would be woken a second time, or an unrelated wait would be
+ * silenced. One predicate, one answer.
  */
 export function mailboxWatchJobMatches(
   job: WatchJob,

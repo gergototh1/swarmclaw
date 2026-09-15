@@ -3116,6 +3116,120 @@ describe('sanitizeConnectorOutboundContent', () => {
     assert.equal(output.mainSession.messages.length, 0)
   })
 
+  it('a queued connector follow-up closes an open question card instead of leaving it live', () => {
+    // A connector message that arrives while a turn runs is queued as a
+    // `source: 'chat'` turn. Without a supersede, that turn's chat bridge acked
+    // the question behind its card: the card kept its buttons and every click
+    // returned 404.
+    const output = runWithTempDataDir<{ second: string; status?: string; requestStatus?: string }>(`
+      const storageMod = await import('./src/lib/server/storage')
+      const managerMod = await import('./src/lib/server/connectors/manager')
+      const providersMod = await import('./src/lib/providers/index')
+      const repoMod = await import('./src/lib/server/messages/message-repository')
+      const mailboxMod = await import('./src/lib/server/chatrooms/session-mailbox')
+      const storage = storageMod.default || storageMod
+      const manager = managerMod.default || managerMod
+      const providers = providersMod.default || providersMod
+      const repo = repoMod.default || repoMod
+      const mailbox = mailboxMod.default || mailboxMod
+
+      const now = Date.now()
+      let releaseFirst = () => {}
+      let resolveFirstStarted = () => {}
+      const firstStarted = new Promise((resolve) => { resolveFirstStarted = resolve })
+      const blockFirstReply = new Promise((resolve) => { releaseFirst = resolve })
+      let callCount = 0
+
+      providers.PROVIDERS['test-provider'] = {
+        id: 'test-provider',
+        name: 'Test Provider',
+        models: ['test-model'],
+        requiresApiKey: false,
+        requiresEndpoint: false,
+        handler: {
+          streamChat: async (opts) => {
+            callCount += 1
+            if (callCount === 1) {
+              resolveFirstStarted()
+              await blockFirstReply
+            }
+            opts.write('data: ' + JSON.stringify({ t: 'r', text: 'Reply ' + callCount }) + '\\n')
+            return ''
+          },
+        },
+      }
+
+      storage.saveSettings({})
+      storage.saveAgents({
+        agent_1: {
+          id: 'agent_1', name: 'Molly', provider: 'test-provider', model: 'test-model',
+          extensions: [], threadSessionId: 'agent_thread', createdAt: now, updatedAt: now,
+        },
+      })
+      storage.saveConnectors({
+        conn_1: {
+          id: 'conn_1', name: 'WhatsApp', platform: 'whatsapp', agentId: 'agent_1', credentialId: null,
+          config: { inboundDebounceMs: 0 }, isEnabled: true, status: 'stopped', createdAt: now, updatedAt: now,
+        },
+      })
+      storage.saveSessions({
+        agent_thread: {
+          id: 'agent_thread', name: 'Molly', cwd: process.env.WORKSPACE_DIR, user: 'default',
+          provider: 'test-provider', model: 'test-model', claudeSessionId: null, messages: [],
+          createdAt: now, lastActiveAt: now, sessionType: 'human', agentId: 'agent_1', extensions: [],
+        },
+      })
+
+      const connector = storage.loadConnectors().conn_1
+      const msg = (text, messageId) => ({
+        platform: 'whatsapp',
+        channelId: '15550001111@s.whatsapp.net',
+        senderId: '15550001111@s.whatsapp.net',
+        senderName: 'Alice',
+        text,
+        messageId,
+        isGroup: false,
+      })
+      const firstPromise = manager.routeConnectorMessageForTest(connector, msg('First task', 'in-1'))
+      try {
+        await firstStarted
+        const sessions = storage.loadSessions()
+        const direct = Object.values(sessions).find((entry) => String(entry.name || '').startsWith('connector:'))
+        direct.provider = 'test-provider'
+        direct.model = 'test-model'
+        sessions[direct.id] = direct
+        storage.saveSessions(sessions)
+
+        const payload = {
+          questions: [{ question: 'Melyik legyen?', options: [{ label: 'SQLite' }, { label: 'Postgres' }] }],
+          expectedFormat: null,
+          notes: null,
+        }
+        const questionSeq = repo.appendMessage(direct.id, {
+          role: 'assistant', text: 'Melyik legyen?', time: Date.now(), kind: 'question',
+          question: payload, questionState: { correlationId: 'c-conn', status: 'pending' }, historyExcluded: true,
+        })
+        mailbox.sendMailboxEnvelope({
+          toSessionId: direct.id, type: 'human_request', payload: JSON.stringify(payload),
+          fromSessionId: direct.id, fromAgentId: 'agent_1', correlationId: 'c-conn', ttlSec: null,
+        })
+
+        const second = await manager.routeConnectorMessageForTest(connector, msg('Use Postgres', 'in-2'))
+        const status = repo.getMessageBySeq(direct.id, questionSeq)?.questionState?.status
+        const request = mailbox.listMailbox(direct.id, { includeAcked: true })
+          .find((envelope) => envelope.type === 'human_request')
+        console.log(JSON.stringify({ second, status, requestStatus: request?.status }))
+      } finally {
+        releaseFirst()
+        await firstPromise
+      }
+    `)
+
+    assert.equal(output.second, 'NO_MESSAGE')
+    assert.equal(output.status, 'superseded')
+    assert.equal(output.requestStatus, 'ack')
+  })
+
   it('queues connector follow-up messages behind an active run and delivers them in order', () => {
     const output = runWithTempDataDir(`
       const storageMod = await import('./src/lib/server/storage')

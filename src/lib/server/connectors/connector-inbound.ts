@@ -101,6 +101,7 @@ import {
   enqueueSessionRun,
   getSessionExecutionState,
 } from '@/lib/server/runtime/session-run-manager'
+import { supersedePendingHumanQuestions } from '@/lib/server/human-question-answer'
 import type { ExecuteChatTurnResult } from '@/lib/server/chat-execution/chat-execution'
 
 const TAG = 'connector-inbound'
@@ -1110,6 +1111,10 @@ If media sending fails, report the exact error and retry with a corrected path/t
     updateSessionConnectorContext(session, connector, msg, sessionKey)
     persistSessionRecord(session)
 
+    // The sender wrote a message instead of answering the open question, as in
+    // the /chat route. No `internal` guard: an inbound connector message is
+    // always something a person sent, never an autonomous wake.
+    supersedePendingHumanQuestions(session.id)
     const queued = enqueueSessionRun({
       sessionId: session.id,
       message: modelInputText,
