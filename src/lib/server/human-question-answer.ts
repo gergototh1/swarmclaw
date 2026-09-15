@@ -137,6 +137,11 @@ export function supersedePendingHumanQuestions(sessionId: string): number {
   }
 
   const correlationIds = new Set(pending.map((envelope) => envelope.correlationId).filter((id): id is string => !!id))
+  // `job.sessionId` here, not `job.target.sessionId` as the matching predicate
+  // uses: this asks "whose turn would resume", which is what we are cancelling,
+  // rather than "whose mailbox is watched". Both creators of a mailbox watch job
+  // set the two to the same session, so today they agree — a future caller that
+  // watches another session's mailbox would need this revisited.
   const stale = listWatchJobs({ sessionId, status: 'active' })
     .filter((job) => job.type === 'mailbox'
       && typeof job.condition.correlationId === 'string'

@@ -46,12 +46,13 @@ after(() => {
   else process.env.WORKSPACE_DIR = originalEnv.WORKSPACE_DIR
   if (originalEnv.SWARMCLAW_BUILD_MODE === undefined) delete process.env.SWARMCLAW_BUILD_MODE
   else process.env.SWARMCLAW_BUILD_MODE = originalEnv.SWARMCLAW_BUILD_MODE
-  // Deliberately not deleting tempDir. Waking an agent is the whole point of
-  // `answerHumanQuestion`, so every test that reaches the envelope stage starts
-  // a real chat turn, and the module returns no handle to await it by. Deleting
-  // DATA_DIR here races that turn's own logging and buries the run in ENOENT
-  // traces. A temp dir under the OS temp root is cheap and gets reclaimed;
-  // unreadable test output is not.
+  // Deliberately not deleting tempDir. `sendMailboxEnvelope` fires
+  // `triggerMailboxWatchJobs` without awaiting it, and a triggered mailbox job
+  // wakes its session — so every test here that sends an envelope starts a real
+  // background chat turn, not just the ones taking the fallback branch. Nothing
+  // hands back a handle to await, so deleting DATA_DIR in teardown always races
+  // that turn's own logging and buries the run in ENOENT traces. A temp dir
+  // under the OS temp root is cheap and gets reclaimed; unreadable output is not.
 })
 
 function createTestSession(id: string): void {
