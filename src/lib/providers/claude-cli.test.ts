@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { addAssignedMcpServers, buildClaudeCliPrompt, claudeCliStreamEvents } from './claude-cli'
+import { addAssignedMcpServers, buildClaudeCliPrompt, claudeCliStreamEvents, CLAUDE_CLI_DISALLOWED_TOOLS } from './claude-cli'
 import { MCP_INJECTION_PROVIDER_IDS } from '@/lib/provider-sets'
 
 /**
@@ -167,6 +167,11 @@ describe('provider registry', () => {
   })
 })
 
+describe('CLAUDE_CLI_DISALLOWED_TOOLS', () => {
+  it('blocks the native question panel, which headless mode cannot answer', () => {
+    assert.ok(CLAUDE_CLI_DISALLOWED_TOOLS.includes('AskUserQuestion'))
+  })
+})
 
 /**
  * Every agent in this install runs on claude-cli, and this provider read

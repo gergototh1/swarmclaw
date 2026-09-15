@@ -65,6 +65,9 @@ export const PLATFORM_MCP_TOOL_NAMES: readonly string[] = [
   'manage_projects',
   'manage_platform',
   'schedule_wake',
+  // Az egyetlen módja, hogy egy CLI-provideres ügynök kérdezzen a usertől: a
+  // natív AskUserQuestion panel nem interaktív módban nem tud megjelenni.
+  'ask_human',
   // Platform surfaces a CLI cannot reach on its own.
   'manage_chatrooms',
   'manage_connectors',

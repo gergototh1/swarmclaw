@@ -18,6 +18,15 @@ import { withPlatformBridge } from '@/lib/server/platform-mcp-bridge-server'
 
 const TAG = 'provider-claude-cli'
 
+/**
+ * Amit a CLI-nak nem adunk oda.
+ *
+ * `AskUserQuestion` interaktív panelt nyitna, amit `--print` módban senki nem
+ * lát és senki nem tud megválaszolni. A kérdés az `ask_human` tool-on megy, ami
+ * a chatben kártyaként jelenik meg.
+ */
+export const CLAUDE_CLI_DISALLOWED_TOOLS: readonly string[] = ['AskUserQuestion']
+
 /** One entry of the `mcpServers` map the Claude CLI reads from `--mcp-config`. */
 type McpServerEntry = Record<string, unknown>
 
@@ -329,6 +338,7 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
   }
 
   const args = ['--print', '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions']
+  args.push('--disallowedTools', CLAUDE_CLI_DISALLOWED_TOOLS.join(','))
   const resumeSessionId = typeof session.claudeSessionId === 'string' ? session.claudeSessionId : ''
   const selectedModel = typeof session.model === 'string' ? session.model : ''
   if (resumeSessionId) args.push('--resume', resumeSessionId)

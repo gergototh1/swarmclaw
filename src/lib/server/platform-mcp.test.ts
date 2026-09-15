@@ -82,6 +82,13 @@ describe('the platform MCP bridge passes the caller session on', () => {
   })
 })
 
+describe('ask_human on the bridge', () => {
+  it('is allow-listed, because a CLI agent has no other way to ask the user', () => {
+    assert.ok(PLATFORM_MCP_TOOL_NAMES.includes('ask_human'))
+    assert.equal(isPlatformMcpToolName('ask_human'), true)
+  })
+})
+
 /*
  * A híd nem hirdethet paraméter nélküli toolt.
  *
