@@ -500,24 +500,54 @@ export function triggerWebhookWatchJobs(params: {
   return updated.map(([, job]) => job)
 }
 
+/**
+ * The envelope fields a mailbox watch job can match on.
+ *
+ * Narrower than `MailboxEnvelope` on purpose: a caller that wants to know
+ * whether an envelope it is *about to* send would wake anybody can describe it
+ * before it exists.
+ */
+export interface MailboxWatchCandidate {
+  type: string
+  correlationId?: string | null
+  fromSessionId?: string | null
+  payload: string
+}
+
+/**
+ * Does this mailbox watch job fire for this envelope?
+ *
+ * Exported because two places need the answer and a second copy already drifted
+ * from this one twice: `answerHumanQuestion` asks it to decide whether the
+ * reply envelope will wake a durably waiting agent, and if it guesses "yes"
+ * where this says "no", the fallback run is skipped and the human's answer is
+ * silently dropped. One predicate, one answer.
+ */
+export function mailboxWatchJobMatches(
+  job: WatchJob,
+  sessionId: string,
+  envelope: MailboxWatchCandidate,
+): boolean {
+  if (job.type !== 'mailbox') return false
+  const targetSessionId = typeof job.target.sessionId === 'string' ? job.target.sessionId : ''
+  if (targetSessionId !== sessionId) return false
+  const expectedType = typeof job.condition.type === 'string' ? job.condition.type.trim() : ''
+  const correlationId = typeof job.condition.correlationId === 'string' ? job.condition.correlationId.trim() : ''
+  const fromSessionId = typeof job.condition.fromSessionId === 'string' ? job.condition.fromSessionId.trim() : ''
+  const payloadContains = typeof job.condition.containsText === 'string' ? job.condition.containsText.trim() : ''
+  if (expectedType && envelope.type !== expectedType) return false
+  if (correlationId && envelope.correlationId !== correlationId) return false
+  if (fromSessionId && envelope.fromSessionId !== fromSessionId) return false
+  if (payloadContains && !envelope.payload.includes(payloadContains)) return false
+  return true
+}
+
 export function triggerMailboxWatchJobs(params: {
   sessionId: string
   envelope: MailboxEnvelope
 }): WatchJob[] {
-  const matches = listWatchJobs({ status: 'active' }).filter((job) => {
-    if (job.type !== 'mailbox') return false
-    const targetSessionId = typeof job.target.sessionId === 'string' ? job.target.sessionId : ''
-    if (targetSessionId !== params.sessionId) return false
-    const expectedType = typeof job.condition.type === 'string' ? job.condition.type.trim() : ''
-    const correlationId = typeof job.condition.correlationId === 'string' ? job.condition.correlationId.trim() : ''
-    const fromSessionId = typeof job.condition.fromSessionId === 'string' ? job.condition.fromSessionId.trim() : ''
-    const payloadContains = typeof job.condition.containsText === 'string' ? job.condition.containsText.trim() : ''
-    if (expectedType && params.envelope.type !== expectedType) return false
-    if (correlationId && params.envelope.correlationId !== correlationId) return false
-    if (fromSessionId && params.envelope.fromSessionId !== fromSessionId) return false
-    if (payloadContains && !params.envelope.payload.includes(payloadContains)) return false
-    return true
-  })
+  const matches = listWatchJobs({ status: 'active' })
+    .filter((job) => mailboxWatchJobMatches(job, params.sessionId, params.envelope))
 
   const updated = matches.map((job) => {
     const next: WatchJob = {

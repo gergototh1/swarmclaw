@@ -7,7 +7,7 @@ import {
 import { ackMailboxEnvelope, listMailbox, sendMailboxEnvelope } from '@/lib/server/chatrooms/session-mailbox'
 import { appendMessage, getMessageBySeq, replaceMessageAt } from '@/lib/server/messages/message-repository'
 import { enqueueSessionRun } from '@/lib/server/runtime/session-run-manager'
-import { cancelWatchJob, listWatchJobs } from '@/lib/server/runtime/watch-jobs'
+import { cancelWatchJob, listWatchJobs, mailboxWatchJobMatches } from '@/lib/server/runtime/watch-jobs'
 import type { MailboxEnvelope } from '@/types'
 
 export interface AnswerHumanQuestionInput {
@@ -82,16 +82,23 @@ export function answerHumanQuestion(input: AnswerHumanQuestionInput): AnswerHuma
   appendMessage(input.sessionId, { role: 'user', text, time: Date.now() })
   closeQuestionMessage(input.sessionId, request, 'answered', input.answers)
 
-  const hasWaiter = listWatchJobs({ sessionId: input.sessionId, status: 'active' })
-    .some((job) => job.type === 'mailbox'
-      && (typeof job.condition.correlationId !== 'string'
-        || !job.condition.correlationId
-        || job.condition.correlationId === input.correlationId))
+  // Pontosan azt kérdezzük, amit a trigger is kérdez majd, ugyanazzal a
+  // predikátummal — a saját másolat kétszer is elcsúszott tőle. Ha itt "van
+  // várakozó" jönne ki ott, ahol a trigger nem talál semmit, a tartalék kör
+  // elmaradna, és a user válasza némán a földre esne.
+  const replyPayload = JSON.stringify({ answers: input.answers, text })
+  const hasWaiter = listWatchJobs({ status: 'active' })
+    .some((job) => mailboxWatchJobMatches(job, input.sessionId, {
+      type: 'human_reply',
+      correlationId: input.correlationId,
+      fromSessionId: input.sessionId,
+      payload: replyPayload,
+    }))
 
   const reply = sendMailboxEnvelope({
     toSessionId: input.sessionId,
     type: 'human_reply',
-    payload: JSON.stringify({ answers: input.answers, text }),
+    payload: replyPayload,
     fromSessionId: input.sessionId,
     fromAgentId: null,
     correlationId: input.correlationId,
