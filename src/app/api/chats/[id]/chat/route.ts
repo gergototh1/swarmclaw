@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { enqueueSessionRun, type SessionQueueMode } from '@/lib/server/runtime/session-run-manager'
 import { log } from '@/lib/server/logger'
 import { safeParseBody } from '@/lib/server/safe-parse-body'
+import { supersedePendingHumanQuestions } from '@/lib/server/human-question-answer'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -57,6 +58,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             closed = true
           }
         }
+
+        // The user typed instead of answering. Close the open question, or the
+        // button they press later would start a second turn on top of this one.
+        // Heartbeat/internal turns must not supersede — the user hasn't typed
+        // anything, and an autonomous wake cancelling their still-open question
+        // would drop their answer path silently.
+        if (!internal) supersedePendingHumanQuestions(id)
 
         const run = enqueueSessionRun({
           sessionId: id,

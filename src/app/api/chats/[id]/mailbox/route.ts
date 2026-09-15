@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
+import { HumanQuestionAnswersSchema } from '@/lib/human-question'
 import { ackMailboxEnvelope, clearMailbox, listMailbox, sendMailboxEnvelope } from '@/lib/server/chatrooms/session-mailbox'
+import { answerHumanQuestion } from '@/lib/server/human-question-answer'
 import { getSession } from '@/lib/server/sessions/session-repository'
 
 function parseIntParam(value: string | null, fallback: number, min: number, max: number): number {
@@ -45,6 +47,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         ttlSec: typeof body?.ttlSec === 'number' ? body.ttlSec : null,
       })
       return NextResponse.json({ ok: true, envelope })
+    }
+
+    if (action === 'answer') {
+      const correlationId = typeof body?.correlationId === 'string' ? body.correlationId : ''
+      if (!correlationId) return NextResponse.json({ error: 'correlationId is required for answer.' }, { status: 400 })
+      const parsedAnswers = HumanQuestionAnswersSchema.safeParse(body?.answers)
+      if (!parsedAnswers.success) return NextResponse.json({ error: 'answers must be an array of { question, selected }.' }, { status: 400 })
+      const result = answerHumanQuestion({ sessionId: id, correlationId, answers: parsedAnswers.data })
+      if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status })
+      return NextResponse.json({ ok: true, envelopeId: result.envelopeId, enqueued: result.enqueued })
     }
 
     if (action === 'ack') {
