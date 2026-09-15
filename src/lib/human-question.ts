@@ -43,36 +43,76 @@ export type ValidateAnswersResult =
   | { ok: true }
   | { ok: false; error: string }
 
-function toOption(value: unknown): HumanQuestionOption | null {
+type OptionResult = { ok: true; option: HumanQuestionOption } | { ok: false; reason: string }
+
+function toOption(value: unknown): OptionResult {
   if (typeof value === 'string') {
     const label = value.trim()
-    return label ? { label } : null
+    if (!label) return { ok: false, reason: 'the option text is empty' }
+    return { ok: true, option: { label } }
   }
   if (value && typeof value === 'object') {
     const record = value as Record<string, unknown>
     const label = typeof record.label === 'string' ? record.label.trim() : ''
-    if (!label) return null
+    if (!label) return { ok: false, reason: 'the option is missing a non-empty "label"' }
     const description = typeof record.description === 'string' ? record.description.trim() : ''
-    return description ? { label, description } : { label }
+    return { ok: true, option: description ? { label, description } : { label } }
   }
-  return null
+  return { ok: false, reason: `the option has an unsupported type (${value === null ? 'null' : typeof value})` }
 }
 
-function toItem(value: unknown): HumanQuestionItem | null {
-  if (!value || typeof value !== 'object') return null
+// A hívó (a `questions[]` ág és az egyetlen-elemes ág) ugyanazt az üzenetet adja
+// vissza, ha egy kérdésnek "no-question" (üres/hiányzó `question`) a baja, mert
+// annak a szövegét a hívó kontextusa (lista vs. egyetlen elem) szabja meg. Egy
+// rossz option viszont már itt névvel/indexszel azonosítható, ezért azt a
+// helyben, a `bad-option` ágon adjuk vissza.
+type ItemResult =
+  | { ok: true; item: HumanQuestionItem }
+  | { ok: false; kind: 'no-question' }
+  | { ok: false; kind: 'bad-option'; error: string }
+
+function toItem(value: unknown): ItemResult {
+  if (!value || typeof value !== 'object') return { ok: false, kind: 'no-question' }
   const record = value as Record<string, unknown>
   const question = typeof record.question === 'string' ? record.question.trim() : ''
-  if (!question) return null
+  if (!question) return { ok: false, kind: 'no-question' }
   const header = typeof record.header === 'string' ? record.header.trim() : ''
-  const options = Array.isArray(record.options)
-    ? record.options.map(toOption).filter((option): option is HumanQuestionOption => option !== null)
-    : []
-  return {
-    question,
-    ...(header ? { header } : {}),
-    ...(record.multiSelect === true ? { multiSelect: true } : {}),
-    options,
+
+  // Egy hiányzó vagy explicit üres `options` kulcs legális szabadszöveges
+  // kérdés (lásd a modul tesztjeit); egy JELENLÉVŐ, de rosszul alakított
+  // option viszont hiba, nem néma kiszűrés — lásd a task-1-report.md "Fix
+  // round 1" bejegyzését arról, miért veszélyes volt a régi néma szűrés.
+  const options: HumanQuestionOption[] = []
+  if (Array.isArray(record.options)) {
+    for (let i = 0; i < record.options.length; i++) {
+      const parsed = toOption(record.options[i])
+      if (!parsed.ok) {
+        return {
+          ok: false,
+          kind: 'bad-option',
+          error: `Question "${question}" has a malformed option at index ${i}: ${parsed.reason}.`,
+        }
+      }
+      options.push(parsed.option)
+    }
   }
+
+  return {
+    ok: true,
+    item: {
+      question,
+      ...(header ? { header } : {}),
+      ...(record.multiSelect === true ? { multiSelect: true } : {}),
+      options,
+    },
+  }
+}
+
+function optionsLimitError(item: HumanQuestionItem): string | null {
+  if (item.options.length > MAX_OPTIONS_PER_QUESTION) {
+    return `At most ${MAX_OPTIONS_PER_QUESTION} options per question are allowed; "${item.question}" has ${item.options.length}.`
+  }
+  return null
 }
 
 /**
@@ -91,20 +131,26 @@ export function normalizeHumanQuestionInput(raw: Record<string, unknown>): Norma
       return { ok: false, error: `At most ${MAX_QUESTIONS} questions are allowed, got ${rawQuestions.length}.` }
     }
     for (const entry of rawQuestions) {
-      const item = toItem(entry)
-      if (!item) return { ok: false, error: 'Every entry in "questions" needs a non-empty "question" string.' }
-      if (item.options.length > MAX_OPTIONS_PER_QUESTION) {
-        return { ok: false, error: `At most ${MAX_OPTIONS_PER_QUESTION} options per question are allowed; "${item.question}" has ${item.options.length}.` }
+      const result = toItem(entry)
+      if (!result.ok) {
+        if (result.kind === 'no-question') {
+          return { ok: false, error: 'Every entry in "questions" needs a non-empty "question" string.' }
+        }
+        return { ok: false, error: result.error }
       }
-      items.push(item)
+      const limitError = optionsLimitError(result.item)
+      if (limitError) return { ok: false, error: limitError }
+      items.push(result.item)
     }
   } else {
-    const item = toItem(raw)
-    if (!item) return { ok: false, error: 'question is required.' }
-    if (item.options.length > MAX_OPTIONS_PER_QUESTION) {
-      return { ok: false, error: `At most ${MAX_OPTIONS_PER_QUESTION} options per question are allowed; "${item.question}" has ${item.options.length}.` }
+    const result = toItem(raw)
+    if (!result.ok) {
+      if (result.kind === 'no-question') return { ok: false, error: 'question is required.' }
+      return { ok: false, error: result.error }
     }
-    items.push(item)
+    const limitError = optionsLimitError(result.item)
+    if (limitError) return { ok: false, error: limitError }
+    items.push(result.item)
   }
 
   const candidate = {
@@ -127,6 +173,18 @@ export function validateHumanAnswers(payload: HumanQuestionPayload, answers: Hum
   for (let i = 0; i < payload.questions.length; i++) {
     const question = payload.questions[i]
     const answer = answers[i]
+    // Az answer-tömb a böngészőből érkezik (POST /api/chats/:id/mailbox), és a
+    // renderHumanAnswerText a válasz SAJÁT `header`/`question` mezőjét írja a
+    // felhasználói buborékba — index alapú párosítás önmagában nem bizonyítja,
+    // hogy az adott válasz tényleg ehhez a kérdéshez tartozik. Lásd a
+    // task-1-report.md "Fix round 1" bejegyzését.
+    if (answer?.question !== question.question) {
+      return { ok: false, error: `Answer ${i + 1} does not match question "${question.question}".` }
+    }
+    const answerHeader = typeof answer?.header === 'string' ? answer.header.trim() : ''
+    if (answerHeader && answerHeader !== (question.header ?? '')) {
+      return { ok: false, error: `Answer header for "${question.question}" does not match the question.` }
+    }
     const selected = Array.isArray(answer?.selected) ? answer.selected : []
     const other = typeof answer?.other === 'string' ? answer.other.trim() : ''
     if (!selected.length && !other) {

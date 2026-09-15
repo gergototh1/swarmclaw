@@ -65,6 +65,29 @@ describe('normalizeHumanQuestionInput', () => {
     const result = normalizeHumanQuestionInput({ options: ['a', 'b'] })
     assert.equal(result.ok, false)
   })
+
+  it('rejects a malformed option entry instead of silently dropping it', () => {
+    const result = normalizeHumanQuestionInput({
+      question: 'Melyik?',
+      options: ['a', '', 'b', 123, null, { label: '' }],
+    })
+    assert.equal(result.ok, false)
+    if (result.ok) return
+    assert.match(result.error, /Melyik\?/)
+    assert.match(result.error, /index 1/)
+  })
+
+  it('rejects a question whose options are all malformed instead of downgrading to free text', () => {
+    const result = normalizeHumanQuestionInput({ question: 'Melyik?', options: ['', '', ''] })
+    assert.equal(result.ok, false)
+  })
+
+  it('keeps an explicitly empty options array as free text', () => {
+    const result = normalizeHumanQuestionInput({ question: 'Mi legyen a neve?', options: [] })
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.deepEqual(result.payload.questions[0].options, [])
+  })
 })
 
 describe('validateHumanAnswers', () => {
@@ -122,6 +145,32 @@ describe('validateHumanAnswers', () => {
       { question: 'Mit kapcsoljunk be?', selected: ['WAL'] },
     ])
     assert.equal(result.ok, false)
+  })
+
+  it('rejects an answer whose question text does not match the payload', () => {
+    const result = validateHumanAnswers(payload, [
+      { question: 'Teljesen más kérdés szövege', selected: ['SQLite'] },
+      { question: 'Mit kapcsoljunk be?', selected: ['WAL'] },
+    ])
+    assert.equal(result.ok, false)
+    if (result.ok) return
+    assert.match(result.error, /1/)
+  })
+
+  it('rejects an answer whose header contradicts the payload', () => {
+    const result = validateHumanAnswers(payload, [
+      { header: 'Nem az adatbázis', question: 'Melyik legyen?', selected: ['SQLite'] },
+      { question: 'Mit kapcsoljunk be?', selected: ['WAL'] },
+    ])
+    assert.equal(result.ok, false)
+  })
+
+  it('accepts an answer with no header even though the question has one', () => {
+    const result = validateHumanAnswers(payload, [
+      { question: 'Melyik legyen?', selected: ['SQLite'] },
+      { question: 'Mit kapcsoljunk be?', selected: ['WAL'] },
+    ])
+    assert.equal(result.ok, true)
   })
 })
 
