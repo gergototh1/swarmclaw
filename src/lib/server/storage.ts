@@ -98,19 +98,54 @@ if (!IS_BUILD_BOOTSTRAP) {
 }
 db.pragma('foreign_keys = ON')
 
-// Graceful shutdown: checkpoint WAL and close the database to prevent
-// corruption when the process is killed (e.g. during npm run update:easy).
+/*
+ * Graceful shutdown, in two steps.
+ *
+ * What protects the file from corruption is the WAL checkpoint, and that is
+ * safe to do at any moment. Closing is the dangerous half: the signal arrives
+ * while the process is still very much alive — Next.js logs "shutting down
+ * gracefully" and keeps working — and every timer that fires afterwards
+ * (access-count bumps, the scheduler tick, consolidation) then finds a closed
+ * database. None of those run on a request path, so nothing catches them:
+ *
+ *   TypeError: The database connection is not open
+ *       at Timeout._onTimeout
+ *   ⨯ uncaughtException  →  server exited code=1
+ *
+ * So: checkpoint on the signal, close on `exit`, where the event loop is
+ * already drained and no timer can run after us.
+ */
+let databaseClosed = false
+
 if (!IS_BUILD_BOOTSTRAP) {
-  const shutdownDb = () => {
+  const checkpointDb = () => {
+    if (databaseClosed) return
+    try {
+      db.pragma('wal_checkpoint(TRUNCATE)')
+    } catch {
+      // Best-effort — the process is on its way out.
+    }
+  }
+  const closeDb = () => {
+    // Guarded because two signals, or a signal followed by a normal exit, would
+    // otherwise close twice and the second throws.
+    if (databaseClosed) return
+    databaseClosed = true
     try {
       db.pragma('wal_checkpoint(TRUNCATE)')
       db.close()
     } catch {
-      // Best-effort — process is exiting.
+      // Best-effort — the process is exiting.
     }
   }
-  process.on('SIGTERM', shutdownDb)
-  process.on('SIGINT', shutdownDb)
+  process.on('SIGTERM', checkpointDb)
+  process.on('SIGINT', checkpointDb)
+  process.on('exit', closeDb)
+}
+
+/** True once the database has been closed for shutdown. */
+export function isDatabaseClosed(): boolean {
+  return databaseClosed
 }
 
 /** Run a function inside an immediate SQLite transaction for atomicity. */
