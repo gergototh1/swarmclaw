@@ -19,6 +19,14 @@ export function toggleOption(draft: QuestionDraft, label: string, multiSelect: b
   return { selected, other: '' }
 }
 
+/**
+ * Szabad szöveg beírása eldobja a kiválasztást — a kettő ugyanarra a kérdésre
+ * két különböző válasz, és a szerver is csak az egyiket fogadja el.
+ *
+ * Az aszimmetria szándékos: a szöveg kiürítése (visszatörlés) NEM állítja
+ * vissza a kiválasztást, mert nincs mit visszaállítani — a beírás pillanatában
+ * már eldobtuk. A user újra rákattint, ha mégis opciót akar.
+ */
 export function setOther(draft: QuestionDraft, text: string): QuestionDraft {
   return text.trim() ? { selected: [], other: text } : { selected: draft.selected, other: text }
 }

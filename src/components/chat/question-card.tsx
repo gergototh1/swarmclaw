@@ -33,6 +33,12 @@ export function QuestionCard({ message, sessionId }: Props) {
   const state = message.questionState
   const [drafts, setDrafts] = useState<QuestionDraft[]>(() => (payload ? createDrafts(payload) : []))
   const [sending, setSending] = useState(false)
+  // A `sending` a kérés végén lenullázódik, a napló viszont csak a szerver
+  // válasza után billen `answered`-re. A kettő közötti résben a gomb újra
+  // aktív lenne, és egy második kattintás ugyanarra a correlationId-ra már
+  // 404-et kap — a user egy sikeres küldés után látna hibát. Ez a jelző tartja
+  // zárva a rést, amíg a kártya meg nem kapja a lezárt állapotot.
+  const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
 
   if (!payload || !state) return null
@@ -50,6 +56,7 @@ export function QuestionCard({ message, sessionId }: Props) {
         correlationId: state.correlationId,
         answers: draftsToAnswers(payload, drafts),
       })
+      setSent(true)
     } catch (err: unknown) {
       setError(errorMessage(err))
     } finally {
@@ -87,6 +94,16 @@ export function QuestionCard({ message, sessionId }: Props) {
             )
           })}
         </div>
+      </div>
+    )
+  }
+
+  // Elküldve, de a napló még nem billent át: a kártya nem hagyható interaktívan,
+  // különben a második kattintás 404-et hoz egy sikeres küldés után.
+  if (sent) {
+    return (
+      <div className="my-2 rounded-lg border border-line-subtle bg-surface/60 px-3.5 py-2.5">
+        <p className="text-[12px] text-text-3 italic">Sent — waiting for confirmation…</p>
       </div>
     )
   }
