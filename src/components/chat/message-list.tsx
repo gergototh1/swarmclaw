@@ -461,7 +461,9 @@ export function MessageList({ messages, streaming, connectorFilter = null, loadi
         return (
           // Keyed on the question itself, not its position: a remount resets the
           // card's `sent` state, which would re-arm buttons that already sent.
-          <div key={`question-${msg.questionState.correlationId}`} className="py-2">
+          // The time is there because an agent may reuse its own correlationId
+          // after an earlier question was answered.
+          <div key={`question-${msg.questionState.correlationId}-${msg.time}`} className="py-2">
             <QuestionCard message={msg} sessionId={sessionId || ''} />
           </div>
         )
