@@ -113,6 +113,22 @@ export default function MemoryPage() {
     }).sort((left, right) => Number(isDueFollowUp(right)) - Number(isDueFollowUp(left)))
   }, [entries, memoryAgentFilter, memoryScopeFilter, memoryTierFilter, categoryFilter, dueOnly, isDueFollowUp])
 
+  /*
+   * In graph mode the sidebar lists exactly what the canvas drew.
+   *
+   * The graph fetches its own node set from `/memory/graph`, which is not the
+   * same as the sidebar's filtered list — it only holds entries that have links
+   * — so the two halves of the page used to have nothing in common. The graph
+   * publishes its ids; the list narrows to them, in the sidebar's own order.
+   */
+  const memoryGraphNodeIds = useAppStore((s) => s.memoryGraphNodeIds)
+  const graphFiltered = useMemo(() => {
+    if (viewMode !== 'graph') return []
+    const onCanvas = new Set(memoryGraphNodeIds)
+    return filtered.filter((e) => onCanvas.has(e.id))
+  }, [viewMode, memoryGraphNodeIds, filtered])
+  const visibleEntries = viewMode === 'graph' ? graphFiltered : filtered
+
   const filterLabel = useMemo(() => {
     if (!memoryAgentFilter) return 'All Memories'
     if (memoryAgentFilter === '_global') return 'Global Memories'
@@ -237,10 +253,10 @@ export default function MemoryPage() {
         )}
 
         <div className="flex-1 overflow-y-auto">
-          {viewMode === 'list' ? (
-            filtered.length > 0 ? (
+          {viewMode === 'list' || graphFiltered.length > 0 ? (
+            visibleEntries.length > 0 ? (
               <div className="flex flex-col gap-0.5 px-2 pb-4">
-                {filtered.map((e) => {
+                {visibleEntries.map((e) => {
                   const showAgent = !memoryAgentFilter
                   const agent = showAgent && e.agentId ? agents[e.agentId] : null
                   return (
@@ -287,17 +303,30 @@ export default function MemoryPage() {
             ) : null
           ) : (
             <div className="p-4 text-[12px] text-text-3 italic">
-              Graph view enabled in main area.
+              The graph is still loading.
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex min-w-0">
         {viewMode === 'graph' ? (
-          <div className="flex-1 p-4 flex flex-col">
-            <MemoryGraphView />
-          </div>
+          <>
+            <div className="flex-1 p-4 flex flex-col min-w-0">
+              <MemoryGraphView />
+            </div>
+            {/*
+              * Clicking a node has always set the selected memory, but in graph
+              * mode the main area was the graph, so nothing ever opened. The
+              * detail sits beside the canvas instead of replacing it: the point
+              * of the graph is the neighbourhood around the entry you picked.
+              */}
+            {selectedMemoryId && (
+              <div className="w-[420px] shrink-0 border-l border-line-subtle flex flex-col min-w-0">
+                <MemoryDetail />
+              </div>
+            )}
+          </>
         ) : (
           <MemoryDetail />
         )}

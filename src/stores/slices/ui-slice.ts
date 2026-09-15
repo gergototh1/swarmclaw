@@ -26,6 +26,15 @@ export interface UiSlice {
   setMemorySheetOpen: (open: boolean) => void
   selectedMemoryId: string | null
   setSelectedMemoryId: (id: string | null) => void
+  /**
+   * Ids of the memories currently drawn on the graph canvas.
+   *
+   * The sidebar used to show "Graph view enabled in main area." while the graph
+   * was open, so the two halves of the page showed nothing in common. The graph
+   * publishes what it drew, and the list narrows to exactly that.
+   */
+  memoryGraphNodeIds: string[]
+  setMemoryGraphNodeIds: (ids: string[]) => void
   memoryRefreshKey: number
   triggerMemoryRefresh: () => void
   memoryAgentFilter: string | null
@@ -126,6 +135,8 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
   setMemorySheetOpen: (open) => set({ memorySheetOpen: open }),
   selectedMemoryId: null,
   setSelectedMemoryId: (id) => set({ selectedMemoryId: id }),
+  memoryGraphNodeIds: [],
+  setMemoryGraphNodeIds: (ids) => set({ memoryGraphNodeIds: ids }),
   memoryRefreshKey: 0,
   triggerMemoryRefresh: () => set((s) => ({ memoryRefreshKey: s.memoryRefreshKey + 1 })),
   memoryAgentFilter: null,

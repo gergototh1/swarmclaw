@@ -3,6 +3,14 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { api } from '@/lib/app/api-client'
 import { useAppStore } from '@/stores/use-app-store'
+import {
+  IDENTITY_VIEWPORT,
+  fitViewport,
+  panViewport,
+  viewportTransform,
+  zoomViewportAt,
+  type GraphViewport,
+} from '@/lib/memory-graph-viewport'
 
 interface Node {
   id: string
@@ -37,6 +45,17 @@ export function MemoryGraphView() {
   const selectedMemoryId = useAppStore((s) => s.selectedMemoryId)
   const setSelectedMemoryId = useAppStore((s) => s.setSelectedMemoryId)
   const memoryAgentFilter = useAppStore((s) => s.memoryAgentFilter)
+  const setMemoryGraphNodeIds = useAppStore((s) => s.setMemoryGraphNodeIds)
+
+  // The canvas transform. Kept in a ref as well as in state: the wheel and drag
+  // handlers need the current value without re-subscribing on every frame.
+  const [viewport, setViewport] = useState<GraphViewport>(IDENTITY_VIEWPORT)
+  const viewportRef = useRef<GraphViewport>(IDENTITY_VIEWPORT)
+  const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  const applyViewport = useCallback((next: GraphViewport) => {
+    viewportRef.current = next
+    setViewport(next)
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -56,6 +75,8 @@ export function MemoryGraphView() {
 
         nodesRef.current = nodes
         linksRef.current = res.links
+        // The sidebar lists exactly what the canvas holds, so publish the set.
+        setMemoryGraphNodeIds(nodes.map((n) => n.id))
         setInitialData({ nodes, links: res.links })
       } catch (err) {
         console.error('Failed to load memory graph', err)
@@ -64,7 +85,7 @@ export function MemoryGraphView() {
       }
     }
     load()
-  }, [memoryAgentFilter])
+  }, [memoryAgentFilter, setMemoryGraphNodeIds])
 
   // Write positions directly to SVG DOM — no React state updates per frame
   const updateDOM = useCallback(() => {
@@ -173,6 +194,68 @@ export function MemoryGraphView() {
     }
   }, [initialData, updateDOM])
 
+  /*
+   * Wheel zooms about the cursor, drag pans.
+   *
+   * The drag records whether it actually moved: without that, letting go over a
+   * node after a pan would also open that memory, and a graph you cannot drag
+   * without selecting something is worse than one that does not drag at all.
+   */
+  const screenPoint = useCallback((clientX: number, clientY: number) => {
+    const rect = svgRef.current?.getBoundingClientRect()
+    return { x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) }
+  }, [])
+
+  const handleWheel = useCallback((event: React.WheelEvent<SVGSVGElement>) => {
+    event.preventDefault()
+    const factor = Math.exp(-event.deltaY * 0.0015)
+    applyViewport(zoomViewportAt(viewportRef.current, screenPoint(event.clientX, event.clientY), factor))
+  }, [applyViewport, screenPoint])
+
+  const handlePointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    // Primary button only: a right-click belongs to the browser's menu.
+    if (event.button !== 0) return
+    dragRef.current = { x: event.clientX, y: event.clientY, moved: false }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }, [])
+
+  const handlePointerMove = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    const drag = dragRef.current
+    if (!drag) return
+    const dx = event.clientX - drag.x
+    const dy = event.clientY - drag.y
+    // A few pixels of wobble while clicking is not a drag.
+    if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 3) return
+    drag.moved = true
+    drag.x = event.clientX
+    drag.y = event.clientY
+    applyViewport(panViewport(viewportRef.current, dx, dy))
+  }, [applyViewport])
+
+  const endDrag = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    if (dragRef.current && event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    // Cleared on the next tick so the click that follows this pointerup can
+    // still see that a drag happened.
+    const wasDragging = dragRef.current
+    setTimeout(() => { if (dragRef.current === wasDragging) dragRef.current = null }, 0)
+  }, [])
+
+  const zoomByButton = useCallback((factor: number) => {
+    const rect = svgRef.current?.getBoundingClientRect()
+    const centre = { x: (rect?.width ?? 800) / 2, y: (rect?.height ?? 600) / 2 }
+    applyViewport(zoomViewportAt(viewportRef.current, centre, factor))
+  }, [applyViewport])
+
+  const fitToNodes = useCallback(() => {
+    const rect = svgRef.current?.getBoundingClientRect()
+    applyViewport(fitViewport(
+      nodesRef.current.map((n) => ({ x: n.x, y: n.y })),
+      { width: rect?.width || 800, height: rect?.height || 600 },
+    ))
+  }, [applyViewport])
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -186,7 +269,22 @@ export function MemoryGraphView() {
 
   return (
     <div ref={containerRef} className="flex-1 relative overflow-hidden bg-surface rounded-lg border border-line-subtle">
-      <svg ref={svgRef} width="100%" height="100%" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+      {/*
+        * No viewBox: the wrapper group below carries the transform, so one
+        * screen pixel stays one screen pixel and the zoom arithmetic is honest.
+        */}
+      <svg
+        ref={svgRef}
+        width="100%"
+        height="100%"
+        onWheel={handleWheel}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        className="touch-none select-none cursor-grab active:cursor-grabbing"
+      >
+        <g transform={viewportTransform(viewport)}>
         {/* Links */}
         {links.map((link, i) => {
           const s = nodes.find(n => n.id === link.source)
@@ -215,7 +313,7 @@ export function MemoryGraphView() {
             transform={`translate(${node.x},${node.y})`}
             onMouseEnter={() => setHoveredNode(node.id)}
             onMouseLeave={() => setHoveredNode(null)}
-            onClick={() => setSelectedMemoryId(node.id)}
+            onClick={() => { if (!dragRef.current?.moved) setSelectedMemoryId(node.id) }}
             className="cursor-pointer"
           >
             <circle
@@ -237,7 +335,31 @@ export function MemoryGraphView() {
             )}
           </g>
         ))}
+        </g>
       </svg>
+
+      {/* Zoom controls */}
+      <div className="absolute top-4 right-4 flex flex-col gap-1">
+        <button
+          onClick={() => zoomByButton(1.3)}
+          aria-label="Zoom in"
+          className="w-8 h-8 rounded-sm bg-surface/90 backdrop-blur border border-line-subtle text-text-2 text-[16px] leading-none cursor-pointer"
+          style={{ fontFamily: 'inherit' }}
+        >+</button>
+        <button
+          onClick={() => zoomByButton(1 / 1.3)}
+          aria-label="Zoom out"
+          className="w-8 h-8 rounded-sm bg-surface/90 backdrop-blur border border-line-subtle text-text-2 text-[16px] leading-none cursor-pointer"
+          style={{ fontFamily: 'inherit' }}
+        >−</button>
+        <button
+          onClick={fitToNodes}
+          aria-label="Fit graph to view"
+          title="Fit to view"
+          className="w-8 h-8 rounded-sm bg-surface/90 backdrop-blur border border-line-subtle text-text-3 text-[10px] leading-none cursor-pointer"
+          style={{ fontFamily: 'inherit' }}
+        >fit</button>
+      </div>
 
       {/* Legend */}
       <div className="absolute bottom-4 left-4 p-3 bg-surface/80 backdrop-blur rounded-lg border border-line-subtle flex flex-col gap-2">
