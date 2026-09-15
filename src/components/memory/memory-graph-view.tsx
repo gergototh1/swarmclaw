@@ -215,8 +215,11 @@ export function MemoryGraphView() {
   const handlePointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
     // Primary button only: a right-click belongs to the browser's menu.
     if (event.button !== 0) return
+    // No pointer capture yet. Capturing here retargets every later pointer
+    // event — and the click that follows — to the <svg>, so a click on a node
+    // never reached the node and nothing ever opened. Capture starts only once
+    // the pointer has actually moved far enough to be a drag.
     dragRef.current = { x: event.clientX, y: event.clientY, moved: false }
-    event.currentTarget.setPointerCapture(event.pointerId)
   }, [])
 
   const handlePointerMove = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
@@ -226,7 +229,12 @@ export function MemoryGraphView() {
     const dy = event.clientY - drag.y
     // A few pixels of wobble while clicking is not a drag.
     if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 3) return
-    drag.moved = true
+    if (!drag.moved) {
+      drag.moved = true
+      // Now it is a drag: take the pointer so leaving the canvas mid-drag does
+      // not strand it.
+      event.currentTarget.setPointerCapture(event.pointerId)
+    }
     drag.x = event.clientX
     drag.y = event.clientY
     applyViewport(panViewport(viewportRef.current, dx, dy))
@@ -290,6 +298,10 @@ export function MemoryGraphView() {
           const s = nodes.find(n => n.id === link.source)
           const t = nodes.find(n => n.id === link.target)
           if (!s || !t) return null
+          // An edge touching the node under the cursor, or the selected one,
+          // is the neighbourhood the user is actually asking about.
+          const focus = hoveredNode || selectedMemoryId
+          const touchesFocus = !!focus && (link.source === focus || link.target === focus)
           return (
             <line
               key={i}
@@ -298,9 +310,10 @@ export function MemoryGraphView() {
               data-tgt={link.target}
               x1={s.x} y1={s.y}
               x2={t.x} y2={t.y}
-              stroke="white"
-              strokeOpacity="0.1"
-              strokeWidth="1"
+              stroke="currentColor"
+              strokeOpacity={touchesFocus ? 0.75 : 0.28}
+              strokeWidth={touchesFocus ? 1.75 : 1}
+              className="text-text-3"
             />
           )
         })}
@@ -316,12 +329,17 @@ export function MemoryGraphView() {
             onClick={() => { if (!dragRef.current?.moved) setSelectedMemoryId(node.id) }}
             className="cursor-pointer"
           >
+            {/*
+              * A 5px dot is a small target, and it shrinks further as you zoom
+              * out. This invisible disc is what the pointer actually hits.
+              */}
+            <circle r={14} fill="transparent" />
             <circle
               r={selectedMemoryId === node.id ? 8 : 5}
               fill={node.category === 'knowledge' ? '#10B981' : '#6366F1'}
-              stroke="white"
+              stroke="currentColor"
               strokeWidth={selectedMemoryId === node.id ? 2 : 0}
-              className="transition-all"
+              className="transition-all text-text"
             />
             {(hoveredNode === node.id || selectedMemoryId === node.id) && (
               <text
