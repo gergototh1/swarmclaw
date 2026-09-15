@@ -97,8 +97,8 @@ export function findPendingHumanRequestEnvelope(params: {
       if (!parsed) return false
       return normalizeHumanRequestSignature({
         payload: parsed,
-        fromSessionId: params.fromSessionId,
-        fromAgentId: params.fromAgentId,
+        fromSessionId: envelope.fromSessionId || null,
+        fromAgentId: envelope.fromAgentId || null,
       }) === expectedSignature
     }) || null
 }

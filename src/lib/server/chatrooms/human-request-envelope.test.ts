@@ -90,6 +90,46 @@ describe('findPendingHumanRequestEnvelope', () => {
     assert.equal(found, null)
   })
 
+  it('does not match a pending envelope sent by a different session/agent for the identical payload', () => {
+    createTestSession('s-sender-diff')
+    mailbox.sendMailboxEnvelope({
+      toSessionId: 's-sender-diff',
+      type: 'human_request',
+      payload: JSON.stringify(payload),
+      fromSessionId: 'session-a',
+      fromAgentId: 'agent-a',
+      correlationId: 'c-session-a',
+      ttlSec: null,
+    })
+    const found = mailbox.findPendingHumanRequestEnvelope({
+      sessionId: 's-sender-diff',
+      payload,
+      fromSessionId: 'session-b',
+      fromAgentId: 'agent-b',
+    })
+    assert.equal(found, null)
+  })
+
+  it('does not match a pending envelope from a different agent, same session, for the identical payload', () => {
+    createTestSession('s-agent-diff')
+    mailbox.sendMailboxEnvelope({
+      toSessionId: 's-agent-diff',
+      type: 'human_request',
+      payload: JSON.stringify(payload),
+      fromSessionId: 'session-shared',
+      fromAgentId: 'agent-a',
+      correlationId: 'c-agent-a',
+      ttlSec: null,
+    })
+    const found = mailbox.findPendingHumanRequestEnvelope({
+      sessionId: 's-agent-diff',
+      payload,
+      fromSessionId: 'session-shared',
+      fromAgentId: 'agent-b',
+    })
+    assert.equal(found, null)
+  })
+
   it('still matches a legacy payload written before the schema change', () => {
     createTestSession('s-legacy')
     mailbox.sendMailboxEnvelope({
