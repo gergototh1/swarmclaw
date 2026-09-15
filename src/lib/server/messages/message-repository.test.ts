@@ -289,3 +289,43 @@ test('lazy migration takes lastAssistantAt from the last visible reply, not a tr
 
   assert.equal(output.lastAssistantAt, 2)
 })
+
+test('getMessageBySeq returns the message at a sequence number and null past the end', () => {
+  const output = runWithTempDataDir<{
+    atSeq: string | null
+    pastEnd: string | null
+  }>(`
+    const storageMod = await import('@/lib/server/storage')
+    const repoMod = await import('@/lib/server/messages/message-repository')
+    const storage = storageMod.default || storageMod
+    const repo = repoMod.default || repoMod
+
+    storage.saveSessions({
+      'seq-read': {
+        id: 'seq-read',
+        name: 'Seq read session',
+        cwd: process.env.WORKSPACE_DIR,
+        user: 'tester',
+        provider: 'openai',
+        model: 'gpt-5',
+        claudeSessionId: null,
+        codexThreadId: null,
+        opencodeSessionId: null,
+        delegateResumeIds: { claudeCode: null, codex: null, opencode: null, gemini: null },
+        messages: [],
+        createdAt: Date.now(),
+        lastActiveAt: Date.now(),
+      },
+    })
+
+    const seq = repo.appendMessage('seq-read', { role: 'assistant', text: 'első', time: Date.now() })
+
+    console.log(JSON.stringify({
+      atSeq: repo.getMessageBySeq('seq-read', seq)?.text ?? null,
+      pastEnd: repo.getMessageBySeq('seq-read', seq + 1)?.text ?? null,
+    }))
+  `, { prefix: 'swarmclaw-message-repo-seq-read-' })
+
+  assert.equal(output.atSeq, 'első')
+  assert.equal(output.pastEnd, null)
+})

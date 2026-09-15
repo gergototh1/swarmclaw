@@ -42,6 +42,9 @@ function buildStatements() {
     selectRecent: db.prepare(
       'SELECT data FROM session_messages WHERE session_id = ? ORDER BY seq DESC LIMIT ?',
     ),
+    selectBySeq: db.prepare(
+      'SELECT data FROM session_messages WHERE session_id = ? AND seq = ?',
+    ),
     selectMaxSeq: db.prepare(
       'SELECT MAX(seq) as maxSeq FROM session_messages WHERE session_id = ?',
     ),
@@ -290,6 +293,12 @@ export function getLastMessages(): Record<string, Message> {
     }
     return out
   })
+}
+
+/** Return one message by its sequence number, or null if there is none. */
+export function getMessageBySeq(sessionId: string, seq: number): Message | null {
+  const row = stmts().selectBySeq.get(sessionId, seq) as { data: string } | undefined
+  return row ? parseMsg(row.data) : null
 }
 
 /** Return the last N messages in chronological order. */

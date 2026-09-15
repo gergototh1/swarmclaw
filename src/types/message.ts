@@ -1,5 +1,6 @@
 import type { MessageSource } from './connector'
 import type { KnowledgeCitation, KnowledgeRetrievalTrace } from './misc'
+import type { HumanQuestionAnswer, HumanQuestionPayload } from '@/lib/human-question'
 
 export interface MessageToolEvent {
   name: string
@@ -42,7 +43,7 @@ export interface Message {
   thinking?: string
   /** Provider-native assistant reasoning used only when replaying model history. */
   reasoningContent?: string
-  kind?: 'chat' | 'heartbeat' | 'system' | 'context-clear' | 'extension-ui' | 'connector-delivery'
+  kind?: 'chat' | 'heartbeat' | 'system' | 'context-clear' | 'extension-ui' | 'connector-delivery' | 'question'
   suppressed?: boolean
   bookmarked?: boolean
   suggestions?: string[]
@@ -56,6 +57,15 @@ export interface Message {
   runId?: string
   /** Cached turn semantics used for routing, delegation, and reflection. */
   semantics?: MessageSemanticsSummary
+  /** A `kind: 'question'` üzenet kérdései. */
+  question?: HumanQuestionPayload
+  /** A kérdés állapota; a válasz írja át. */
+  questionState?: {
+    correlationId: string
+    status: 'pending' | 'answered' | 'superseded'
+    answers?: HumanQuestionAnswer[]
+    answeredAt?: number
+  }
   citations?: KnowledgeCitation[]
   retrievalTrace?: KnowledgeRetrievalTrace | null
 }
