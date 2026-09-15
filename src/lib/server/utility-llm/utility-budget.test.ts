@@ -63,22 +63,22 @@ describe('claimUtilityCall', () => {
     assert.equal(claimUtilityCall({ sessionId: 's1', budget, now: 1_000 }).ok, true)
   })
 
-  it('blocks a second call for the same session inside the cooldown', () => {
-    claimUtilityCall({ sessionId: 's1', budget, now: 1_000 })
-    const second = claimUtilityCall({ sessionId: 's1', budget, now: 1_000 + 30_000 })
+  it('blocks a second call for the same session and purpose inside the cooldown', () => {
+    claimUtilityCall({ sessionId: 's1', purpose: 'extraction', budget, now: 1_000 })
+    const second = claimUtilityCall({ sessionId: 's1', purpose: 'extraction', budget, now: 1_000 + 30_000 })
     assert.equal(second.ok, false)
     assert.equal(second.ok === false && second.reason, 'cooldown')
   })
 
   it('allows the same session again once the cooldown has passed', () => {
-    claimUtilityCall({ sessionId: 's1', budget, now: 1_000 })
+    claimUtilityCall({ sessionId: 's1', purpose: 'extraction', budget, now: 1_000 })
     releaseUtilityCall()
-    assert.equal(claimUtilityCall({ sessionId: 's1', budget, now: 1_000 + 61_000 }).ok, true)
+    assert.equal(claimUtilityCall({ sessionId: 's1', purpose: 'extraction', budget, now: 1_000 + 61_000 }).ok, true)
   })
 
   it('does not hold one session\'s cooldown against another', () => {
-    claimUtilityCall({ sessionId: 's1', budget, now: 1_000 })
-    assert.equal(claimUtilityCall({ sessionId: 's2', budget, now: 1_000 }).ok, true)
+    claimUtilityCall({ sessionId: 's1', purpose: 'extraction', budget, now: 1_000 })
+    assert.equal(claimUtilityCall({ sessionId: 's2', purpose: 'extraction', budget, now: 1_000 }).ok, true)
   })
 
   it('blocks once too many calls are already running', () => {
@@ -124,5 +124,50 @@ describe('claimUtilityCall', () => {
     claimUtilityCall({ sessionId: null, budget, now: 1_000 })
     releaseUtilityCall()
     assert.equal(claimUtilityCall({ sessionId: null, budget, now: 1_100 }).ok, true)
+  })
+})
+
+/*
+ * A hűtés ne a segédhívókat állítsa egymásnak.
+ *
+ * ÉLESBEN MÉRVE (2026-09-15, utiltest1 session): egy fordulón HÁROM segédhívó
+ * indul ugyanarra a sessionre -- message-classifier, working-state,
+ * memory-extraction. Egyetlen közös sessiononkénti hűtővödörrel az első elviszi
+ * a slotot, a másik kettő pedig "cooldown" hibával elszáll:
+ *
+ *   [message-classifier] session=utiltest1 failed: refused by budget: cooldown
+ *   [working-state]      Working-state extraction failed: ... cooldown
+ *   [memory-extraction]  turn extraction skipped: ... cooldown
+ *
+ * És mindig ugyanabban a sorrendben, tehát a kivonatolás SOHA nem futott le --
+ * pontosan az a néma kudarc, amit ez az egész kör javít.
+ *
+ * A hűtés arra való, hogy EGY cél ne fusson percenként sokszor ugyanarra a
+ * beszélgetésre. Célonként külön vödör; cél nélkül csak a napi plafon és az
+ * egyidejűség korlátoz.
+ */
+describe('claimUtilityCall purposes', () => {
+  beforeEach(() => { __resetUtilityBudgetForTests() })
+
+  const budget = { dailyCap: 50, maxConcurrent: 4, cooldownSec: 60 }
+
+  it('does not let one helper\'s cooldown block another on the same turn', () => {
+    assert.equal(claimUtilityCall({ sessionId: 's1', purpose: 'classifier', budget, now: 1_000 }).ok, true)
+    assert.equal(claimUtilityCall({ sessionId: 's1', purpose: 'working-state', budget, now: 1_000 }).ok, true)
+    assert.equal(claimUtilityCall({ sessionId: 's1', purpose: 'extraction', budget, now: 1_000 }).ok, true)
+  })
+
+  it('still holds one purpose back on the same session', () => {
+    claimUtilityCall({ sessionId: 's1', purpose: 'extraction', budget, now: 1_000 })
+    const again = claimUtilityCall({ sessionId: 's1', purpose: 'extraction', budget, now: 1_000 + 5_000 })
+    assert.equal(again.ok, false)
+    assert.equal(again.ok === false && again.reason, 'cooldown')
+  })
+
+  it('applies no cooldown to an unnamed purpose', () => {
+    // A legtöbb segédhívó természeténél fogva fordulónként egyszer fut; azokat a
+    // napi plafon és az egyidejűség korlátozza, nem a hűtés.
+    assert.equal(claimUtilityCall({ sessionId: 's1', budget, now: 1_000 }).ok, true)
+    assert.equal(claimUtilityCall({ sessionId: 's1', budget, now: 1_100 }).ok, true)
   })
 })

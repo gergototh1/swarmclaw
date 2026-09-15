@@ -47,6 +47,8 @@ interface ResolvedGenerationModelConfig {
   responseFormat?: GenerationResponseFormat
   /** Carried to the utility adapter, which rate-limits per conversation. */
   sessionId?: string | null
+  /** Carried to the utility adapter; the cooldown is per session AND per purpose. */
+  purpose?: string | null
 }
 
 type OpenAiReasoningEffort = 'low' | 'medium' | 'high'
@@ -82,6 +84,7 @@ export function buildChatModel(opts: {
   thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high'
   responseFormat?: GenerationResponseFormat
   sessionId?: string | null
+  purpose?: string | null
 }) {
   const { provider, model, ollamaMode, apiKey, credentialId, apiEndpoint, thinkingLevel, responseFormat } = opts
   const resolvedCredentialId = resolveProviderCredentialId({ provider, ollamaMode: ollamaMode ?? null, credentialId })
@@ -105,7 +108,7 @@ export function buildChatModel(opts: {
   // adapter drives it as a one-shot `--print` call, which is all the host's
   // helpers need (none of them binds tools or streams).
   if (NON_LANGGRAPH_PROVIDER_IDS.has(provider)) {
-    return new CliUtilityChatModel({ model, responseFormat: responseFormat ?? null, sessionId: opts.sessionId ?? null })
+    return new CliUtilityChatModel({ model, responseFormat: responseFormat ?? null, sessionId: opts.sessionId ?? null, purpose: opts.purpose ?? null })
   }
 
   if (provider === 'anthropic') {
@@ -258,6 +261,8 @@ export function resolveGenerationModelConfig(options?: {
   agentId?: string | null
   excludeProviders?: string[]
   responseFormat?: GenerationResponseFormat
+  /** Names this helper so its rate limit is its own. */
+  purpose?: string | null
 }): ResolvedGenerationModelConfig {
   const providers = getProviderList()
   const excludeProviders = new Set((options?.excludeProviders || []).map((value) => normalizePreferenceValue(value)).filter(Boolean))
@@ -301,6 +306,7 @@ export function resolveGenerationModelConfig(options?: {
         apiKey: null,
         apiEndpoint: null,
         sessionId: options?.sessionId ?? null,
+        purpose: options?.purpose ?? null,
         ...(options?.responseFormat ? { responseFormat: options.responseFormat } : {}),
       }
     }
@@ -332,6 +338,7 @@ export async function buildLLM(options?: {
   agentId?: string | null
   excludeProviders?: string[]
   responseFormat?: GenerationResponseFormat
+  purpose?: string | null
 }) {
   const resolved = resolveGenerationModelConfig(options)
   return {

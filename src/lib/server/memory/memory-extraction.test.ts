@@ -142,3 +142,66 @@ describe('promoteCandidates', () => {
     assert.ok((stored.importance || 0) > 0, `expected a score, got ${stored.importance}`)
   })
 })
+
+/*
+ * A "busy" nem indok a munka eldobására.
+ *
+ * ÉLESBEN MÉRVE (2026-09-15): a hűtés célonkénti szétválasztása után a
+ * kivonatolás már nem `cooldown`-ra bukott, hanem `busy`-ra -- az egyidejűségi
+ * korlátot elvitték az ütemezett futások, amik ugyanabban a percben dolgoztak.
+ * Az osztályozó és a working-state a fordulóval EGYÜTT fut, tehát mindig
+ * előbb kér slotot; a kivonatolás pedig, ami utánuk indul, mindig veszít.
+ *
+ * A kivonatolás viszont halasztható: senki nem vár rá. Ezért nem eldobja
+ * magát, hanem vár és újrapróbálja -- ez a különbség a fék és a kiéheztetés
+ * között.
+ */
+describe('extractTurnCandidates retries a busy helper', () => {
+  it('waits and tries again rather than dropping the turn', async () => {
+    let calls = 0
+    const stored = await extraction.extractTurnCandidates(
+      {
+        agentId: 'retry-1',
+        sessionId: 'rs1',
+        message: 'A build-gépünk neve ZORPHAX-7 és a CI a 9911-es porton figyel, ezt jegyezd meg kérlek.',
+        response: 'Rendben, megjegyeztem a gép nevét és a portot is.',
+      },
+      {
+        retryDelayMs: 1,
+        generate: async () => {
+          calls++
+          if (calls === 1) throw new Error('utility model refused by budget: busy')
+          return '{"facts":["A build-gép neve ZORPHAX-7, a CI a 9911-es porton figyel."]}'
+        },
+      },
+    )
+    assert.ok(calls >= 2, `expected a retry, got ${calls} call(s)`)
+    assert.equal(stored, 1)
+  })
+
+  it('gives up after a bounded number of attempts', async () => {
+    let calls = 0
+    const stored = await extraction.extractTurnCandidates(
+      { agentId: 'retry-2', sessionId: 'rs2', message: 'Egy elég hosszú kérdés ahhoz hogy kivonatolásra érdemes legyen.', response: 'Egy elég hosszú válasz is hozzá.' },
+      {
+        retryDelayMs: 1,
+        generate: async () => { calls++; throw new Error('utility model refused by budget: busy') },
+      },
+    )
+    assert.equal(stored, 0)
+    assert.ok(calls <= 4, `a retry loop must be bounded, got ${calls}`)
+  })
+
+  it('does not retry a refusal that will not change', async () => {
+    // Elfogyott a napi keret vagy ki van kapcsolva: várni értelmetlen.
+    let calls = 0
+    await extraction.extractTurnCandidates(
+      { agentId: 'retry-3', sessionId: 'rs3', message: 'Egy elég hosszú kérdés ahhoz hogy kivonatolásra érdemes legyen.', response: 'Egy elég hosszú válasz is hozzá.' },
+      {
+        retryDelayMs: 1,
+        generate: async () => { calls++; throw new Error('utility model refused by budget: daily_cap') },
+      },
+    )
+    assert.equal(calls, 1)
+  })
+})

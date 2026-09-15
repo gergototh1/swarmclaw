@@ -60,7 +60,30 @@ export interface ExtractionTurn {
 export interface ExtractionDeps {
   /** Injected in tests; production asks the utility model. */
   generate?: (prompt: string, turn: ExtractionTurn) => Promise<string>
+  /** Injected in tests so a retry does not make the suite wait. */
+  retryDelayMs?: number
 }
+
+/**
+ * How many times to wait out a busy helper.
+ *
+ * The classifier and working-state extraction run WITH the turn, so they always
+ * ask for a slot first; memory extraction starts after the turn and, on a fleet
+ * where scheduled runs overlap, always lost the race. Measured live: the
+ * classifier completed and extraction was refused `busy` on the same turn.
+ *
+ * Nobody waits on extraction, so it can afford to wait. That is the difference
+ * between a brake and starvation.
+ */
+const BUSY_RETRIES = 3
+const BUSY_RETRY_DELAY_MS = 4_000
+
+/** A refusal that a moment's patience can fix. A spent cap cannot. */
+function isTransientRefusal(err: unknown): boolean {
+  return /refused by budget: busy/i.test(err instanceof Error ? err.message : String(err))
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 /** Strip the framing a small model tends to wrap around its answer. */
 function firstJsonBlock(raw: string): string | null {
@@ -116,6 +139,9 @@ async function defaultGenerate(prompt: string, turn: ExtractionTurn): Promise<st
     sessionId: turn.sessionId || null,
     agentId: turn.agentId,
     responseFormat: 'json_object',
+    // Named, so the once-a-minute limit is extraction's own and not shared with
+    // the classifier and working-state, which run on the same turn.
+    purpose: 'memory-extraction',
   })
   const answer = await llm.invoke([new SystemMessage(EXTRACTION_SYSTEM), new HumanMessage(prompt)])
   return typeof answer.content === 'string' ? answer.content : JSON.stringify(answer.content)
@@ -136,7 +162,20 @@ export async function extractTurnCandidates(turn: ExtractionTurn, deps: Extracti
 
   try {
     const generate = deps.generate ?? defaultGenerate
-    const raw = await generate(renderTurn({ ...turn, message, response }), turn)
+    const prompt = renderTurn({ ...turn, message, response })
+    const delayMs = typeof deps.retryDelayMs === 'number' ? deps.retryDelayMs : BUSY_RETRY_DELAY_MS
+
+    let raw = ''
+    for (let attempt = 0; ; attempt++) {
+      try {
+        raw = await generate(prompt, turn)
+        break
+      } catch (err) {
+        if (attempt >= BUSY_RETRIES || !isTransientRefusal(err)) throw err
+        await sleep(delayMs)
+      }
+    }
+
     const facts = parseExtractedFacts(raw)
     if (!facts.length) return 0
 

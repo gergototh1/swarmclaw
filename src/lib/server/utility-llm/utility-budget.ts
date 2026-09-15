@@ -21,8 +21,13 @@ import { hmrSingleton } from '@/lib/shared-utils'
 
 /** Roughly a busy day of extraction, well under a subscription's daily room. */
 export const DEFAULT_UTILITY_DAILY_CAP = 200
-/** Two at once keeps a burst from stacking CLI processes on a small machine. */
-export const DEFAULT_UTILITY_MAX_CONCURRENT = 2
+/**
+ * Four at once. A `--print` call spends almost all its time waiting on the
+ * network, not on the machine, and two turned out to be too few: on a fleet
+ * with overlapping scheduled runs the slots were always taken by the helpers
+ * that run with the turn, and extraction never got one.
+ */
+export const DEFAULT_UTILITY_MAX_CONCURRENT = 4
 /** One extraction a minute per conversation is plenty; a turn rarely takes less. */
 export const DEFAULT_UTILITY_COOLDOWN_SEC = 60
 
@@ -80,6 +85,19 @@ export type UtilityClaim =
 
 export function claimUtilityCall(input: {
   sessionId?: string | null
+  /**
+   * What this call is for. The cooldown is per session AND per purpose.
+   *
+   * Three helpers run on one turn for one session — the classifier,
+   * working-state extraction and memory extraction. Sharing a single cooldown
+   * bucket made them compete: the first to ask took the slot and the other two
+   * were refused, in the same order every time, so memory extraction never ran
+   * at all. Measured live before this was split.
+   *
+   * An unnamed purpose gets no cooldown: those helpers already run once per
+   * turn by nature, and the daily cap and concurrency limit still apply.
+   */
+  purpose?: string | null
   budget: UtilityBudget
   now?: number
 }): UtilityClaim {
@@ -100,15 +118,18 @@ export function claimUtilityCall(input: {
   if (state.usedToday >= budget.dailyCap) return { ok: false, reason: 'daily_cap' }
   if (state.inFlight >= budget.maxConcurrent) return { ok: false, reason: 'busy' }
 
-  // The cooldown is per conversation. Work with no session — the daily digest,
-  // a fleet-wide pass — is not a conversation and is not held back by one.
+  // The cooldown is per conversation AND per purpose. Work with no session —
+  // the daily digest, a fleet-wide pass — is not a conversation and is not held
+  // back by one; work with no purpose is once-per-turn already.
   const sessionId = typeof input.sessionId === 'string' && input.sessionId.trim() ? input.sessionId.trim() : null
-  if (sessionId && budget.cooldownSec > 0) {
-    const last = state.lastCallBySession.get(sessionId)
+  const purpose = typeof input.purpose === 'string' && input.purpose.trim() ? input.purpose.trim() : null
+  if (sessionId && purpose && budget.cooldownSec > 0) {
+    const key = `${sessionId}::${purpose}`
+    const last = state.lastCallBySession.get(key)
     if (typeof last === 'number' && now - last < budget.cooldownSec * 1000) {
       return { ok: false, reason: 'cooldown' }
     }
-    state.lastCallBySession.set(sessionId, now)
+    state.lastCallBySession.set(key, now)
   }
 
   state.usedToday++

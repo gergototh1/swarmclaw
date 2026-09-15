@@ -142,6 +142,8 @@ export interface CliUtilityChatModelParams extends BaseChatModelParams {
   timeoutMs?: number
   /** The conversation this helper is working for, for the per-session cooldown. */
   sessionId?: string | null
+  /** What this call is for; the cooldown is per session AND per purpose. */
+  purpose?: string | null
   /** Injected in tests; production spawns the real process. */
   run?: CliRunner
   /** Injected in tests; production consults the fleet-wide budget. */
@@ -168,7 +170,8 @@ export class CliUtilityChatModel extends SimpleChatModel {
     this.run = params.run ?? defaultRunner
     this.spawnsRealProcess = !params.run
     const sessionId = params.sessionId ?? null
-    this.claim = params.claim ?? (() => claimUtilityCall({ sessionId, budget: resolveUtilityBudget(loadSettings()) }))
+    const purpose = params.purpose ?? null
+    this.claim = params.claim ?? (() => claimUtilityCall({ sessionId, purpose, budget: resolveUtilityBudget(loadSettings()) }))
     this.release = params.release ?? releaseUtilityCall
   }
 
