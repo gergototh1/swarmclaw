@@ -5,10 +5,14 @@ import {
   type HumanQuestionAnswer,
 } from '@/lib/human-question'
 import { ackMailboxEnvelope, listMailbox, sendMailboxEnvelope } from '@/lib/server/chatrooms/session-mailbox'
-import { appendMessage, getMessageBySeq, replaceMessageAt } from '@/lib/server/messages/message-repository'
+import { log } from '@/lib/server/logger'
+import { findMessage, replaceMessageAt } from '@/lib/server/messages/message-repository'
 import { enqueueSessionRun } from '@/lib/server/runtime/session-run-manager'
 import { cancelWatchJob, listWatchJobs, mailboxWatchJobMatches } from '@/lib/server/runtime/watch-jobs'
+import { errorMessage } from '@/lib/shared-utils'
 import type { MailboxEnvelope } from '@/types'
+
+const TAG = 'human-question'
 
 export interface AnswerHumanQuestionInput {
   sessionId: string
@@ -17,32 +21,32 @@ export interface AnswerHumanQuestionInput {
 }
 
 export type AnswerHumanQuestionResult =
-  | { ok: true; envelopeId: string; enqueued: boolean }
+  | { ok: true; envelopeId: string }
   | { ok: false; error: string; status: number }
 
-function readMessageSeq(envelope: MailboxEnvelope): number | null {
-  try {
-    const parsed = JSON.parse(envelope.payload) as Record<string, unknown>
-    return typeof parsed.messageSeq === 'number' ? parsed.messageSeq : null
-  } catch {
-    return null
-  }
-}
-
+/**
+ * A kérdés-üzenet lezárása.
+ *
+ * correlationId alapján keressük, nem a boríték `messageSeq`-je alapján. A seq
+ * nem stabil: a kör végén a napló újraíródik (`replaceAllMessages`), és egy
+ * kör közben elkapott seq már egy másik sorra mutat. Élesben pont így maradt a
+ * kártya örökre `pending`. A correlationId magán az üzeneten van, azt az
+ * újraírás nem mozdítja.
+ */
 function closeQuestionMessage(
   sessionId: string,
-  envelope: MailboxEnvelope,
+  correlationId: string,
   status: 'answered' | 'superseded',
   answers?: HumanQuestionAnswer[],
 ): void {
-  const seq = readMessageSeq(envelope)
-  if (seq === null) return
-  const message = getMessageBySeq(sessionId, seq)
-  if (!message || message.kind !== 'question') return
-  replaceMessageAt(sessionId, seq, {
-    ...message,
+  if (!correlationId) return
+  const found = findMessage(sessionId, (message) => message.kind === 'question'
+    && message.questionState?.correlationId === correlationId)
+  if (!found) return
+  replaceMessageAt(sessionId, found.seq, {
+    ...found.message,
     questionState: {
-      correlationId: envelope.correlationId || '',
+      correlationId,
       status,
       ...(answers ? { answers, answeredAt: Date.now() } : {}),
     },
@@ -57,10 +61,16 @@ function findPendingRequest(sessionId: string, correlationId: string): MailboxEn
 }
 
 /**
- * A user válasza: naplóba, a kérdés lezárása, boríték, ack — ebben a sorrendben.
+ * A user válasza: a kérdés lezárása, a várakozás leállítása, boríték, ack, új kör.
  *
- * A boríték elsüti a `wait_for_reply` várakozást, ami azonnal új kört indít, és
- * annak a körnek már látnia kell a választ a naplóban.
+ * A kört mindig mi indítjuk, nem a `wait_for_reply` várakozás. Ezen a forkon a
+ * CLI-provideres ügynököknél a heartbeat ki van kapcsolva
+ * (`storage-normalization.ts`), és minden watch-job ébresztés a heartbeaten megy
+ * át — a várakozás tehát soha nem ébresztené fel őket, a válasz pedig némán
+ * elveszne. Élesben pontosan ez történt.
+ *
+ * A válasz user-bemenet, ezért `source: 'chat'`: ez az egyetlen forrás, amit a
+ * futtatás nem köt budget- és estop-kapuhoz (`isAutonomyManagedEnqueue`).
  */
 export function answerHumanQuestion(input: AnswerHumanQuestionInput): AnswerHumanQuestionResult {
   const request = findPendingRequest(input.sessionId, input.correlationId)
@@ -78,22 +88,23 @@ export function answerHumanQuestion(input: AnswerHumanQuestionInput): AnswerHuma
   const validation = validateHumanAnswers(normalized.payload, input.answers)
   if (!validation.ok) return { ok: false, error: validation.error, status: 400 }
 
-  const text = renderHumanAnswerText(input.answers)
-  appendMessage(input.sessionId, { role: 'user', text, time: Date.now() })
-  closeQuestionMessage(input.sessionId, request, 'answered', input.answers)
+  closeQuestionMessage(input.sessionId, input.correlationId, 'answered', input.answers)
 
-  // Pontosan azt kérdezzük, amit a trigger is kérdez majd, ugyanazzal a
-  // predikátummal — a saját másolat kétszer is elcsúszott tőle. Ha itt "van
-  // várakozó" jönne ki ott, ahol a trigger nem talál semmit, a tartalék kör
-  // elmaradna, és a user válasza némán a földre esne.
+  const text = renderHumanAnswerText(input.answers)
   const replyPayload = JSON.stringify({ answers: input.answers, text })
-  const hasWaiter = listWatchJobs({ status: 'active' })
-    .some((job) => mailboxWatchJobMatches(job, input.sessionId, {
+
+  // A várakozást a boríték ELŐTT állítjuk le. Utána már a boríték sütné el, és
+  // egy heartbeattel rendelkező ügynök a mi körünk mellé egy második,
+  // watch-job ébresztést is kapna.
+  for (const job of listWatchJobs({ status: 'active' })) {
+    const matches = mailboxWatchJobMatches(job, input.sessionId, {
       type: 'human_reply',
       correlationId: input.correlationId,
       fromSessionId: input.sessionId,
       payload: replyPayload,
-    }))
+    })
+    if (matches) cancelWatchJob(job.id)
+  }
 
   const reply = sendMailboxEnvelope({
     toSessionId: input.sessionId,
@@ -106,18 +117,27 @@ export function answerHumanQuestion(input: AnswerHumanQuestionInput): AnswerHuma
   })
   ackMailboxEnvelope(input.sessionId, request.id)
 
-  // Ha az agent nem regisztrált tartós várakozást, a boríték senkit nem ébreszt
-  // fel. A válasz akkor sem hullhat a földre: sima körrel megy tovább.
-  if (!hasWaiter) {
+  // A buborékot nem mi írjuk a naplóba: a kör előkészítése maga menti el a
+  // bejövő user-üzenetet (`shouldPersistInboundUserMessage`), és kettő lenne.
+  try {
     enqueueSessionRun({
       sessionId: input.sessionId,
       message: text,
-      source: 'human_question_answer',
+      source: 'chat',
       internal: false,
+    })
+  } catch (err: unknown) {
+    // A válasz rögzítve, a kérdés lezárva. Ha kör nem indulhat (például teljes
+    // estop), azt nem a user küldése rontotta el; egy hiba a kártyán egy sikeres
+    // küldés után pont az volna, amit a kártya `sent` állapota elkerül.
+    log.warn(TAG, 'Could not start a turn for the human answer', {
+      sessionId: input.sessionId,
+      correlationId: input.correlationId,
+      error: errorMessage(err),
     })
   }
 
-  return { ok: true, envelopeId: reply.id, enqueued: !hasWaiter }
+  return { ok: true, envelopeId: reply.id }
 }
 
 /**
@@ -132,7 +152,7 @@ export function supersedePendingHumanQuestions(sessionId: string): number {
   if (!pending.length) return 0
 
   for (const envelope of pending) {
-    closeQuestionMessage(sessionId, envelope, 'superseded')
+    closeQuestionMessage(sessionId, envelope.correlationId || '', 'superseded')
     ackMailboxEnvelope(sessionId, envelope.id)
   }
 

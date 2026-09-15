@@ -132,31 +132,94 @@ function seedQuestion(sessionId: string, correlationId: string): number {
 }
 
 describe('answerHumanQuestion', () => {
-  it('writes the answer into the transcript, closes the question and replies', async () => {
+  it('closes the question, sends the reply, acks the request and starts a user turn', async () => {
     const seq = seedQuestion('s-answer', 'c1')
-    await seedWaiter('s-answer', 'c1')
     const result = answerModule.answerHumanQuestion({
       sessionId: 's-answer',
       correlationId: 'c1',
       answers: [{ header: 'Adatbázis', question: 'Melyik legyen?', selected: ['SQLite'] }],
     })
     assert.equal(result.ok, true)
-    if (!result.ok) return
-    assert.equal(result.enqueued, false, 'a registered waiter is woken by the envelope, so no fallback run is needed')
+
+    // Asserted before any await, while nothing else has run: the turn writes
+    // the answer bubble itself when it prepares, so a copy from this function
+    // would duplicate it.
+    assert.equal(repo.getMessages('s-answer').filter((message) => message.role === 'user').length, 0)
 
     const question = repo.getMessageBySeq('s-answer', seq)
     assert.equal(question?.questionState?.status, 'answered')
     assert.deepEqual(question?.questionState?.answers?.[0].selected, ['SQLite'])
 
-    const messages = repo.getMessages('s-answer')
-    const last = messages[messages.length - 1]
-    assert.equal(last.role, 'user')
-    assert.match(last.text, /SQLite/)
-
     const envelopes = mailbox.listMailbox('s-answer', { includeAcked: true })
     assert.ok(envelopes.some((envelope) => envelope.type === 'human_reply' && envelope.correlationId === 'c1'))
-    const request = envelopes.find((envelope) => envelope.type === 'human_request')
-    assert.equal(request?.status, 'ack')
+    assert.equal(envelopes.find((envelope) => envelope.type === 'human_request')?.status, 'ack')
+
+    const runManager = await import('@/lib/server/runtime/session-run-manager')
+    const execution = runManager.getSessionExecutionState('s-answer')
+    assert.ok(execution.hasRunningNonHeartbeat || execution.hasQueuedNonHeartbeat, 'answering must start a user turn')
+  })
+
+  it('closes the right question even when the envelope names the wrong seq', () => {
+    // Reproduces a live failure. A turn rewrites the transcript while it runs,
+    // so a seq the tool captured mid-turn points at another row by the time the
+    // human answers. Here the envelope points one row past the question, at an
+    // ordinary chat message — exactly the shape found in the database.
+    createTestSession('s-shifted')
+    const questionSeq = repo.appendMessage('s-shifted', {
+      role: 'assistant',
+      text: 'Melyik legyen?',
+      time: Date.now(),
+      kind: 'question',
+      question: payload,
+      questionState: { correlationId: 'c-shift', status: 'pending' },
+      historyExcluded: true,
+    })
+    const chatSeq = repo.appendMessage('s-shifted', { role: 'assistant', text: 'Feltettem a kérdést.', time: Date.now() })
+    mailbox.sendMailboxEnvelope({
+      toSessionId: 's-shifted',
+      type: 'human_request',
+      payload: JSON.stringify({ ...payload, messageSeq: chatSeq }),
+      fromSessionId: 's-shifted',
+      fromAgentId: 'a1',
+      correlationId: 'c-shift',
+      ttlSec: null,
+    })
+
+    const result = answerModule.answerHumanQuestion({
+      sessionId: 's-shifted',
+      correlationId: 'c-shift',
+      answers: [{ header: 'Adatbázis', question: 'Melyik legyen?', selected: ['SQLite'] }],
+    })
+    assert.equal(result.ok, true)
+    assert.equal(repo.getMessageBySeq('s-shifted', questionSeq)?.questionState?.status, 'answered')
+    const chat = repo.getMessageBySeq('s-shifted', chatSeq)
+    assert.equal(chat?.kind, undefined)
+    assert.equal(chat?.questionState, undefined)
+  })
+
+  it('still starts a turn when a waiter is registered, and cancels that wait first', async () => {
+    // Reproduces a live failure. On this fork a CLI-provider agent's
+    // wait_for_reply can never wake it: heartbeat is forced off for CLI
+    // providers, and every watch-job wake goes through heartbeat. Trusting the
+    // waiter therefore dropped the answer. The turn is now started directly,
+    // and the wait cancelled before the envelope could fire it, so an agent
+    // that does have heartbeat is not woken twice.
+    seedQuestion('s-waiter', 'c-waiter')
+    await seedWaiter('s-waiter', 'c-waiter')
+    const result = answerModule.answerHumanQuestion({
+      sessionId: 's-waiter',
+      correlationId: 'c-waiter',
+      answers: [{ header: 'Adatbázis', question: 'Melyik legyen?', selected: ['SQLite'] }],
+    })
+    assert.equal(result.ok, true)
+
+    const stillWaiting = watchJobs.listWatchJobs({ sessionId: 's-waiter', status: 'active' })
+      .filter((job) => job.type === 'mailbox')
+    assert.equal(stillWaiting.length, 0, 'the matching wait must be cancelled before the envelope fires it')
+
+    const runManager = await import('@/lib/server/runtime/session-run-manager')
+    const execution = runManager.getSessionExecutionState('s-waiter')
+    assert.ok(execution.hasRunningNonHeartbeat || execution.hasQueuedNonHeartbeat, 'a registered waiter must not suppress the turn')
   })
 
   it('succeeds without throwing when the stored request has no messageSeq (legacy envelope)', async () => {
@@ -216,15 +279,14 @@ describe('supersedePendingHumanQuestions', () => {
 })
 
 /**
- * `answerHumanQuestion` decides whether to enqueue a fallback run by asking
- * whether the reply envelope it is about to send would wake any durable wait.
- * It asks `mailboxWatchJobMatches` — the same predicate the real trigger uses.
+ * `answerHumanQuestion` cancels every active wait that the reply envelope it is
+ * about to send would fire. It picks them with `mailboxWatchJobMatches` — the
+ * same predicate the real trigger uses — so the two cannot disagree about which
+ * wait belongs to this answer.
  *
- * These cover that decision directly. Driving it through the module instead
- * would mean letting the fallback branch start a real chat turn, which is what
- * previously made this file take ~15s and print stray ENOENT traces.
+ * These cover that predicate directly.
  */
-describe('the waiter predicate behind the fallback decision', () => {
+describe('the predicate that picks which waits an answer cancels', () => {
   function job(condition: Record<string, unknown>, targetSessionId = 's-pred'): import('@/types').WatchJob {
     return {
       id: 'job-1',
@@ -254,8 +316,8 @@ describe('the waiter predicate behind the fallback decision', () => {
   })
 
   it('does not count a wait registered for a different envelope type', () => {
-    // The hole this closes: such a wait never fires on our `human_reply`, so
-    // treating it as a waiter would skip the fallback and drop the answer.
+    // Such a wait is not ours: our `human_reply` never fires it, and cancelling
+    // it would silence a wait the agent may still be relying on.
     assert.equal(watchJobs.mailboxWatchJobMatches(job({ type: 'other_type', correlationId: 'c1' }), 's-pred', reply), false)
   })
 

@@ -45,6 +45,9 @@ function buildStatements() {
     selectBySeq: db.prepare(
       'SELECT data FROM session_messages WHERE session_id = ? AND seq = ?',
     ),
+    selectAllWithSeq: db.prepare(
+      'SELECT seq, data FROM session_messages WHERE session_id = ? ORDER BY seq ASC',
+    ),
     selectMaxSeq: db.prepare(
       'SELECT MAX(seq) as maxSeq FROM session_messages WHERE session_id = ?',
     ),
@@ -305,6 +308,34 @@ export function getMessageBySeq(sessionId: string, seq: number): Message | null 
     const msgs = session?.messages
     return Array.isArray(msgs) && seq >= 0 && seq < msgs.length ? msgs[seq] : null
   }, { sessionId, seq })
+}
+
+/**
+ * The first message matching `predicate`, with the seq it is stored under now.
+ *
+ * Returns the row's own seq rather than a position in `getMessages()`, because
+ * that is the value `replaceMessageAt` needs and the two only coincide while the
+ * seqs happen to be contiguous. A caller holding an identity that lives on the
+ * message (a question's correlationId) should look it up here instead of
+ * trusting a seq captured earlier: a turn rewrites the transcript as it runs.
+ */
+export function findMessage(
+  sessionId: string,
+  predicate: (message: Message) => boolean,
+): { seq: number; message: Message } | null {
+  return perf.measureSync('message-repo', 'findMessage', () => {
+    const rows = stmts().selectAllWithSeq.all(sessionId) as Array<{ seq: number; data: string }>
+    for (const row of rows) {
+      const message = parseMsg(row.data)
+      if (message && predicate(message)) return { seq: row.seq, message }
+    }
+    if (rows.length > 0) return null
+    // Pre-migration fallback: an unmigrated blob is stored in seq order from 0.
+    const msgs = loadSession(sessionId)?.messages
+    if (!Array.isArray(msgs)) return null
+    const index = msgs.findIndex((message) => predicate(message))
+    return index >= 0 ? { seq: index, message: msgs[index] } : null
+  }, { sessionId })
 }
 
 /** Return the last N messages in chronological order. */
