@@ -329,3 +329,48 @@ test('getMessageBySeq returns the message at a sequence number and null past the
   assert.equal(output.atSeq, 'első')
   assert.equal(output.pastEnd, null)
 })
+
+test('getMessageBySeq falls back to the legacy blob before migration', () => {
+  const output = runWithTempDataDir<{
+    atSeq0: string | null
+    atSeq2: string | null
+    pastEnd: string | null
+  }>(`
+    const storageMod = await import('@/lib/server/storage')
+    const repoMod = await import('@/lib/server/messages/message-repository')
+    const storage = storageMod.default || storageMod
+    const repo = repoMod.default || repoMod
+
+    storage.saveSessions({
+      'seq-read-blob': {
+        id: 'seq-read-blob',
+        name: 'Seq read blob session',
+        cwd: process.env.WORKSPACE_DIR,
+        user: 'tester',
+        provider: 'openai',
+        model: 'gpt-5',
+        claudeSessionId: null,
+        codexThreadId: null,
+        opencodeSessionId: null,
+        delegateResumeIds: { claudeCode: null, codex: null, opencode: null, gemini: null },
+        messages: [
+          { role: 'user', text: 'first blob prompt', time: 1 },
+          { role: 'assistant', text: 'first blob reply', time: 2 },
+          { role: 'user', text: 'second blob prompt', time: 3 },
+        ],
+        createdAt: Date.now(),
+        lastActiveAt: Date.now(),
+      },
+    })
+
+    console.log(JSON.stringify({
+      atSeq0: repo.getMessageBySeq('seq-read-blob', 0)?.text ?? null,
+      atSeq2: repo.getMessageBySeq('seq-read-blob', 2)?.text ?? null,
+      pastEnd: repo.getMessageBySeq('seq-read-blob', 3)?.text ?? null,
+    }))
+  `, { prefix: 'swarmclaw-message-repo-seq-read-blob-' })
+
+  assert.equal(output.atSeq0, 'first blob prompt')
+  assert.equal(output.atSeq2, 'second blob prompt')
+  assert.equal(output.pastEnd, null)
+})

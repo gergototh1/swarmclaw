@@ -297,8 +297,14 @@ export function getLastMessages(): Record<string, Message> {
 
 /** Return one message by its sequence number, or null if there is none. */
 export function getMessageBySeq(sessionId: string, seq: number): Message | null {
-  const row = stmts().selectBySeq.get(sessionId, seq) as { data: string } | undefined
-  return row ? parseMsg(row.data) : null
+  return perf.measureSync('message-repo', 'getMessageBySeq', () => {
+    const row = stmts().selectBySeq.get(sessionId, seq) as { data: string } | undefined
+    if (row) return parseMsg(row.data)
+    // Pre-migration fallback
+    const session = loadSession(sessionId)
+    const msgs = session?.messages
+    return Array.isArray(msgs) && seq >= 0 && seq < msgs.length ? msgs[seq] : null
+  }, { sessionId, seq })
 }
 
 /** Return the last N messages in chronological order. */
