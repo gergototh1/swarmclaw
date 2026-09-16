@@ -7,6 +7,7 @@ import { useAgentsQuery } from '@/features/agents/queries'
 import { useProjectsQuery } from '@/features/projects/queries'
 import {
   useBulkUpdateTasksMutation,
+  useClearDoneTasksMutation,
   useImportGitHubIssuesMutation,
   useTasksQuery,
   useUpdateTaskMutation,
@@ -83,6 +84,9 @@ export default function TasksPage() {
   const bulkUpdateTasksMutation = useBulkUpdateTasksMutation()
   const updateTaskMutation = useUpdateTaskMutation()
   const importGitHubIssuesMutation = useImportGitHubIssuesMutation()
+  const clearDoneMutation = useClearDoneTasksMutation()
+  const doneCount = useMemo(() => Object.values(tasks).filter((t) =>
+    t.status === 'completed' || t.status === 'failed' || t.status === 'cancelled').length, [tasks])
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -589,6 +593,16 @@ export default function TasksPage() {
                 <option key={tag} value={tag}>{tag}</option>
               ))}
             </select>
+          )}
+          {doneCount > 0 && (
+            <button
+              onClick={() => { void clearDoneMutation.mutateAsync().catch(() => toast.error('Nem sikerült törölni a befejezett feladatokat.')) }}
+              disabled={clearDoneMutation.isPending}
+              className="px-4 py-2 rounded-full text-[13px] font-600 cursor-pointer transition-all border border-line-subtle bg-transparent text-text-3 hover:text-red-400 hover:border-red-400/20 disabled:opacity-40"
+              style={{ fontFamily: 'inherit' }}
+            >
+              {clearDoneMutation.isPending ? 'Clearing...' : `Clear ${doneCount} finished`}
+            </button>
           )}
           <button
             onClick={() => setShowArchived(!showArchived)}

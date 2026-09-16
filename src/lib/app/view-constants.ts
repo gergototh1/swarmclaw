@@ -257,9 +257,12 @@ export const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { ic
  * entries here were dead weight. They were also a trap: reordering those two
  * branches, which reads like a pure refactor, would have silently taken the
  * panel away from all eight.
+ *
+ * `tasks` is the kanban itself; its old side list duplicated the board and
+ * was removed.
  */
 export const FULL_WIDTH_VIEWS = new Set<AppView>([
-  'home', 'org_chart', 'inbox', 'protocols', 'vault',
+  'home', 'org_chart', 'inbox', 'protocols', 'vault', 'tasks',
   'usage', 'stream', 'quality', 'autonomy', 'settings', 'swarmfeed', 'marketplace',
 ])
 
@@ -304,7 +307,6 @@ export const PANEL_SIDEBAR_VIEWS = new Set<AppView>([
   'providers',
   'schedules',
   'skills',
-  'tasks',
   'webhooks',
 ])
 

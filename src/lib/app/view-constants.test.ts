@@ -55,6 +55,11 @@ describe('panel sidebar route helpers', () => {
     assert.equal(isPanelSidebarView('vault'), false)
     assert.equal(shouldAutoOpenPanelSidebar('vault', true), false)
   })
+
+  it('renders the task board full width, with no task list beside it', () => {
+    assert.equal(isPanelSidebarView('tasks'), false)
+    assert.equal(FULL_WIDTH_VIEWS.has('tasks'), true)
+  })
 })
 
 describe('the merged views', () => {

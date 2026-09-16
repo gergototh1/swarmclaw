@@ -4,8 +4,11 @@ import { panelIntentForView, sidebarOpenAfter, sidebarOpenForNavigate } from './
 
 describe('panelIntentForView', () => {
   it('toggles on a view with a panel, closes on a full-width view', () => {
-    assert.equal(panelIntentForView('tasks'), 'toggle')
+    assert.equal(panelIntentForView('agents'), 'toggle')
     assert.equal(panelIntentForView('conversations'), 'toggle')
+    // tasks is now the kanban board itself, rendered full width with no side
+    // list beside it -- see FULL_WIDTH_VIEWS in view-constants.ts.
+    assert.equal(panelIntentForView('tasks'), 'close')
     assert.equal(panelIntentForView('home'), 'close')
     assert.equal(panelIntentForView('settings'), 'close')
   })
