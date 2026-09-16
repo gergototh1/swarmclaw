@@ -269,6 +269,50 @@ export async function buildClaudeCliPrompt(
   return block ? `${block}\n\n${message}` : message
 }
 
+/**
+ * With no resume id the CLI starts a new transcript that has seen nothing, so
+ * the record of what was injected must start over with it.
+ */
+export function forgetInjectionsForFreshTranscript(session: Record<string, unknown>): void {
+  const startsFreshTranscript = typeof session.claudeSessionId !== 'string' || !session.claudeSessionId
+  const record = session.injectedMemoryIds
+  if (startsFreshTranscript && record && typeof record === 'object' && Object.keys(record).length) {
+    session.injectedMemoryIds = {}
+  }
+}
+
+/**
+ * Store what the CLI transcript has been sent.
+ *
+ * Mutating the in-memory session is not enough: the turn's finalizer saves a
+ * record it fetched itself, so the field was lost every time and the same
+ * memories were re-sent on every turn -- stacking copies in a resumed
+ * transcript instead of replacing them. Write it through.
+ */
+function recordInjectedMemoryIds(session: StreamChatOptions['session'], ids: Record<string, number>): void {
+  session.injectedMemoryIds = ids
+  if (typeof session.id !== 'string' || !session.id) return
+  try {
+    let patched = false
+    patchSession(session.id, (current) => {
+      if (!current) return current
+      patched = true
+      return { ...current, injectedMemoryIds: ids }
+    })
+    // A patch that finds no stored session writes nothing and throws nothing,
+    // which is how the subagent case stayed invisible: the preamble logged six
+    // injected lines and the record kept none.
+    if (!patched) {
+      log.warn('claude-cli', 'Injected memories were not recorded: no stored session to patch', {
+        sessionId: session.id,
+        agentId: session.agentId,
+      })
+    }
+  } catch (persistErr) {
+    log.warn('claude-cli', `Could not persist injected memory ids: ${persistErr}`)
+  }
+}
+
 export async function streamClaudeCliChat({ session, message, imagePath, attachedFiles, systemPrompt, write, active, signal }: StreamChatOptions): Promise<string> {
   const processTimeoutMs = loadRuntimeSettings().cliProcessTimeoutMs
   const binary = resolveCliBinary('claude')
@@ -287,6 +331,13 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
   // --system-prompt-snapshot pins the system prompt to the conversation's
   // first request, so a per-turn block placed there is silently ignored on
   // every resume.
+  //
+  // The injection record describes ONE CLI transcript. With no resume id the
+  // CLI starts a new one -- after a chat clear, a session reset or an agent
+  // switch -- and that transcript has seen nothing, so the record starts over.
+  // Carrying it across left a fresh conversation with no rules and no pinned
+  // notes, because everything was marked as already sent.
+  forgetInjectionsForFreshTranscript(session)
   try {
     const memoryAgent = session.agentId ? getAgent(session.agentId as string) : null
     const recall = buildCliMemoryPreamble({
@@ -296,37 +347,9 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
       projectRoot: typeof session.cwd === 'string' ? session.cwd : null,
     })
     if (recall.preamble) {
-      // Each memory records two keys (its id and its fact key), so report
-      // memories, not keys.
-      const before = Object.keys(session.injectedMemoryIds || {}).length
-      const added = Math.round((Object.keys(recall.injectedMemoryIds).length - before) / 2)
+      const added = recall.preamble.split('\n').filter((line) => line.startsWith('- [')).length
       prompt = `${recall.preamble}\n\n${prompt}`
-      session.injectedMemoryIds = recall.injectedMemoryIds
-      // Mutating the in-memory session is not enough: the turn's finalizer
-      // saves a record it fetched itself, so the field was lost every time and
-      // the same memories were re-sent on every turn — stacking copies in a
-      // resumed transcript instead of replacing them. Write it through.
-      if (typeof session.id === 'string' && session.id) {
-        try {
-          let patched = false
-          patchSession(session.id, (current) => {
-            if (!current) return current
-            patched = true
-            return { ...current, injectedMemoryIds: recall.injectedMemoryIds }
-          })
-          // A patch that finds no stored session writes nothing and throws
-          // nothing, which is how the subagent case stayed invisible: the
-          // preamble logged six injected lines and the record kept none.
-          if (!patched) {
-            log.warn('claude-cli', 'Injected memories were not recorded: no stored session to patch', {
-              sessionId: session.id,
-              agentId: session.agentId,
-            })
-          }
-        } catch (persistErr) {
-          log.warn('claude-cli', `Could not persist injected memory ids: ${persistErr}`)
-        }
-      }
+      recordInjectedMemoryIds(session, recall.injectedMemoryIds)
       log.info('claude-cli', `Injected ${added} memory line(s) into the prompt`, {
         sessionId: session.id,
         agentId: session.agentId,
@@ -458,6 +481,7 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
   let fullResponse = ''
   let buf = ''
   let eventCount = 0
+  let compacted = false
   let stderrText = ''
   /** tool_use id -> tool name, so a `tool_result` can name the call it answers. */
   const toolNames = new Map<string, string>()
@@ -502,6 +526,11 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
             write(`data: ${JSON.stringify(out)}\n\n`)
             if (out.t === 'tool_call') log.debug('claude-cli', `Tool call: ${out.toolName}`)
           }
+        } else if (ev.type === 'system' && ev.subtype === 'compact_boundary') {
+          // The CLI summarised its own transcript. Whatever was injected
+          // before this point may be gone from it, rules included.
+          compacted = true
+          log.info('claude-cli', 'CLI compacted its transcript; memory will be re-sent next turn', { sessionId: session.id })
         } else if (ev.type === 'content_block_delta' && ev.delta?.text) {
           fullResponse += ev.delta.text
           write(`data: ${JSON.stringify({ t: 'd', text: ev.delta.text })}\n\n`)
@@ -538,6 +567,7 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
       log.info('claude-cli', `Process closed: code=${code} signal=${sig} events=${eventCount} response=${fullResponse.length}chars`)
       active.delete(session.id)
       if (mcpConfigPath) try { fs.unlinkSync(mcpConfigPath) } catch { /* ignore */ }
+      if (compacted) recordInjectedMemoryIds(session, {})
       if ((code ?? 0) !== 0 && !fullResponse.trim()) {
         const msg = stderrText.trim()
           ? `Claude CLI exited with code ${code ?? 'unknown'}${sig ? ` (${sig})` : ''}: ${stderrText.trim().slice(0, 1200)}`

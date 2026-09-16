@@ -1,8 +1,9 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages'
 
 import { buildLLM } from '@/lib/server/build-llm'
-import { getMemoryDb, defaultImportanceForCategory } from '@/lib/server/memory/memory-db'
+import { getMemoryDb, defaultImportanceForCategory, type MemoryCandidate } from '@/lib/server/memory/memory-db'
 import { log } from '@/lib/server/logger'
+import { checkStandingRulesBudget, listStandingRules } from '@/lib/server/memory/standing-rules'
 
 /**
  * Turning conversations into memories.
@@ -46,9 +47,31 @@ const EXTRACTION_SYSTEM = [
   'Write each fact as one self-contained sentence, in the language the user writes in, with the',
   'specifics in it — a name, a path, a number, a date.',
   '',
-  'Answer with JSON only: {"facts": ["...", "..."]}. An exchange with nothing durable in it is',
-  '{"facts": []}, and that is the common case.',
+  'Separately, list the standing rules the USER gave: an instruction about how the assistant or its',
+  'agents must work from now on — who gets which kind of work, which language to answer in, a',
+  'workflow step to always or never take. Only what the user said or explicitly confirmed; never a',
+  'suggestion the assistant made, never a one-off request for this task ("do these now", "fix this").',
+  'Write each rule as one self-contained instruction in the user\'s language. The rules already on',
+  'record are listed below the exchange: leave out any rule they already cover. If the user changed',
+  'one of them, return the new full wording with "replaces" set to that rule\'s id.',
+  '',
+  'Answer with JSON only: {"facts": ["...", "..."], "rules": [{"text": "...", "replaces": "<id or null>"}]}.',
+  'An exchange with nothing durable in it is {"facts": [], "rules": []}, and that is the common case.',
 ].join('\n')
+
+/** Rules are rarer than facts; a turn that yields more is the model over-reading. */
+export const MAX_RULES_PER_TURN = 2
+/** How much of each recorded rule the extractor sees; enough to recognise it. */
+const RULE_PREVIEW_CHARS = 160
+/** Candidate source for an extracted rule; `:<id>` names the rule it replaces. */
+const RULE_SOURCE = 'chat-turn-rule'
+/** Category for a promoted rule, so the owner can tell learned rules apart. */
+const LEARNED_RULE_CATEGORY = 'preference/learned'
+
+export interface ExtractedRule {
+  text: string
+  replaces: string | null
+}
 
 export interface ExtractionTurn {
   agentId: string
@@ -127,11 +150,60 @@ export function parseExtractedFacts(raw: string): string[] {
   return out
 }
 
-function renderTurn(turn: ExtractionTurn): string {
+export function parseExtractedRules(raw: string): ExtractedRule[] {
+  const block = firstJsonBlock(raw)
+  if (!block) return []
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(block)
+  } catch {
+    return []
+  }
+  const list = parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray((parsed as { rules?: unknown }).rules)
+    ? (parsed as { rules: unknown[] }).rules
+    : []
+
+  const out: ExtractedRule[] = []
+  const seen = new Set<string>()
+  for (const entry of list) {
+    const record = entry && typeof entry === 'object' ? entry as Record<string, unknown> : null
+    const rawText = typeof entry === 'string' ? entry : typeof record?.text === 'string' ? record.text : ''
+    const text = rawText.replace(/\s+/g, ' ').trim()
+    if (text.length < MIN_FACT_CHARS) continue
+    const key = text.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    const replaces = typeof record?.replaces === 'string' && /^[\w-]{1,64}$/.test(record.replaces.trim())
+      ? record.replaces.trim()
+      : null
+    out.push({ text, replaces })
+    if (out.length >= MAX_RULES_PER_TURN) break
+  }
+  return out
+}
+
+function renderTurn(turn: ExtractionTurn, recordedRules: string[]): string {
   return [
     `User: ${turn.message.replace(/\s+/g, ' ').slice(0, MAX_TURN_CHARS)}`,
     `Assistant: ${turn.response.replace(/\s+/g, ' ').slice(0, MAX_TURN_CHARS)}`,
+    `Rules already on record:\n${recordedRules.length ? recordedRules.join('\n') : '(none)'}`,
   ].join('\n\n')
+}
+
+function recordedRuleLines(agentId: string): { lines: string[]; ids: Set<string> } {
+  try {
+    const rules = listStandingRules(agentId)
+    return {
+      lines: rules.map((entry) => {
+        const body = String(entry.content || entry.title || '').replace(/\s+/g, ' ').trim()
+        const preview = body.length > RULE_PREVIEW_CHARS ? `${body.slice(0, RULE_PREVIEW_CHARS).trimEnd()}...` : body
+        return `- ${entry.id}: ${preview}`
+      }),
+      ids: new Set(rules.map((entry) => entry.id)),
+    }
+  } catch {
+    return { lines: [], ids: new Set() }
+  }
 }
 
 async function defaultGenerate(prompt: string, turn: ExtractionTurn): Promise<string> {
@@ -162,7 +234,8 @@ export async function extractTurnCandidates(turn: ExtractionTurn, deps: Extracti
 
   try {
     const generate = deps.generate ?? defaultGenerate
-    const prompt = renderTurn({ ...turn, message, response })
+    const recorded = recordedRuleLines(turn.agentId)
+    const prompt = renderTurn({ ...turn, message, response }, recorded.lines)
     const delayMs = typeof deps.retryDelayMs === 'number' ? deps.retryDelayMs : BUSY_RETRY_DELAY_MS
 
     let raw = ''
@@ -177,7 +250,8 @@ export async function extractTurnCandidates(turn: ExtractionTurn, deps: Extracti
     }
 
     const facts = parseExtractedFacts(raw)
-    if (!facts.length) return 0
+    const rules = parseExtractedRules(raw)
+    if (!facts.length && !rules.length) return 0
 
     const db = getMemoryDb()
     let stored = 0
@@ -186,6 +260,20 @@ export async function extractTurnCandidates(turn: ExtractionTurn, deps: Extracti
         db.addCandidate({ agentId: turn.agentId, sessionId: turn.sessionId || null, text, source: 'chat-turn' })
         stored++
       } catch { /* one unusable fact must not lose the others */ }
+    }
+    for (const rule of rules) {
+      // Only an id the extractor was shown may be replaced; anything else is
+      // a guess, and a guessed id would overwrite an unrelated memory.
+      const replaces = rule.replaces && recorded.ids.has(rule.replaces) ? rule.replaces : null
+      try {
+        db.addCandidate({
+          agentId: turn.agentId,
+          sessionId: turn.sessionId || null,
+          text: rule.text,
+          source: replaces ? `${RULE_SOURCE}:${replaces}` : RULE_SOURCE,
+        })
+        stored++
+      } catch { /* same as above */ }
     }
     return stored
   } catch (err) {
@@ -201,6 +289,91 @@ export async function extractTurnCandidates(turn: ExtractionTurn, deps: Extracti
 /** Category for a promoted fact until something smarter classifies it. */
 const PROMOTED_CATEGORY = 'knowledge/facts'
 
+function shortTitle(text: string): string {
+  return text.length > 70 ? `${text.slice(0, 70).trimEnd()}...` : text
+}
+
+/**
+ * File an extracted rule where the rules block reads it.
+ *
+ * A rule the owner stated in conversation used to land in `knowledge/facts`,
+ * which is recalled only by keyword and framed as background -- so "from now
+ * on, send coding work to the Developer" never became an instruction. It is
+ * filed as `preference/learned` now, under the same budget as a hand-written
+ * rule. When the budget is full the rule is kept as a searchable fact and the
+ * owner is told in the log; it is never dropped.
+ */
+function promoteRuleCandidate(candidate: MemoryCandidate): boolean {
+  const db = getMemoryDb()
+  const replacesId = candidate.source.startsWith(`${RULE_SOURCE}:`)
+    ? candidate.source.slice(RULE_SOURCE.length + 1)
+    : null
+  try {
+    const target = replacesId ? db.get(replacesId) : null
+    // Only a rule this agent owns. A global rule is the owner's own wording for
+    // the whole fleet; one agent's conversation does not get to rewrite it.
+    const canReplace = !!target && !!candidate.agentId && target.agentId === candidate.agentId
+    const sameText = (value: string) => value.replace(/\s+/g, ' ').trim().toLowerCase()
+    const existingCopy = listStandingRules(candidate.agentId || '')
+      .find((entry) => sameText(entry.content || '') === sameText(candidate.text))
+    if (existingCopy) {
+      db.markCandidate(candidate.id, 'promoted', { memoryId: existingCopy.id })
+      return true
+    }
+    const refusal = checkStandingRulesBudget({
+      agentId: candidate.agentId,
+      next: { category: LEARNED_RULE_CATEGORY, title: shortTitle(candidate.text), content: candidate.text },
+      replacingId: canReplace ? target.id : null,
+    })
+
+    if (refusal) {
+      const entry = db.add({
+        agentId: candidate.agentId,
+        sessionId: candidate.sessionId,
+        category: PROMOTED_CATEGORY,
+        title: shortTitle(candidate.text),
+        content: candidate.text,
+        importance: defaultImportanceForCategory(PROMOTED_CATEGORY, false),
+        metadata: { origin: 'turn-extraction', candidateId: candidate.id, ruleNotApplied: 'standing-rules-budget-full' },
+      })
+      db.markCandidate(candidate.id, 'promoted', { memoryId: entry.id })
+      log.warn('memory-extraction', 'A rule the user gave was kept as a fact: the standing rules are full', {
+        agentId: candidate.agentId,
+        memoryId: entry.id,
+      })
+      return true
+    }
+
+    if (canReplace && target) {
+      const updated = db.update(target.id, { content: candidate.text })
+      if (!updated) throw new Error(`rule ${replacesId} vanished before it could be replaced`)
+      db.markCandidate(candidate.id, 'promoted', { memoryId: updated.id })
+      log.info('memory-extraction', 'Updated a standing rule from conversation', { agentId: candidate.agentId, memoryId: updated.id })
+      return true
+    }
+
+    const entry = db.add({
+      agentId: candidate.agentId,
+      sessionId: candidate.sessionId,
+      category: LEARNED_RULE_CATEGORY,
+      title: shortTitle(candidate.text),
+      content: candidate.text,
+      importance: defaultImportanceForCategory(LEARNED_RULE_CATEGORY, false),
+      metadata: { origin: 'turn-extraction', candidateId: candidate.id },
+    })
+    db.markCandidate(candidate.id, 'promoted', { memoryId: entry.id })
+    log.info('memory-extraction', 'Learned a standing rule from conversation', { agentId: candidate.agentId, memoryId: entry.id })
+    return true
+  } catch (err) {
+    db.markCandidate(candidate.id, 'rejected')
+    log.debug('memory-extraction', 'rule candidate rejected', {
+      candidateId: candidate.id,
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return false
+  }
+}
+
 /**
  * Decide what the extractor found.
  *
@@ -215,8 +388,13 @@ export async function promoteCandidates(opts: { limit?: number } = {}): Promise<
   let rejected = 0
 
   for (const candidate of pending) {
+    if (candidate.source === RULE_SOURCE || candidate.source.startsWith(`${RULE_SOURCE}:`)) {
+      if (promoteRuleCandidate(candidate)) promoted++
+      else rejected++
+      continue
+    }
     try {
-      const title = candidate.text.length > 70 ? `${candidate.text.slice(0, 70).trimEnd()}...` : candidate.text
+      const title = shortTitle(candidate.text)
       const entry = db.add({
         agentId: candidate.agentId,
         sessionId: candidate.sessionId,

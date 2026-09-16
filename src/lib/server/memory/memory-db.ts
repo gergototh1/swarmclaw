@@ -1484,6 +1484,25 @@ function initDb() {
       return rows.map(rowToEntry)
     },
 
+    /**
+     * Every row whose category is one of `roots` or sits below one (`roots`
+     * `['preference']` matches `preference` and `preference/video`). Visibility
+     * follows `list`: the agent's own rows, global rows and rows shared with it.
+     */
+    listByCategoryRoots(roots: string[], agentId?: string, limit = 200): MemoryEntry[] {
+      const cleaned = roots.map((root) => root.trim().toLowerCase()).filter(Boolean)
+      if (!cleaned.length) return []
+      const safeLimit = Math.max(1, Math.min(500, Math.trunc(limit)))
+      const categoryClause = cleaned.map(() => `(lower(category) = ? OR lower(category) LIKE ?)`).join(' OR ')
+      const categoryParams = cleaned.flatMap((root) => [root, `${root}/%`])
+      const rows = agentId
+        ? db.prepare(`SELECT * FROM memories WHERE (${categoryClause}) AND (agentId=? OR agentId IS NULL OR sharedWith LIKE ? OR sharedWith IN ('global','all','*')) ORDER BY updatedAt DESC LIMIT ?`)
+          .all(...categoryParams, agentId, `%"${agentId}"%`, safeLimit) as Record<string, unknown>[]
+        : db.prepare(`SELECT * FROM memories WHERE (${categoryClause}) ORDER BY updatedAt DESC LIMIT ?`)
+          .all(...categoryParams, safeLimit) as Record<string, unknown>[]
+      return rows.map(rowToEntry)
+    },
+
     listKnowledgeSourceChunks(sourceId: string): MemoryEntry[] {
       return (stmts.listKnowledgeSourceChunks.all(sourceId) as Record<string, unknown>[]).map(rowToEntry)
     },

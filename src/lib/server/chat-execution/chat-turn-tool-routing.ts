@@ -27,6 +27,7 @@ import { classifyMessage, type MessageClassification } from '@/lib/server/chat-e
 import {
   buildDirectMemoryRecallResponse,
   classifyDirectMemoryIntent,
+  isMemorySearchMiss,
   type DirectMemoryIntent,
   type DirectMemoryIntentClassifierInput,
 } from '@/lib/server/chat-execution/direct-memory-intent'
@@ -242,12 +243,17 @@ export async function runExclusiveDirectMemoryPreflight(
   }
 
   if (directMemoryIntent.action === 'recall') {
-    const recallResponse = result.toolOutputText
-      ? buildDirectMemoryRecallResponse(directMemoryIntent, result.toolOutputText)
-      : null
+    // A miss is not an answer. The search ran on one classifier-written query,
+    // and a keyword index misses whenever that query is phrased differently
+    // from the memory (live case: an English query against a Hungarian rule).
+    // Ending the turn on the canned "I don't have that" told the user a stored
+    // rule did not exist, and the agent never saw the turn. Let it answer.
+    if (!result.toolOutputText || isMemorySearchMiss(result.toolOutputText)) return null
+    const recallResponse = buildDirectMemoryRecallResponse(directMemoryIntent, result.toolOutputText)
+    if (!recallResponse) return null
     return {
       calledNames,
-      fullResponse: recallResponse || directMemoryIntent.missResponse,
+      fullResponse: recallResponse,
       errorMessage: undefined,
       missedRequestedTools: [],
     }
@@ -656,7 +662,12 @@ export async function runPostLlmToolRouting(
       if (isToolErrorText(result.toolOutputText)) {
         fullResponse = String(result.toolOutputText || '').trim()
       } else {
-        const recallResponse = buildDirectMemoryRecallResponse(directMemoryIntent, result.toolOutputText)
+        // The canned miss only stands in for a turn that produced nothing;
+        // it must never replace an answer the model already wrote.
+        const miss = isMemorySearchMiss(result.toolOutputText)
+        const recallResponse = miss && fullResponse.trim()
+          ? null
+          : buildDirectMemoryRecallResponse(directMemoryIntent, result.toolOutputText)
         if (recallResponse) {
           fullResponse = recallResponse
           errorMessage = undefined

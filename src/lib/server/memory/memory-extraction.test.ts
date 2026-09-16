@@ -205,3 +205,87 @@ describe('extractTurnCandidates retries a busy helper', () => {
     assert.equal(calls, 1)
   })
 })
+
+/*
+ * A beszélgetésben kimondott szabály tényként végezte.
+ *
+ * A kivonatoló mindent `knowledge/facts`-ba írt, amit csak kulcsszóra hív elő a
+ * rendszer, és háttérinfóként keretez. Egy "mostantól minden fejlesztést a
+ * Fejlesztő csinál" így sosem lett utasítás. Most külön gyűjti a szabályokat,
+ * látja a már rögzítetteket, és szabályként menti őket, a szabálykereten belül.
+ */
+describe('rules the user gives in conversation', () => {
+  it('parses rules separately from facts', () => {
+    const rules = extraction.parseExtractedRules('{"facts":[],"rules":[{"text":"Minden fejlesztési feladatot a Fejlesztő agent kap.","replaces":null},"Mindig magyarul válaszolj a felhasználónak."]}')
+    assert.deepEqual(rules, [
+      { text: 'Minden fejlesztési feladatot a Fejlesztő agent kap.', replaces: null },
+      { text: 'Mindig magyarul válaszolj a felhasználónak.', replaces: null },
+    ])
+    assert.deepEqual(extraction.parseExtractedRules('{"facts":["egy tény ami elég hosszú"]}'), [])
+  })
+
+  it('shows the extractor the rules already on record', async () => {
+    const db = memDb.getMemoryDb()
+    const recorded = db.add({ agentId: 'rules-seen', category: 'protocol/language', title: 'Nyelv', content: 'Mindig magyarul válaszolj.' })
+    let prompt = ''
+    await extraction.extractTurnCandidates(
+      { agentId: 'rules-seen', sessionId: 'rx', message: 'Mostantól minden fejlesztést a Fejlesztő agent csináljon meg.', response: 'Rendben, ezentúl a Fejlesztőnek adom.' },
+      { generate: async (p) => { prompt = p; return '{"facts":[],"rules":[]}' } },
+    )
+    assert.ok(prompt.includes(recorded.id), prompt)
+    assert.ok(prompt.includes('Mindig magyarul'), prompt)
+  })
+
+  it('promotes a stated rule into the rules block, not into facts', async () => {
+    const agentId = 'rules-learn'
+    await extraction.extractTurnCandidates(
+      { agentId, sessionId: 'rl', message: 'Mostantól minden fejlesztési feladatot a Fejlesztő agentnek adj ki.', response: 'Rendben, ezentúl így lesz.' },
+      { generate: async () => '{"facts":[],"rules":[{"text":"Minden fejlesztési feladatot a Fejlesztő agentnek kell kiadni.","replaces":null}]}' },
+    )
+    await extraction.promoteCandidates({ limit: 50 })
+    const { listStandingRules } = await import('@/lib/server/memory/standing-rules')
+    const rule = listStandingRules(agentId).find((entry) => entry.content.includes('Fejlesztő agentnek'))
+    assert.ok(rule, 'the rule must be readable by the rules block')
+    assert.equal(rule.category, 'preference/learned')
+  })
+
+  it('rewrites a rule the agent owns when the user changes it', async () => {
+    const agentId = 'rules-change'
+    const db = memDb.getMemoryDb()
+    const old = db.add({ agentId, category: 'preference/learned', title: 'Merge', content: 'Minden munka végén merge mainre.' })
+    await extraction.extractTurnCandidates(
+      { agentId, sessionId: 'rc', message: 'Ne merge-elj mainre, mostantól csak PR-t nyiss minden munka végén.', response: 'Rendben, ezentúl PR-t nyitok.' },
+      { generate: async () => JSON.stringify({ facts: [], rules: [{ text: 'Minden munka végén PR-t kell nyitni, nem merge-elni mainre.', replaces: old.id }] }) },
+    )
+    await extraction.promoteCandidates({ limit: 50 })
+    assert.match(db.get(old.id)?.content || '', /PR-t kell nyitni/)
+  })
+
+  it('never lets a guessed id overwrite a memory the extractor was not shown', async () => {
+    const agentId = 'rules-guess'
+    const db = memDb.getMemoryDb()
+    const unrelated = db.add({ agentId, category: 'knowledge/facts', title: 'Port', content: 'Az app a 8765-ös porton fut.' })
+    await extraction.extractTurnCandidates(
+      { agentId, sessionId: 'rg', message: 'Mostantól mindig tegezve írj nekem minden üzenetben, ez egy fontos szabály.', response: 'Rendben, ezentúl tegezni foglak.' },
+      { generate: async () => JSON.stringify({ facts: [], rules: [{ text: 'A felhasználót mindig tegezni kell.', replaces: unrelated.id }] }) },
+    )
+    const pending = db.listCandidates({ agentId, state: 'candidate' })
+    assert.equal(pending.length, 1, 'the rule must reach the queue, or this test proves nothing')
+    await extraction.promoteCandidates({ limit: 50 })
+    assert.equal(db.get(unrelated.id)?.content, 'Az app a 8765-ös porton fut.')
+  })
+
+  it('keeps a rule as a fact when the rules are full, instead of losing it', async () => {
+    const agentId = 'rules-full'
+    const db = memDb.getMemoryDb()
+    const { STANDING_RULES_CHAR_BUDGET } = await import('@/lib/server/memory/standing-rules')
+    db.add({ agentId, category: 'protocol/big', title: 'Nagy', content: 'x'.repeat(STANDING_RULES_CHAR_BUDGET) })
+    const candidate = db.addCandidate({ agentId, text: 'A felhasználónak mindig röviden kell válaszolni.', source: 'chat-turn-rule' })
+    await extraction.promoteCandidates({ limit: 50 })
+    const decided = db.listCandidates({ agentId, state: 'promoted' }).find((c) => c.id === candidate.id)
+    assert.ok(decided?.memoryId)
+    const kept = db.get(decided.memoryId)
+    assert.equal(kept?.category, 'knowledge/facts')
+    assert.equal(kept?.metadata?.ruleNotApplied, 'standing-rules-budget-full')
+  })
+})

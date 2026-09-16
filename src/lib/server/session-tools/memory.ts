@@ -31,6 +31,7 @@ import {
 } from '@/lib/server/memory/session-memory-scope'
 import { isDirectConnectorSession } from '@/lib/server/connectors/session-kind'
 import { log } from '@/lib/server/logger'
+import { buildStandingRulesBlock, checkStandingRulesBudget, listStandingRules } from '@/lib/server/memory/standing-rules'
 
 /**
  * Advanced Database-Backed Memory logic.
@@ -560,6 +561,12 @@ export async function executeMemoryAction(input: unknown, ctx: MemoryActionConte
     const normalizedCategory = normalizeMemoryCategory(requestedCategory || 'note', memoryTitle, storedValueText)
     const related = findRelatedCanonicalCandidates(memoryTitle, storedValueText)
     const canonicalTarget = related[0]?.entry || null
+    const storeRefusal = checkStandingRulesBudget({
+      agentId: currentAgentId || null,
+      next: { category: normalizedCategory, title: memoryTitle, content: storedValueText },
+      replacingId: canonicalTarget?.id || null,
+    })
+    if (storeRefusal) return storeRefusal
     const canonicalMetadata = buildCanonicalMetadata(memoryTitle, storedValueText)
     if (canonicalTarget) {
       const updated = memDb.update(canonicalTarget.id, {
@@ -619,14 +626,21 @@ export async function executeMemoryAction(input: unknown, ctx: MemoryActionConte
     const queries = queryText ? await expandQuery(queryText) : [keyText]
     const allResults: MemoryEntry[] = []
     const seenIds = new Set<string>()
-    for (const q of queries) {
-      const results = memDb.search(q, currentAgentId || undefined, { scope: scopeFilter, rerankMode })
-      for (const r of results) {
-        if (!seenIds.has(r.id)) {
-          seenIds.add(r.id); allResults.push(r)
+    const runQueries = (ftsMode: 'all' | 'any') => {
+      for (const q of queries) {
+        const results = memDb.search(q, currentAgentId || undefined, { scope: scopeFilter, rerankMode, ftsMode })
+        for (const r of results) {
+          if (!seenIds.has(r.id)) {
+            seenIds.add(r.id); allResults.push(r)
+          }
         }
       }
     }
+    // Every word first. When that finds nothing, any word: a query of four
+    // terms misses a memory that uses only three of them, and "No memories
+    // found" reads to the agent as "this was never stored".
+    runQueries('all')
+    if (!allResults.length) runQueries('any')
     const scopedResults = filterResultsBySources(allResults, searchSources)
     const visibleResults = scopedResults.length ? scopedResults : allResults
     if (!visibleResults.length) return 'No memories found.'
@@ -668,6 +682,11 @@ export async function executeMemoryAction(input: unknown, ctx: MemoryActionConte
       if (explicitMemoryId) return 'Memory not found or access denied.'
       if (!nextContentSeed.trim()) return 'Memory update requires id, key, title, or query.'
       const normalizedCategory = normalizeMemoryCategory(requestedCategory || 'note', nextTitleSeed, nextContentSeed)
+      const createRefusal = checkStandingRulesBudget({
+        agentId: currentAgentId || null,
+        next: { category: normalizedCategory, title: nextTitleSeed, content: nextContentSeed },
+      })
+      if (createRefusal) return createRefusal
       const created = memDb.add({
         agentId: scopeMode === 'global' ? null : currentAgentId,
         sessionId: ctx?.sessionId || null,
@@ -694,6 +713,12 @@ export async function executeMemoryAction(input: unknown, ctx: MemoryActionConte
         : found.category,
       metadata: mergeMemoryMetadata(found.metadata, buildCanonicalMetadata(nextTitle, nextContent)),
     }
+    const updateRefusal = checkStandingRulesBudget({
+      agentId: currentAgentId || null,
+      next: { category: updates.category || found.category, title: nextTitle, content: nextContent },
+      replacingId: found.id,
+    })
+    if (updateRefusal) return updateRefusal
     if (normalizedLinkedMemoryIds) updates.linkedMemoryIds = normalizedLinkedMemoryIds
     if (Array.isArray(sharedWith)) updates.sharedWith = sharedWith
     if (typeof pinned === 'boolean') updates.pinned = pinned
@@ -773,9 +798,18 @@ export const MemoryExtension: Extension = {
       const pinned = filterMemoriesByScope(pinnedSource, scopeFilter).slice(0, 5)
       const allRecent = filterMemoriesByScope(allRecentSource, scopeFilter)
 
+      // Standing rules travel in full, in their own block (see standing-rules.ts).
+      // identity/* stays private (DM/peer only); preference/* and protocol/*
+      // are how the agent must work, wherever it is talking.
+      const standingRules = listStandingRules(agentId, scopeFilter)
+        .filter((m) => isPrivateContext || !m.category?.startsWith('identity'))
+      const rulesBlock = buildStandingRulesBlock(standingRules)
+      for (const rule of rulesBlock.included) dedup(rule)
+      for (const rule of rulesBlock.overflow) dedup(rule)
+
       const pinnedLines = pinned.filter(dedup).map(formatMemoryLine)
 
-      // Fetch identity/* category memories — only in private (DM/peer) contexts
+      // The rest of identity/* (contacts, relationships...) — private contexts only
       const identityMemories = isPrivateContext
         ? allRecent.filter((m) => m.category?.startsWith('identity/') && dedup(m))
         : []
@@ -886,6 +920,7 @@ export const MemoryExtension: Extension = {
       }
 
       const parts: string[] = []
+      if (rulesBlock.text) parts.push(rulesBlock.text)
       if (contactBlock) {
         parts.push(contactBlock)
       }
@@ -930,7 +965,7 @@ export const MemoryExtension: Extension = {
         '- `identity/routines` — Recurring patterns: "picks up kids at 3pm", "checks in every morning"',
         '- `identity/goals` — What the user is working toward: "launch MVP by Q2", "learn Spanish"',
         '- `identity/events` — Significant life events: illness, birth, wedding, promotion, loss',
-        '- `knowledge/instructions` — Standing directives: "always respond in English", "use metric units"',
+        '- `protocol/<topic>` — Standing directives: "always respond in English", "send every coding task to the Developer agent". Like `identity/*` and `preference/*`, these are loaded in full at the start of every conversation, under a shared 5000-character cap, so keep them short and merge overlapping ones',
         '- `knowledge/facts` — General knowledge, references, documentation',
         '- `projects/decisions` — Decisions made and why',
         '- `projects/learnings` — Lessons learned, solved problems, post-mortems',
@@ -1166,7 +1201,7 @@ export const MemoryExtension: Extension = {
         properties: {
           title: { type: 'string', description: 'Short human-readable title. Without one the entry is filed as "Untitled" and is unreadable in a recall list.' },
           value: { type: 'string', description: 'The fact itself, as one self-contained sentence that still makes sense in a month.' },
-          category: { type: 'string', description: 'Category, e.g. identity/preferences, preference/<topic>, knowledge/facts, decision/<topic>.' },
+          category: { type: 'string', description: 'Category, e.g. identity/preferences, preference/<topic>, protocol/<topic>, knowledge/facts, decision/<topic>. identity/*, preference/* and protocol/* are standing rules: loaded in full into every new conversation, capped at 5000 characters in total.' },
           key: { type: 'string' },
           importance: { type: 'number', description: 'How much this matters: 1 (routine) to 10 (changes how the fleet works). This is the ranking signal -- an entry left unscored never outranks anything.' },
           abstract: { type: 'string', description: 'One-sentence summary, used when this memory is recalled into a prompt.' },

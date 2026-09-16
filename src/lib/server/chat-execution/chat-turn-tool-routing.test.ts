@@ -81,6 +81,38 @@ describe('chat-turn-tool-routing', () => {
     assert.equal(result, null)
   })
 
+  // Élő eset: angol lekérdezés egy magyar szabályra nem talált semmit, és az
+  // előszűrő a saját "I don't have that rule recorded yet" mondatával zárta le a
+  // kört -- az ügynök nem is látta a kérdést.
+  it('hands the turn to the agent when a preflight recall finds nothing', async () => {
+    const result = await runExclusiveDirectMemoryPreflight({
+      session: { cwd: process.cwd(), tools: ['memory'] },
+      sessionId: 'preflight-memory-miss',
+      message: 'viszont az a memóriádban nincs meg, hogy az ilyen feladatokat át kell adni a fejlesztőnek?',
+      effectiveMessage: 'viszont az a memóriádban nincs meg, hogy az ilyen feladatokat át kell adni a fejlesztőnek?',
+      enabledExtensions: ['memory'],
+      toolPolicy: resolveSessionToolPolicy(['memory'], {}),
+      appSettings: {},
+      internal: false,
+      source: 'chat',
+      toolEvents: [],
+      emit: () => {},
+    }, {
+      classifyDirectMemoryIntent: async () => ({
+        action: 'recall',
+        confidence: 0.9,
+        query: 'rule about delegating tasks to the developer',
+        missResponse: "I don't have that rule recorded yet. Want me to remember it?",
+      }),
+      invokeTool: async (_ctx, toolName, _args, _failurePrefix, calledNames) => {
+        calledNames.add(toolName)
+        return { invoked: true, responseOverride: null, toolOutputText: 'No memories found.' }
+      },
+    })
+
+    assert.equal(result, null)
+  })
+
   it('fails open when direct-memory preflight classification times out', async () => {
     const started = Date.now()
     const result = await runExclusiveDirectMemoryPreflight({
@@ -437,6 +469,35 @@ describe('chat-turn-tool-routing', () => {
     assert.equal(result.fullResponse, 'I do not have your launch marker in memory yet.')
     assert.equal(result.errorMessage, undefined)
     assert.equal(result.calledNames.has('memory_search'), true)
+  })
+
+  it('never replaces an answer the model already wrote with the canned miss', async () => {
+    const result = await runPostLlmToolRouting({
+      session: { cwd: process.cwd(), tools: ['memory'] },
+      sessionId: 'session-memory-miss-with-answer',
+      message: 'Emlékszel a delegálási szabályra?',
+      effectiveMessage: 'Emlékszel a delegálási szabályra?',
+      enabledExtensions: ['memory'],
+      toolPolicy: resolveSessionToolPolicy(['memory'], {}),
+      appSettings: {},
+      internal: false,
+      source: 'chat',
+      toolEvents: [],
+      emit: () => {},
+    }, 'Igen: minden fejlesztési feladat a Fejlesztőhöz megy.', undefined, {
+      classifyDirectMemoryIntent: async () => ({
+        action: 'recall',
+        confidence: 0.9,
+        query: 'delegation rule',
+        missResponse: 'I do not have that yet.',
+      }),
+      invokeTool: async (_ctx, toolName, _args, _failurePrefix, calledNames) => {
+        calledNames.add(toolName)
+        return { invoked: true, responseOverride: null, toolOutputText: 'No memories found.' }
+      },
+    })
+
+    assert.equal(result.fullResponse, 'Igen: minden fejlesztési feladat a Fejlesztőhöz megy.')
   })
 
   it('uses classifier-backed memory list fallback for broad memory inventory requests', async () => {

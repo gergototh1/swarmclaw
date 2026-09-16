@@ -169,6 +169,7 @@ function buildDirectMemoryIntentPrompt(input: DirectMemoryIntentClassifierInput)
     '- Set "exclusiveCompletion" to true only when a successful memory write fully satisfies the user turn and the assistant should stop after the acknowledgement. Set it to false when the user also asked for other work in the same turn.',
     '- Choose "recall" for targeted lookups about a specific remembered fact. Choose "list" for broad inventory requests like listing memories or asking what is remembered overall.',
     '- For "recall", return a concise search query in "query" and a short natural "missResponse". Do not mention tools.',
+    '- Write "query", "missResponse" and "acknowledgement" in the language of user_message. Stored memories are written in the user\'s language, and the search matches words, so a translated query finds nothing.',
     '',
     'Output shape:',
     '{"action":"none|store|update|recall|list","confidence":0-1,"title":"optional short title","value":"for store/update","query":"for recall","acknowledgement":"for store/update","missResponse":"for recall","exclusiveCompletion":true}',
@@ -226,6 +227,13 @@ export function renderMemoryContent(content: string): string {
     if (subject && value) return `Your ${subject} is ${value}.`
   }
   return /[.?!]$/.test(trimmed) ? trimmed : `${trimmed}.`
+}
+
+/** Whether a `memory_search` result says nothing matched. */
+export function isMemorySearchMiss(toolOutput: string): boolean {
+  const firstLine = splitFirstMemoryLine(toolOutput)
+  if (!firstLine) return true
+  return firstLine === 'No memories found.' || firstLine.startsWith('No stored memories match')
 }
 
 export function buildDirectMemoryRecallResponse(

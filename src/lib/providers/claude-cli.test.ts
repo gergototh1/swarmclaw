@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { addAssignedMcpServers, buildClaudeCliPrompt, claudeCliStreamEvents, CLAUDE_CLI_DISALLOWED_TOOLS } from './claude-cli'
+import { addAssignedMcpServers, buildClaudeCliPrompt, claudeCliStreamEvents, CLAUDE_CLI_DISALLOWED_TOOLS, forgetInjectionsForFreshTranscript } from './claude-cli'
 import { MCP_INJECTION_PROVIDER_IDS } from '@/lib/provider-sets'
 
 /**
@@ -319,5 +319,24 @@ describe('claudeCliStreamEvents', () => {
 
   it('ignores an event with no content list', () => {
     assert.deepEqual(claudeCliStreamEvents({ type: 'system', subtype: 'init' }, new Map()), { events: [], text: null })
+  })
+})
+
+/*
+ * A törölt beszélgetés új CLI-átiratot kezd, de az injektálási napló megmaradt,
+ * így az új átirat se szabályt, se kitűzött jegyzetet nem kapott: minden
+ * "már elküldöttnek" számított.
+ */
+describe('forgetInjectionsForFreshTranscript', () => {
+  it('starts the record over when there is no transcript to resume', () => {
+    const session = { claudeSessionId: null, injectedMemoryIds: { 'rules:abc': 1, m1: 1 } }
+    forgetInjectionsForFreshTranscript(session)
+    assert.deepEqual(session.injectedMemoryIds, {})
+  })
+
+  it('keeps the record while the same transcript is resumed', () => {
+    const session = { claudeSessionId: 'cli-123', injectedMemoryIds: { 'rules:abc': 1 } }
+    forgetInjectionsForFreshTranscript(session)
+    assert.deepEqual(session.injectedMemoryIds, { 'rules:abc': 1 })
   })
 })

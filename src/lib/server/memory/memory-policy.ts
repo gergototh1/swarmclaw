@@ -102,7 +102,7 @@ export function normalizeMemoryCategory(input: string | null | undefined, _title
     if (['routine', 'routines', 'schedule', 'habit', 'habits'].includes(value)) return 'identity/routines'
     if (['event', 'events', 'life event', 'life events', 'significant', 'milestone'].includes(value)) return 'identity/events'
     if (['goal', 'goals', 'objective', 'objectives', 'target', 'targets'].includes(value)) return 'identity/goals'
-    if (['instruction', 'instructions', 'directive', 'directives', 'standing order', 'rule', 'rules'].includes(value)) return 'knowledge/instructions'
+    if (['instruction', 'instructions', 'directive', 'directives', 'standing order', 'rule', 'rules'].includes(value)) return 'protocol/instructions'
     if (['decision', 'decisions', 'choice'].includes(value)) return 'projects/decisions'
     if (['learning', 'learnings', 'lesson', 'lessons'].includes(value)) return 'projects/learnings'
     if (['project', 'projects', 'task', 'tasks'].includes(value)) return 'projects/context'

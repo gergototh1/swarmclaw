@@ -115,6 +115,30 @@ The pattern:
 
 Reference implementations: `stripMainLoopMetaForPersistence` (`src/lib/server/agents/main-agent-loop.ts`) and `stripAgentReactionTokens` (`src/lib/server/chatrooms/chatroom-agent-signals.ts`). When you add a new internal payload shape, add a rule to `INTERNAL_PAYLOAD_RULES` in `main-agent-loop.ts` rather than writing a new strip function.
 
+### Standing Rules Reach Every Agent in Full
+
+Memories in `identity/*` (except contacts, relationships, events, routines and
+goals), `preference/*` and `protocol/*` are **standing rules**: what the owner
+told an agent to do. They are never retrieved by keyword. `standing-rules.ts`
+(`src/lib/server/memory/`) lists them, and both the CLI preamble and the API
+memory context send the whole set, in full, in their own block, before pinned
+notes and recall hits. A rule shares no words with "ezeket csináld meg", so
+keyword recall can never be what delivers it.
+
+- **One budget, enforced on both sides.** `STANDING_RULES_CHAR_BUDGET` caps the
+  total. The `memory` tool refuses a rule write that would overflow it and
+  lists the current rules so the agent consolidates; the preamble names any
+  rule that still does not fit (with its `memory_get` id) instead of dropping it.
+- **Once per CLI transcript.** The set is re-sent when a rule changes, when the
+  CLI starts a fresh transcript (no resume id), and after the CLI reports a
+  `compact_boundary`. Do not add a path that marks memories as injected without
+  tying the record to the transcript it went into.
+- **Rules said in chat become rules.** The per-turn extractor returns `rules`
+  beside `facts`; `promoteCandidates` files them as `preference/learned` under
+  the same budget, or keeps them as a fact (and logs it) when the budget is full.
+- A new category that carries instructions belongs under one of the three
+  roots. `normalizeMemoryCategory('rule')` maps to `protocol/instructions`.
+
 ### Storage: Load-Modify-Save
 
 **`saveCollection()` silently blocks bulk deletes.** If the save would delete more rows than it upserts, the guard prevents it and logs a warning. This protects against accidentally wiping a collection by saving a partial record set.
