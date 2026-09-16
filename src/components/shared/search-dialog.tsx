@@ -68,8 +68,6 @@ export function SearchDialog() {
   const currentUser = useAppStore((s) => s.currentUser)
   const navigateToView = useNavigate()
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
-  const setEditingAgentId = useAppStore((s) => s.setEditingAgentId)
-  const setAgentSheetOpen = useAppStore((s) => s.setAgentSheetOpen)
   const setEditingTaskId = useAppStore((s) => s.setEditingTaskId)
   const setTaskSheetOpen = useAppStore((s) => s.setTaskSheetOpen)
   const setEditingScheduleId = useAppStore((s) => s.setEditingScheduleId)
@@ -142,15 +140,17 @@ export function SearchDialog() {
   // Navigate to a result
   const goToResult = useCallback((result: SearchResult) => {
     setOpen(false)
+    // An agent opens straight onto its settings page.
+    if (result.type === 'agent') {
+      navigateToView('agents', result.id)
+      setSidebarOpen(true)
+      return
+    }
     const view = TYPE_VIEW_MAP[result.type]
     navigateToView(view)
     setSidebarOpen(true)
 
     switch (result.type) {
-      case 'agent':
-        setEditingAgentId(result.id)
-        setAgentSheetOpen(true)
-        break
       case 'task':
         setEditingTaskId(result.id)
         setTaskSheetOpen(true)

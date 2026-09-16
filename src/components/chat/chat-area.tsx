@@ -12,6 +12,7 @@ import { errorMessage } from '@/lib/shared-utils'
 import { uploadImage } from '@/lib/upload'
 import { deleteAgent } from '@/lib/agents'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useNavigate } from '@/lib/app/navigation'
 import { ChatHeader } from './chat-header'
 import { DevServerBar } from './dev-server-bar'
 import { MessageList } from './message-list'
@@ -113,8 +114,7 @@ export function ChatArea() {
     return agentId ? s.agents[agentId] ?? null : null
   })
   const loadAgents = useAppStore((s) => s.loadAgents)
-  const setEditingAgentId = useAppStore((s) => s.setEditingAgentId)
-  const setAgentSheetOpen = useAppStore((s) => s.setAgentSheetOpen)
+  const navigateTo = useNavigate()
   const setAgentPrefill = useAppStore((s) => s.setAgentPrefill)
   const inspectorOpen = useAppStore((s) => s.inspectorOpen)
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
@@ -823,12 +823,8 @@ export function ChatArea() {
       <InspectorPanel
         agent={currentAgent}
         session={session}
-        onEditAgent={() => { setEditingAgentId(session.agentId!); setAgentSheetOpen(true) }}
-        onDuplicateAgent={() => {
-          setAgentPrefill(currentAgent)
-          setEditingAgentId(null)
-          setAgentSheetOpen(true)
-        }}
+        onEditAgent={() => navigateTo('agents', session.agentId!)}
+        onDuplicateAgent={() => { setAgentPrefill(currentAgent); navigateTo('agents', 'new') }}
         onClearHistory={() => setConfirmClear(true)}
         onDeleteAgent={() => setConfirmDeleteAgent(true)}
         onDeleteChat={() => setConfirmDelete(true)}

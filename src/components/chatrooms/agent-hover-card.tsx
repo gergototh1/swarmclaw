@@ -5,6 +5,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/h
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { useAppStore } from '@/stores/use-app-store'
 import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { api } from '@/lib/app/api-client'
 import { AVAILABLE_TOOLS, PLATFORM_TOOLS, TOOL_LABELS } from '@/lib/tool-definitions'
 import type { Agent } from '@/types'
@@ -20,6 +21,7 @@ const ALL_TOOL_IDS = [...AVAILABLE_TOOLS, ...PLATFORM_TOOLS].map((t) => t.id)
 
 export function AgentHoverCard({ agent, children, status }: Props) {
   const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
   const [showAll, setShowAll] = useState(false)
   const [busy, setBusy] = useState(false)
   const tools = getEnabledToolIds(agent)
@@ -104,7 +106,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              navigateTo('agents', agent.id)
+              void openAgentThread(agent.id)
             }}
             className="flex-1 text-[12px] font-600 text-text-2 hover:text-text py-1 rounded-xs bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
           >
@@ -112,8 +114,7 @@ export function AgentHoverCard({ agent, children, status }: Props) {
           </button>
           <button
             onClick={() => {
-              useAppStore.getState().setEditingAgentId(agent.id)
-              useAppStore.getState().setAgentSheetOpen(true)
+              navigateTo('agents', agent.id)
             }}
             className="flex-1 text-[12px] font-600 text-text-2 hover:text-text py-1 rounded-xs bg-layer-2 hover:bg-layer-3 transition-colors cursor-pointer"
           >

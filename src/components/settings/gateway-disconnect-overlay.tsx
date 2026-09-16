@@ -56,8 +56,6 @@ interface GatewayDisconnectOverlayProps {
 export function GatewayDisconnectOverlay({ agentId = null }: GatewayDisconnectOverlayProps) {
   const navigateTo = useNavigate()
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
-  const setAgentSheetOpen = useAppStore((s) => s.setAgentSheetOpen)
-  const setEditingAgentId = useAppStore((s) => s.setEditingAgentId)
 
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-bg/80 backdrop-blur-sm">
@@ -74,8 +72,7 @@ export function GatewayDisconnectOverlay({ agentId = null }: GatewayDisconnectOv
         <button
           onClick={() => {
             if (agentId) {
-              setEditingAgentId(agentId)
-              setAgentSheetOpen(true)
+              navigateTo('agents', agentId)
               return
             }
             navigateTo('settings')

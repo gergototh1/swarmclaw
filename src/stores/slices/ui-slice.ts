@@ -13,10 +13,6 @@ export interface UiSlice {
   setSettingsOpen: (open: boolean) => void
   activeView: AppView
   setActiveView: (view: AppView) => void
-  agentSheetOpen: boolean
-  setAgentSheetOpen: (open: boolean) => void
-  editingAgentId: string | null
-  setEditingAgentId: (id: string | null) => void
   scheduleSheetOpen: boolean
   setScheduleSheetOpen: (open: boolean) => void
   editingScheduleId: string | null
@@ -124,10 +120,6 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
   setSettingsOpen: (open) => set({ settingsOpen: open }),
   activeView: 'home',
   setActiveView: (view) => set({ activeView: view }),
-  agentSheetOpen: false,
-  setAgentSheetOpen: (open) => set({ agentSheetOpen: open }),
-  editingAgentId: null,
-  setEditingAgentId: (id) => set({ editingAgentId: id }),
   scheduleSheetOpen: false,
   setScheduleSheetOpen: (open) => set({ scheduleSheetOpen: open }),
   editingScheduleId: null,
