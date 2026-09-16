@@ -3,6 +3,7 @@ import type { AppState } from '../use-app-store'
 import type { Agent, AppView, FleetFilter } from '../../types'
 import { safeStorageGet, safeStorageSet } from '@/lib/app/safe-storage'
 import { recordRecentItem } from '@/lib/app/recent-items'
+import { CHAT_LIST_MODE_KEY, parseChatListMode, type ChatListMode } from '@/lib/app/chat-list-mode'
 
 export interface UiSlice {
   sidebarOpen: boolean
@@ -107,6 +108,8 @@ export interface UiSlice {
   setFleetFilter: (filter: FleetFilter) => void
   chatFilter: 'all' | 'active' | 'recent'
   setChatFilter: (filter: 'all' | 'active' | 'recent') => void
+  chatListMode: ChatListMode
+  setChatListMode: (mode: ChatListMode) => void
   heartbeatHistoryOpen: boolean
   setHeartbeatHistoryOpen: (open: boolean) => void
   agentPrefill: Partial<Agent> | null
@@ -216,6 +219,11 @@ export const createUiSlice: StateCreator<AppState, [], [], UiSlice> = (set, get)
   setFleetFilter: (filter) => { safeStorageSet('sc_fleet_filter', filter); set({ fleetFilter: filter }) },
   chatFilter: 'all' as const,
   setChatFilter: (filter) => set({ chatFilter: filter }),
+  chatListMode: parseChatListMode(safeStorageGet(CHAT_LIST_MODE_KEY)),
+  setChatListMode: (mode) => {
+    safeStorageSet(CHAT_LIST_MODE_KEY, mode)
+    set({ chatListMode: mode })
+  },
   heartbeatHistoryOpen: false,
   setHeartbeatHistoryOpen: (open) => set({ heartbeatHistoryOpen: open }),
   agentPrefill: null,
