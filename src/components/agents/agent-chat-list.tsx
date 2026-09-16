@@ -9,6 +9,7 @@ import { useNow } from '@/hooks/use-now'
 import { useMountedRef } from '@/hooks/use-mounted-ref'
 import { useWs } from '@/hooks/use-ws'
 import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { api } from '@/lib/app/api-client'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import type { Agent, Session } from '@/types'
@@ -23,15 +24,15 @@ interface Props {
   onSelect?: () => void
 }
 
-export function AgentChatList({ inSidebar, onSelect }: Props) {
+export function AgentChatList({ onSelect }: Props) {
   const mountedRef = useMountedRef()
   const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
   const now = useNow()
   const agents = useAppStore((s) => s.agents)
   const sessions = useAppStore((s) => s.sessions)
   const loadAgents = useAppStore((s) => s.loadAgents)
   const currentAgentId = useAppStore((s) => s.currentAgentId)
-  const setAgentSheetOpen = useAppStore((s) => s.setAgentSheetOpen)
   const tasks = useAppStore((s) => s.tasks)
   const togglePinAgent = useAppStore((s) => s.togglePinAgent)
   const appSettings = useAppStore((s) => s.appSettings)
@@ -200,7 +201,8 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
       setEnableAgentTarget(agent)
       return
     }
-    navigateTo('agents', agent.id)
+    const opened = await openAgentThread(agent.id)
+    if (!opened) return
     onSelect?.()
     // Delay scroll so React renders the new messages first
     if (mountedRef.current && typeof window !== 'undefined') {
@@ -224,15 +226,13 @@ export function AgentChatList({ inSidebar, onSelect }: Props) {
         </div>
         <p className="font-display text-[15px] font-600 text-text-2">No agents yet</p>
         <p className="text-[13px] text-text-3">Create agents to start chatting</p>
-        {!inSidebar && (
-          <Button
-            variant="accent"
-            onClick={() => setAgentSheetOpen(true)}
-            className="mt-3 px-8 py-3 rounded-md text-[14px] cursor-pointer active:scale-95"
-          >
-            + New Agent
-          </Button>
-        )}
+        <Button
+          variant="accent"
+          onClick={() => navigateTo('agents', 'new')}
+          className="mt-3 px-8 py-3 rounded-md text-[14px] cursor-pointer active:scale-95"
+        >
+          + New Agent
+        </Button>
       </div>
     )
   }
