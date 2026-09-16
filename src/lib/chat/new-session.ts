@@ -123,6 +123,11 @@ export function buildNewAgentSessionPayload(session: AgentSessionCloneSource): R
   }
 }
 
+/** A fresh conversation with the agent that owns `thread`, named after the agent. */
+export function buildAgentChatPayload(thread: AgentSessionCloneSource, agentName: string | null): Record<string, unknown> {
+  return { ...buildNewAgentSessionPayload(thread), name: agentName || thread.name }
+}
+
 export function sortSessionsNewestFirst<T extends Pick<Session, 'createdAt' | 'lastActiveAt'>>(sessions: T[]): T[] {
   return [...sessions].sort((left, right) => {
     const leftTime = left.lastActiveAt || left.createdAt || 0

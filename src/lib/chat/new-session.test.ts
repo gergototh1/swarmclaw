@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  buildAgentChatPayload,
   buildNewAgentSessionPayload,
   getNewSessionButtonTitle,
   hasResettableSessionRuntime,
@@ -111,4 +112,26 @@ test('summarizeFirstMessageAsTitle turns the opening prompt into a compact sessi
     'Review the latest CI failures for the dashboard',
   )
   assert.equal(summarizeFirstMessageAsTitle('   '), 'New Chat')
+})
+
+test('buildAgentChatPayload clones the thread routing and names the chat after the agent', () => {
+  const thread = {
+    id: 'thread-1', name: 'Mira', cwd: '/w', user: 'default', provider: 'claude-cli', model: 'opus',
+    agentId: 'a1', sessionType: 'human',
+  } as unknown as Parameters<typeof buildAgentChatPayload>[0]
+
+  const payload = buildAgentChatPayload(thread, 'Mira')
+  assert.equal(payload.agentId, 'a1')
+  assert.equal(payload.parentSessionId, 'thread-1')
+  assert.equal(payload.provider, 'claude-cli')
+  assert.equal(payload.name, 'Mira')
+})
+
+test('buildAgentChatPayload keeps the thread name when the agent has none', () => {
+  const thread = {
+    id: 'thread-1', name: 'Mira', cwd: '/w', user: 'default', provider: 'claude-cli', model: 'opus',
+    agentId: 'a1', sessionType: 'human',
+  } as unknown as Parameters<typeof buildAgentChatPayload>[0]
+
+  assert.equal(buildAgentChatPayload(thread, null).name, 'Mira')
 })

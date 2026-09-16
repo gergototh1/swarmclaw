@@ -5,7 +5,7 @@ import { api } from '@/lib/app/api-client'
 import { fetchChat, fetchChats } from '@/lib/chat/chats'
 import { invalidateFingerprint, setIfChanged } from '../set-if-changed'
 import { createLoader, createInflightDeduplicator } from '../store-utils'
-import { buildNewAgentSessionPayload } from '@/lib/chat/new-session'
+import { buildAgentChatPayload, buildNewAgentSessionPayload } from '@/lib/chat/new-session'
 import { runChatReadMigrationOnce } from '../chat-read-migration'
 
 const sessionRefreshDedup = createInflightDeduplicator('sessionSlice_inflightRefreshes')
@@ -79,6 +79,8 @@ export interface SessionSlice {
    * chances to drift apart.
    */
   startNewChatSession: () => Promise<Session | null>
+  /** A new conversation with `agentId`, cloned from the agent's own thread. */
+  startNewChatWithAgent: (agentId: string) => Promise<Session | null>
 }
 
 export const createSessionSlice: StateCreator<AppState, [], [], SessionSlice> = (set, get) => ({
@@ -95,6 +97,14 @@ export const createSessionSlice: StateCreator<AppState, [], [], SessionSlice> = 
       ...buildNewAgentSessionPayload(session),
       name: agentName || session.name,
     })
+    get().updateSessionInStore(next)
+    set({ activeSessionIdOverride: next.id })
+    return next
+  },
+  startNewChatWithAgent: async (agentId) => {
+    const thread = await get().ensureAgentThread(agentId)
+    if (!thread) return null
+    const next = await api<Session>('POST', '/chats', buildAgentChatPayload(thread, get().agents[agentId]?.name ?? null))
     get().updateSessionInStore(next)
     set({ activeSessionIdOverride: next.id })
     return next

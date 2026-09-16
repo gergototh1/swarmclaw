@@ -12,6 +12,8 @@ const agentThreadDedup = createInflightDeduplicator('agentSlice_inflightLoads')
 export interface AgentSlice {
   currentAgentId: string | null
   setCurrentAgent: (id: string | null) => Promise<void>
+  /** The agent's long-lived thread, created on first use. Null when the server refused. */
+  ensureAgentThread: (agentId: string) => Promise<Session | null>
   agents: Record<string, Agent>
   loadAgents: () => Promise<void>
   updateAgentInStore: (agent: Agent) => void
@@ -38,15 +40,18 @@ export const createAgentSlice: StateCreator<AppState, [], [], AgentSlice> = (set
     set({ currentAgentId: id, activeSessionIdOverride: null })
     safeStorageSet('sc_agent', id)
 
-    await agentThreadDedup.dedup(id, async () => {
+    await get().ensureAgentThread(id)
+  },
+  ensureAgentThread: async (agentId) => {
+    const existingId = get().agents[agentId]?.threadSessionId
+    if (existingId && get().sessions[existingId]) return get().sessions[existingId]
+    await agentThreadDedup.dedup(agentId, async () => {
       try {
         const user = get().currentUser || 'default'
-        const session = await api<Session>('POST', `/agents/${id}/thread`, { user })
+        const session = await api<Session>('POST', `/agents/${agentId}/thread`, { user })
         if (session?.id) {
           const agents = { ...get().agents }
-          if (agents[id]) {
-            agents[id] = { ...agents[id], threadSessionId: session.id }
-          }
+          if (agents[agentId]) agents[agentId] = { ...agents[agentId], threadSessionId: session.id }
           const sessions = { ...get().sessions, [session.id]: session }
           invalidateFingerprint('sessions')
           set({ sessions, agents })
@@ -55,6 +60,8 @@ export const createAgentSlice: StateCreator<AppState, [], [], AgentSlice> = (set
         console.warn('Agent thread creation failed:', err)
       }
     })
+    const threadId = get().agents[agentId]?.threadSessionId
+    return threadId ? get().sessions[threadId] ?? null : null
   },
   agents: {},
   loadAgents: createLoader<AppState>(set, 'agents', () => fetchAgents()),
