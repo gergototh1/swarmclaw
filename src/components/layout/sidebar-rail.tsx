@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 import { Activity, BookOpen, Briefcase, Home, Link2, MessageSquare, Users, Settings as SettingsIcon } from 'lucide-react'
 import { useAppStore } from '@/stores/use-app-store'
 import { Avatar } from '@/components/shared/avatar'
-import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { DaemonIndicator } from '@/components/layout/daemon-indicator'
 import { NetworkBanner } from '@/components/layout/network-banner'
 import { NotificationCenter } from '@/components/shared/notification-center'
@@ -141,13 +140,6 @@ export function SidebarRail({
   const navigateTo = useNavigate()
   const currentUser = useAppStore((s) => s.currentUser)
   const appSettings = useAppStore((s) => s.appSettings)
-  const defaultAgent = useAppStore((s) => {
-    const defaultId = s.appSettings.defaultAgentId
-    if (defaultId && s.agents[defaultId]) return s.agents[defaultId]
-    const first = Object.values(s.agents)[0]
-    return first || null
-  })
-  const currentAgentId = useAppStore((s) => s.currentAgentId)
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   const skillDraftCount = useAppStore((s) => s.skillDraftCount)
@@ -156,9 +148,6 @@ export function SidebarRail({
   // See `resolveSidebarActiveView` for why this must not fall back to 'home'
   // for a path it doesn't recognize.
   const activeView: AppView | null = resolveSidebarActiveView(pathname)
-
-  const defaultAgentId = defaultAgent?.id || null
-  const isDefaultChat = activeView === 'agents' && currentAgentId === defaultAgentId
 
   const [railExpandedStored, setRailExpandedStored] = useState(() => railExpandedFromStorage(safeStorageGet(RAIL_EXPANDED_KEY)))
   // Mobile always forces expanded
@@ -231,14 +220,6 @@ export function SidebarRail({
   const toggleRail = () => {
     if (mobile) return
     setRailExpanded(!railExpandedStored)
-  }
-
-  const goToDefaultChat = () => {
-    navigateTo('agents', defaultAgentId, { panel: 'close' })
-    setSidebarOpen(false)
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('swarmclaw:scroll-bottom'))
-    }
   }
 
   const handleNavClick = (view: AppView) => {
@@ -398,51 +379,6 @@ export function SidebarRail({
             </svg>
           </button>
         </div>
-      )}
-
-      {/* Default agent shortcut */}
-      {railExpanded ? (
-        <div className="px-3 mb-2.5">
-          <button
-            onClick={goToDefaultChat}
-            className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-full text-[12px] font-600 cursor-pointer transition-all text-left
-              ${isDefaultChat
-                ? 'bg-accent-bright/15 border border-accent-bright/25 text-text'
-                : 'bg-surface border border-line-default text-text hover:bg-surface-2'}`}
-            style={{ fontFamily: 'inherit' }}
-          >
-            {defaultAgent ? (
-              <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={24} />
-            ) : (
-              <div className="w-6 h-6 rounded-full bg-accent-bright/15 flex items-center justify-center shrink-0">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </div>
-            )}
-            <div className="min-w-0">
-              <div className="truncate">{defaultAgent?.name || 'Choose Agent'}</div>
-              <div className="text-[10px] font-600 text-text-3 mt-0.5 truncate">
-                {defaultAgent ? 'Default shortcut' : 'Pick an agent'}
-              </div>
-            </div>
-          </button>
-        </div>
-      ) : (
-        <RailTooltip
-          label={defaultAgent?.name || 'Choose Agent'}
-          description={defaultAgent ? 'Open your default agent shortcut chat' : 'Choose an agent thread'}
-        >
-          <button onClick={goToDefaultChat} className={`rail-btn self-center mb-2 ${isDefaultChat ? 'active' : ''}`}>
-            {defaultAgent ? (
-              <AgentAvatar seed={defaultAgent.avatarSeed || null} avatarUrl={defaultAgent.avatarUrl} name={defaultAgent.name} size={20} />
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            )}
-          </button>
-        </RailTooltip>
       )}
 
       {/* Search */}
