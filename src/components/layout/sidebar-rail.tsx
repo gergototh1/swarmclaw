@@ -19,6 +19,7 @@ import { NAV_SECTIONS, type NavSection, type NavSectionId, type NavSectionIconNa
 import { VIEW_DESCRIPTIONS, VIEW_LABELS } from '@/lib/app/view-constants'
 import { panelIntentForView, sidebarOpenAfter } from '@/lib/app/panel-intent'
 import { getViewPath, resolveSidebarActiveView, useNavigate } from '@/lib/app/navigation'
+import { hasLeaveGuard, requestLeave } from '@/lib/app/leave-guard'
 import { routeLinkClick } from '@/lib/app/tab-navigation'
 import {
   PANEL_CLOSED_KEY,
@@ -77,12 +78,13 @@ export const SECTION_ICONS: Record<NavSectionIconName, React.ComponentType<{ siz
  * than by a font-size gap. `ExtensionNavItem` (nav-item.tsx) carries the same
  * three values — the two row kinds sit in one list and must not diverge.
  */
-function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtensionNavigate }: {
+function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtensionNavigate, navigateTo }: {
   section: NavSection
   isViewEnabled: (view: AppView) => boolean
   badges: Partial<Record<AppView, number>>
   onSelectView: (view: AppView) => void
   onExtensionNavigate: () => void
+  navigateTo: (view: AppView, id?: string | null) => void
 }) {
   const pathname = usePathname()
   return (
@@ -97,6 +99,11 @@ function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtens
             key={view}
             href={href}
             onClick={(e) => {
+              if (hasLeaveGuard() && !e.metaKey && !e.ctrlKey && e.button === 0) {
+                e.preventDefault()
+                requestLeave(() => navigateTo(view))
+                return
+              }
               // A background tab leaves the active tab where it is, so the rail's own handling has nothing to follow.
               // In the tab host the panel lives in the tab, so the intent travels with the navigation.
               if (routeLinkClick(e, href, { panel: panelIntentForView(view) }) === 'background') return
@@ -300,6 +307,11 @@ export function SidebarRail({
         key={section.id}
         href={getViewPath(direct)}
         onClick={(e) => {
+          if (hasLeaveGuard() && !e.metaKey && !e.ctrlKey && e.button === 0) {
+            e.preventDefault()
+            requestLeave(() => navigateTo(direct))
+            return
+          }
           const panel = isViewEnabled(direct) ? panelIntentForView(direct) : undefined
           if (routeLinkClick(e, getViewPath(direct), { panel }) === 'background') return
           handleNavClick(direct)
@@ -340,6 +352,7 @@ export function SidebarRail({
           badges={badges}
           onSelectView={handleNavClick}
           onExtensionNavigate={handleExtensionNavClick}
+          navigateTo={navigateTo}
         />
       </div>
     )

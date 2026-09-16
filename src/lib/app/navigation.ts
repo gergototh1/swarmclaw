@@ -3,6 +3,7 @@
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { getTabNavigator, type NavigateOptions } from '@/lib/app/tab-navigation'
+import { requestLeave } from '@/lib/app/leave-guard'
 import type { AppView } from '@/types'
 
 const VIEW_TO_PATH: Record<AppView, string> = {
@@ -101,10 +102,12 @@ export function useNavigate() {
   // `opts` only matters in the tab host (see `NavigateOptions`); a plain window ignores it.
   const navigateTo = useCallback((view: AppView, id?: string | null, opts?: NavigateOptions) => {
     const href = getViewPath(view, id)
-    // In the tab host, the host window stays put and the active tab navigates.
-    const tabs = getTabNavigator()
-    if (tabs) tabs.navigateActive(href, opts)
-    else router.push(href)
+    requestLeave(() => {
+      // In the tab host, the host window stays put and the active tab navigates.
+      const tabs = getTabNavigator()
+      if (tabs) tabs.navigateActive(href, opts)
+      else router.push(href)
+    })
   }, [router])
 
   return navigateTo
