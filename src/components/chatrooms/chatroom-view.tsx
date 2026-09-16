@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useChatroomStore } from '@/stores/use-chatroom-store'
 import type { StreamingAgent } from '@/stores/use-chatroom-store'
 import { useAppStore } from '@/stores/use-app-store'
-import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { useNow } from '@/hooks/use-now'
 import { useWs } from '@/hooks/use-ws'
 import { api } from '@/lib/app/api-client'
@@ -94,8 +94,8 @@ function dayLabel(ts: number, now: number | null): string {
 
 export function ChatroomView() {
   const router = useRouter()
-  const navigateTo = useNavigate()
-  const navigateToAgent = (agentId: string) => navigateTo('agents', agentId)
+  const { openAgentThread } = useAgentChat()
+  const navigateToAgent = (agentId: string) => { void openAgentThread(agentId) }
   const now = useNow()
   const currentChatroomId = useChatroomStore((s) => s.currentChatroomId)
   const chatrooms = useChatroomStore((s) => s.chatrooms)

@@ -20,7 +20,7 @@ import { OrgChartEdgePopover } from './org-chart-edge-popover'
 import type { ContextAction } from './org-chart-context-menu'
 import { useOrgChartPanZoom } from './use-org-chart-pan-zoom'
 import { useOrgChartDrag } from './use-org-chart-drag'
-import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { useWs } from '@/hooks/use-ws'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 
@@ -34,7 +34,7 @@ export function OrgChartView() {
   const batchUpdateAgents = useAppStore((s) => s.batchUpdateAgents)
   const loadAgents = useAppStore((s) => s.loadAgents)
   const containerRef = useRef<HTMLDivElement>(null)
-  const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ agentId: string; x: number; y: number } | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<{ agentId: string; name: string } | null>(null)
@@ -314,7 +314,7 @@ export function OrgChartView() {
 
     switch (action.type) {
       case 'open_agent':
-        navigateTo('agents', id)
+        void openAgentThread(id)
         break
       case 'set_role':
         batchUpdateAgents([{ id, patch: { role: action.role } }])
@@ -336,7 +336,7 @@ export function OrgChartView() {
         break
       }
     }
-  }, [contextMenu, agents, batchUpdateAgents, navigateTo])
+  }, [contextMenu, agents, batchUpdateAgents, openAgentThread])
 
   // Escape key cancels linking mode
   useEffect(() => {
@@ -886,7 +886,7 @@ export function OrgChartView() {
           allAgents={agents}
           teamNames={teams.map((t) => t.label)}
           onPatch={batchUpdateAgents}
-          onNavigate={(_, id) => navigateTo('agents', id)}
+          onNavigate={(_, id) => { if (id) void openAgentThread(id) }}
           onRemove={() => setConfirmRemove({ agentId: selectedId, name: agents[selectedId].name })}
           onClose={() => setSelectedId(null)}
         />

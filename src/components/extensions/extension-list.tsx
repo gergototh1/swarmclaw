@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useAppStore } from '@/stores/use-app-store'
-import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { api } from '@/lib/app/api-client'
 import { getExtensionSourceLabel } from '@/lib/extension-sources'
 import { toast } from 'sonner'
@@ -43,14 +43,11 @@ export function ExtensionList({ inSidebar }: { inSidebar?: boolean }) {
   const setExtensionSheetOpen = useAppStore((s) => s.setExtensionSheetOpen)
   const setEditingExtensionFilename = useAppStore((s) => s.setEditingExtensionFilename)
   const agents = useAppStore((s) => s.agents)
-  const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
-  const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
 
   const navigateToAgentChat = useCallback((agentId: string) => {
-    void setCurrentAgent(agentId)
-    navigateTo('agents')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    void openAgentThread(agentId)
+  }, [openAgentThread])
 
   const [tab, setTab] = useState<TopTab>('extensions')
   const [marketplace, setMarketplace] = useState<MarketplaceExtension[]>([])

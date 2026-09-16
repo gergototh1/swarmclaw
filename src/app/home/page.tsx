@@ -7,6 +7,7 @@ import { HomeLaunchpad } from '@/components/home/home-launchpad'
 import { useMountedRef } from '@/hooks/use-mounted-ref'
 import { api } from '@/lib/app/api-client'
 import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { safeStorageGet, safeStorageRemove } from '@/lib/app/safe-storage'
 import { DEFAULT_BUILDER_ROUTE, deriveHomeMode, HOME_LAUNCHPAD_AFTER_SETUP_KEY } from '@/lib/home-launchpad'
 import { RouteTabs } from '@/components/shared/route-tabs'
@@ -27,6 +28,7 @@ export default function HomePage() {
   const loadSchedules = useAppStore((s) => s.loadSchedules)
   const loadConnectors = useAppStore((s) => s.loadConnectors)
   const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
   const [todayCost, setTodayCost] = useState(0)
   const [costTrend, setCostTrend] = useState<{ cost: number; bucket: string }[]>([])
   const [pageReady, setPageReady] = useState(false)
@@ -101,10 +103,10 @@ export default function HomePage() {
 
   const openFirstAgent = () => {
     if (firstAgent) {
-      navigateTo('agents', firstAgent.id)
+      void openAgentThread(firstAgent.id)
       return
     }
-    navigateTo('agents')
+    navigateTo('agents', 'new')
   }
 
   const openBuilder = () => {

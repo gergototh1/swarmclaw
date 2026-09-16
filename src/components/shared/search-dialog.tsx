@@ -76,7 +76,6 @@ export function SearchDialog() {
   const setWebhookSheetOpen = useAppStore((s) => s.setWebhookSheetOpen)
   const setEditingSkillId = useAppStore((s) => s.setEditingSkillId)
   const setSkillSheetOpen = useAppStore((s) => s.setSkillSheetOpen)
-  const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
 
   // Global Cmd+K / Ctrl+K listener
   useEffect(() => {
@@ -155,16 +154,11 @@ export function SearchDialog() {
         setEditingTaskId(result.id)
         setTaskSheetOpen(true)
         break
-      case 'session': {
-        const sessionAgentId = sessions[result.id]?.agentId
-        if (sessionAgentId) void setCurrentAgent(sessionAgentId)
-        navigateToView('agents')
+      case 'session':
+        navigateToView('conversations', result.id)
         break
-      }
       case 'message': {
-        const msgSessionAgentId = sessions[result.id]?.agentId
-        if (msgSessionAgentId) void setCurrentAgent(msgSessionAgentId)
-        navigateToView('agents')
+        navigateToView('conversations', result.id)
         // Scroll to the matched message after the chat renders
         if (result.messageIndex != null) {
           setTimeout(() => {

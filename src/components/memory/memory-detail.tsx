@@ -17,7 +17,6 @@ export function MemoryDetail() {
   const triggerRefresh = useAppStore((s) => s.triggerMemoryRefresh)
   const agents = useAppStore((s) => s.agents)
   const sessions = useAppStore((s) => s.sessions)
-  const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
   const navigateTo = useNavigate()
 
   const [entry, setEntry] = useState<MemoryEntry | null>(null)
@@ -137,11 +136,9 @@ export function MemoryDetail() {
 
   const handleNavigateToSession = useCallback(() => {
     if (!entry?.sessionId) return
-    const agentId = sessions[entry.sessionId]?.agentId
-    if (agentId) void setCurrentAgent(agentId)
-    navigateTo('agents')
+    navigateTo('conversations', entry.sessionId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entry, sessions])
+  }, [entry])
 
   if (!entry) {
     return (

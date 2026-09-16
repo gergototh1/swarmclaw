@@ -482,7 +482,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         <StepNext
           createdAgents={createdAgents}
           onContinueToDashboard={() => finishSetup('/home')}
-          onOpenFirstAgent={() => finishSetup(createdAgents[0]?.id ? `/agents/${encodeURIComponent(createdAgents[0].id)}` : '/agents')}
+          onOpenFirstAgent={() => { useAppStore.getState().setChatListMode('agents'); finishSetup('/chat') }}
           onOpenProtocols={() => finishSetup('/protocols')}
           onOpenBuilder={() => finishSetup(DEFAULT_BUILDER_ROUTE)}
           onOpenConnectors={() => finishSetup('/connectors')}

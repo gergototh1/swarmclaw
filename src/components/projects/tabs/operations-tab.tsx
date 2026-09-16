@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useAppStore } from '@/stores/use-app-store'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { updateAgent } from '@/lib/agents'
-import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { toast } from 'sonner'
 import { relativeDate, formatHeartbeatInterval } from '../project-utils'
 import { AssignAgentPicker } from '../assign-agent-picker'
@@ -20,7 +20,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
   const secrets = useAppStore((s) => s.secrets)
   const activeProjectFilter = useAppStore((s) => s.activeProjectFilter)
   const loadAgents = useAppStore((s) => s.loadAgents)
-  const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
   const setEditingScheduleId = useAppStore((s) => s.setEditingScheduleId)
   const setScheduleSheetOpen = useAppStore((s) => s.setScheduleSheetOpen)
   const setEditingSecretId = useAppStore((s) => s.setEditingSecretId)
@@ -95,7 +95,7 @@ export function OperationsTab({ project }: OperationsTabProps) {
                 className="group/agent flex items-center gap-3 px-4 py-3 rounded-lg border border-line-subtle bg-surface hover:bg-layer-2 hover:border-line-default transition-all"
               >
                 <button
-                  onClick={() => navigateTo('agents', agent.id)}
+                  onClick={() => void openAgentThread(agent.id)}
                   className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer bg-transparent border-none text-left p-0"
                   style={{ fontFamily: 'inherit' }}
                 >

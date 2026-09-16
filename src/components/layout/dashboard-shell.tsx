@@ -15,6 +15,7 @@ import { useSwipe } from '@/hooks/use-swipe'
 import { useWs } from '@/hooks/use-ws'
 import { api } from '@/lib/app/api-client'
 import { pathToView, useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { detectShellMode, nextShellMode, tabIdFromWindow, type ShellMode } from '@/lib/app/shell-mode'
 import { shouldAutoOpenPanelSidebar } from '@/lib/app/view-constants'
 import { normalizeThemeMode } from '@/lib/theme-mode'
@@ -39,6 +40,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const navigateTo = useNavigate()
+  const { startAgentChat } = useAgentChat()
   const { setTheme } = useTheme()
 
   const {
@@ -273,9 +275,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         ? state.appSettings.defaultAgentId
         : Object.values(state.agents)[0]?.id || null
       if (defaultAgentId) {
-        navigateTo('agents', defaultAgentId)
+        void startAgentChat(defaultAgentId)
       } else {
-        navigateTo('agents')
+        navigateTo('agents', 'new')
       }
       return
     }
@@ -285,7 +287,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       e.preventDefault()
       navigateTo('tasks')
     }
-  }, [navigateTo])
+  }, [navigateTo, startAgentChat])
 
   useEffect(() => {
     window.addEventListener('keydown', handleShortcutKey)

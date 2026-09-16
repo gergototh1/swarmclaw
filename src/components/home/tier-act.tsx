@@ -9,6 +9,7 @@ import { useAppStore } from '@/stores/use-app-store'
 import { useChatStore } from '@/stores/use-chat-store'
 import { useApprovalStore } from '@/stores/use-approval-store'
 import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { selectVisibleUnreadSessions } from '@/lib/chat/session-unread'
 import { isLocalhostBrowser } from '@/lib/observability/local-observability'
 import { filterPulseActions, NEEDS_YOU_PULSE_KINDS } from '@/lib/home/pulse-partition'
@@ -24,6 +25,7 @@ const NEEDS_YOU_LIMIT = 6
 
 export function TierAct() {
   const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
   const router = useRouter()
   const agents = useAppStore((s) => s.agents)
   const sessions = useAppStore((s) => s.sessions)
@@ -84,19 +86,14 @@ export function TierAct() {
     if (!agentId) return
     void (async () => {
       try {
-        await setCurrentAgent(agentId)
-        const sessionId = useAppStore.getState().agents[agentId]?.threadSessionId
-        if (!sessionId) {
-          toast.error('Couldn’t start a conversation with this agent.', { description: 'Try again in a moment.' })
-          return
-        }
-        navigateTo('agents')
-        await sendMessage(text, { sessionId })
+        const threadId = await openAgentThread(agentId)
+        if (!threadId) return
+        await sendMessage(text, { sessionId: threadId })
       } catch {
         toast.error('Something went wrong sending that message.', { description: 'Try again.' })
       }
     })()
-  }, [currentAgentId, firstAgent, navigateTo, sendMessage, setCurrentAgent])
+  }, [currentAgentId, firstAgent, openAgentThread, sendMessage])
 
   /*
    * `GET /api/chats` returns every session in the install and the `/chat`
@@ -170,7 +167,7 @@ export function TierAct() {
           <div className="flex items-center gap-2 rounded-lg border border-line-subtle bg-surface p-4 text-[13px] text-text-3">
             <span>You don’t have any agents yet.</span>
             <button
-              onClick={() => navigateTo('agents')}
+              onClick={() => navigateTo('agents', 'new')}
               className="font-600 text-accent-bright underline bg-transparent border-none cursor-pointer p-0"
               style={{ fontFamily: 'inherit' }}
             >
@@ -191,7 +188,7 @@ export function TierAct() {
             {approvalRows.slice(0, NEEDS_YOU_LIMIT).map((approval) => (
               <button
                 key={approval.id}
-                onClick={() => navigateTo('agents', approval.agentId)}
+                onClick={() => void openAgentThread(approval.agentId)}
                 className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left bg-transparent border-none
                   hover:bg-layer-1 transition-colors cursor-pointer w-full"
                 style={{ fontFamily: 'inherit' }}

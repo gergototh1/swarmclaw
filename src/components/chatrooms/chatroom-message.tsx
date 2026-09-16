@@ -10,7 +10,7 @@ import { MessageAttachments } from '@/components/shared/attachment-chip'
 import { MessageActions, ActionButton } from '@/components/shared/message-actions'
 import { isStructuredMarkdown } from '@/components/shared/markdown-utils'
 import { useAppStore } from '@/stores/use-app-store'
-import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { AgentHoverCard } from './agent-hover-card'
 import { ChatroomToolRequestBanner } from './chatroom-tool-request-banner'
 import { TransferAgentPicker } from '@/components/chat/transfer-agent-picker'
@@ -99,8 +99,8 @@ function groupReactions(reactions: Array<{ emoji: string; reactorId: string }>):
 }
 
 export function ChatroomMessageBubble({ message, agents, onToggleReaction, onReply, onTogglePin, onTransfer, onDeleteMessage, onMuteAgent, onUnmuteAgent, onSetRole, chatroom, pinnedMessageIds, streamingAgentIds, messages, grouped: isGrouped, momentOverlay }: Props) {
-  const navigateTo = useNavigate()
-  const navigateToAgent = (agentId: string) => navigateTo('agents', agentId)
+  const { openAgentThread } = useAgentChat()
+  const navigateToAgent = (agentId: string) => { void openAgentThread(agentId) }
   const now = useNow({ enabled: false })
   const [showPicker, setShowPicker] = useState(false)
   const [showTransferPicker, setShowTransferPicker] = useState(false)

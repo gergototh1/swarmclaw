@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { useAppStore } from '@/stores/use-app-store'
-import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
 import { InfoChip } from '@/components/ui/info-chip'
 import { toast } from 'sonner'
@@ -17,7 +17,7 @@ export function AgentSwitchDialog() {
 
   const agents = useAppStore((s) => s.agents)
   const currentAgentId = useAppStore((s) => s.currentAgentId)
-  const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
 
   // Global Cmd+Shift+A / Ctrl+Shift+A listener
   useEffect(() => {
@@ -62,9 +62,8 @@ export function AgentSwitchDialog() {
       return
     }
     setOpen(false)
-    navigateTo('agents', agentId)
-
-  }, [agents, navigateTo])
+    void openAgentThread(agentId)
+  }, [agents, openAgentThread])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {

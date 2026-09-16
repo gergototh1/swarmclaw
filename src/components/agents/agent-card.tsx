@@ -6,6 +6,7 @@ import type { Agent } from '@/types'
 import { useAppStore } from '@/stores/use-app-store'
 import { useChatStore } from '@/stores/use-chat-store'
 import { parseViewPath, useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { useWs } from '@/hooks/use-ws'
 import { useMountedRef } from '@/hooks/use-mounted-ref'
 import { api } from '@/lib/app/api-client'
@@ -40,9 +41,8 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, onSetDefault 
   const openedPath = parseViewPath(pathname)
   // Selected means its settings are the ones on screen.
   const isSelected = openedPath?.view === 'agents' && openedPath.id === agent.id
-  const loadSessions = useAppStore((s) => s.loadSessions)
+  const { startAgentChat } = useAgentChat()
   const loadAgents = useAppStore((s) => s.loadAgents)
-  const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
   const setMessages = useChatStore((s) => s.setMessages)
   const sendMessage = useChatStore((s) => s.sendMessage)
   const togglePinAgent = useAppStore((s) => s.togglePinAgent)
@@ -108,20 +108,15 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, onSetDefault 
     setDialogOpen(false)
     setRunning(true)
     try {
-      const session = await api<{ id: string }>('POST', `/agents/${agent.id}/thread`, { user: 'default' })
-      if (!session?.id) throw new Error('Agent thread not available')
-      await loadSessions()
-      if (!mountedRef.current) return
-      setMessages([])
-      void setCurrentAgent(agent.id)
-      navigateTo('agents')
-      await sendMessage(task)
+      const sessionId = await startAgentChat(agent.id)
+      if (sessionId && mountedRef.current) {
+        setMessages([])
+        await sendMessage(task, { sessionId })
+      }
     } catch (err) {
       console.error('Agent task run failed:', err)
     }
-    if (mountedRef.current) {
-      setRunning(false)
-    }
+    if (mountedRef.current) setRunning(false)
   }
 
   const [cloning, setCloning] = useState(false)

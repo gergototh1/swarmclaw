@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/stores/use-app-store'
 import { isLocalhostBrowser, isVisibleSessionForViewer } from '@/lib/observability/local-observability'
 import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { useExtensionPages } from '@/hooks/use-extension-pages'
 import { extensionPageNavTargets } from '@/lib/app/palette-extension-pages'
 import { focusActiveTab, navigateInActiveTab } from '@/lib/app/tab-navigation'
@@ -82,8 +83,8 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
   const sessions = useAppStore((s) => s.sessions)
   const currentUser = useAppStore((s) => s.currentUser)
   const tasks = useAppStore((s) => s.tasks)
-  const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
   const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
   const router = useRouter()
   const extensionPages = useExtensionPages()
   const setEditingTaskId = useAppStore((s) => s.setEditingTaskId)
@@ -204,7 +205,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
             toast.error(`${agent.name} is disabled. Re-enable it to start a new chat.`)
             return
           }
-          navigateTo('agents', agent.id)
+          void openAgentThread(agent.id)
           setOpen(false)
         },
       })
@@ -220,7 +221,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
         description: sessionAgent ? `Recent chat with ${sessionAgent.name}` : 'Direct model chat',
         keywords: [session.provider, session.model, sessionAgent?.name || ''].filter(Boolean),
         category: 'chat',
-        onSelect: () => { if (session.agentId) void setCurrentAgent(session.agentId); navigateTo('agents'); setOpen(false) },
+        onSelect: () => { navigateTo('conversations', session.id); setOpen(false) },
       })
     }
 
@@ -238,7 +239,7 @@ function CommandPaletteInner({ setOpen }: { setOpen: (v: boolean) => void }) {
     }
 
     return result
-  }, [agents, currentUser, navigateTo, openSettingsSection, sessions, setCurrentAgent, setEditingTaskId, setOpen, setTaskSheetOpen, tasks, extensionPages, router])
+  }, [agents, currentUser, navigateTo, openAgentThread, openSettingsSection, sessions, setEditingTaskId, setOpen, setTaskSheetOpen, tasks, extensionPages, router])
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items.slice(0, 20)

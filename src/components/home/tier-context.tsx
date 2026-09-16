@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useAppStore } from '@/stores/use-app-store'
-import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { OPERATIONS_PULSE_KINDS } from '@/lib/home/pulse-partition'
 import { OperationsPulsePanel } from '@/components/operations/operations-pulse-panel'
 import CostTrendChart from '@/components/home/cost-trend-chart'
@@ -24,10 +24,9 @@ export function TierContext({ todayCost, costTrend }: {
   todayCost: number
   costTrend: { cost: number; bucket: string }[]
 }) {
-  const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
   const agents = useAppStore((s) => s.agents)
   const notifications = useAppStore((s) => s.notifications)
-  const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
   const [open, setOpen] = useState(false)
 
   const pinned = Object.values(agents).filter((a) => a.pinned)
@@ -36,8 +35,7 @@ export function TierContext({ todayCost, costTrend }: {
   )
 
   const openAgent = async (id: string) => {
-    await setCurrentAgent(id)
-    navigateTo('agents')
+    await openAgentThread(id)
   }
 
   return (

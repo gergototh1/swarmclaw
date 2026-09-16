@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { Activity, ExternalLink, FolderOpen } from 'lucide-react'
 import { useAppStore } from '@/stores/use-app-store'
 import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 import { useUpdateTaskMutation } from '@/features/tasks/queries'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { AgentAvatar } from '@/components/agents/agent-avatar'
@@ -50,8 +51,8 @@ export function TaskCard({
 }: TaskCardProps) {
   const setEditingTaskId = useAppStore((s) => s.setEditingTaskId)
   const setTaskSheetOpen = useAppStore((s) => s.setTaskSheetOpen)
-  const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
   const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
   const updateTaskMutation = useUpdateTaskMutation()
   const [dragging, setDragging] = useState(false)
   const [confirmArchive, setConfirmArchive] = useState(false)
@@ -114,9 +115,10 @@ export function TaskCard({
 
   const handleViewSession = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (task.agentId) {
-      void setCurrentAgent(task.agentId)
-      navigateTo('agents')
+    if (task.sessionId) {
+      navigateTo('conversations', task.sessionId)
+    } else if (task.agentId) {
+      void openAgentThread(task.agentId)
     }
   }
 

@@ -4,7 +4,7 @@ import { memo, useMemo, useState } from 'react'
 import type { ToolEvent } from '@/stores/use-chat-store'
 import { useChatStore } from '@/stores/use-chat-store'
 import { useAppStore } from '@/stores/use-app-store'
-import { useNavigate } from '@/lib/app/navigation'
+import { useAgentChat } from '@/hooks/use-agent-chat'
 
 const TOOL_COLORS: Record<string, string> = {
   execute_command: '#F59E0B',
@@ -439,7 +439,7 @@ function TimeoutQuickFix({ event }: { event: ToolEvent }) {
 }
 
 export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: ToolEvent }) {
-  const navigateTo = useNavigate()
+  const { openAgentThread } = useAgentChat()
   const [imgExpanded, setImgExpanded] = useState(false)
   const isError = event.status === 'error'
   const color = isError ? '#F43F5E' : (TOOL_COLORS[event.name] || '#6366F1')
@@ -477,7 +477,7 @@ export const ToolCallBubble = memo(function ToolCallBubble({ event }: { event: T
   const handleAgentClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (delegationInfo?.agentId) {
-      navigateTo('agents', delegationInfo.agentId)
+      void openAgentThread(delegationInfo.agentId)
     }
   }
 
