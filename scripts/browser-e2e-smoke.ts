@@ -460,6 +460,16 @@ async function runBrowserSmoke(baseUrl: string): Promise<void> {
       const text = document.body?.innerText || ''
       return text.includes('E2E task workspace') && text.includes('workspace') && text.includes('ready')
     }, { timeout: PAGE_TIMEOUT_MS }))
+
+    await smokeStep('agents route shows settings, not a chat', () => waitForPageText(page, '/agents/new', {
+      anyText: ['New Agent'],
+    }))
+    await smokeStep('chat page offers the agents list', async () => {
+      await page.goto(new URL('/chat', baseUrl).toString())
+      await page.waitForSelector('[data-testid="chat-list-mode-agents"]', { timeout: PAGE_TIMEOUT_MS })
+      await page.click('[data-testid="chat-list-mode-agents"]')
+      await page.waitForSelector('[data-testid="agent-chat-list"]', { timeout: PAGE_TIMEOUT_MS })
+    })
     await page.close()
 
     if (pageErrors.length > 0) {

@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-14T17:42:12.798Z",
-  "totalIssues": 373,
-  "uniqueIssues": 120,
+  "generatedAt": "2026-09-16T21:04:44.670Z",
+  "totalIssues": 372,
+  "uniqueIssues": 119,
   "issues": [
     {
       "filePath": "bin/worker-cmd.js",
@@ -317,13 +317,6 @@
       "ruleId": "@next/next/no-img-element",
       "severity": 1,
       "message": "Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element",
-      "count": 1
-    },
-    {
-      "filePath": "src/components/tasks/task-list.tsx",
-      "ruleId": "@typescript-eslint/no-unused-vars",
-      "severity": 1,
-      "message": "'inSidebar' is defined but never used.",
       "count": 1
     },
     {
