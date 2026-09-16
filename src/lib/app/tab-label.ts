@@ -18,7 +18,7 @@ export interface TabLabel {
 }
 
 function entityName(view: AppView, id: string, lookups: TabLabelLookups): string | null {
-  if (view === 'agents') return lookups.agentNames[id] ?? null
+  if (view === 'agents') return id === 'new' ? 'New Agent' : lookups.agentNames[id] ?? null
   if (view === 'conversations') return lookups.sessionTitles[id] ?? null
   if (view === 'chatrooms') return lookups.chatroomNames[id] ?? null
   return null

@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import type { Agent } from '@/types'
 import { useAppStore } from '@/stores/use-app-store'
 import { useChatStore } from '@/stores/use-chat-store'
-import { useNavigate } from '@/lib/app/navigation'
+import { parseViewPath, useNavigate } from '@/lib/app/navigation'
 import { useWs } from '@/hooks/use-ws'
 import { useMountedRef } from '@/hooks/use-mounted-ref'
 import { api } from '@/lib/app/api-client'
@@ -29,15 +30,16 @@ interface Props {
   isDefault?: boolean
   isRunning?: boolean
   isOnline?: boolean
-  isSelected?: boolean
   onSetDefault?: (id: string) => void
 }
 
-export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, onSetDefault }: Props) {
+export function AgentCard({ agent, isDefault, isRunning, isOnline, onSetDefault }: Props) {
   const mountedRef = useMountedRef()
   const navigateTo = useNavigate()
-  const setEditingAgentId = useAppStore((s) => s.setEditingAgentId)
-  const setAgentSheetOpen = useAppStore((s) => s.setAgentSheetOpen)
+  const pathname = usePathname()
+  const openedPath = parseViewPath(pathname)
+  // Selected means its settings are the ones on screen.
+  const isSelected = openedPath?.view === 'agents' && openedPath.id === agent.id
   const loadSessions = useAppStore((s) => s.loadSessions)
   const loadAgents = useAppStore((s) => s.loadAgents)
   const setCurrentAgent = useAppStore((s) => s.setCurrentAgent)
@@ -91,8 +93,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
   }, [])
 
   const handleClick = () => {
-    setEditingAgentId(agent.id)
-    setAgentSheetOpen(true)
+    navigateTo('agents', agent.id)
   }
 
   const handleRunClick = (e: React.MouseEvent) => {
@@ -160,7 +161,7 @@ export function AgentCard({ agent, isDefault, isRunning, isOnline, isSelected, o
         className={`group relative border-b border-line-subtle py-3.5 px-4 cursor-pointer
           transition-colors duration-200 active:scale-[0.98]
           ${agentDisabled ? 'opacity-70' : ''}
-          ${isSelected ? 'bg-layer-2' : 'bg-transparent hover:bg-layer-2'}`}
+          ${isSelected ? 'bg-accent-soft hover:bg-layer-2' : 'bg-transparent hover:bg-layer-2'}`}
       >
         {isSelected && <div className="card-select-indicator" />}
         {/* Pin/star button */}

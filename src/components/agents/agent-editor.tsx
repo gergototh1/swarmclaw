@@ -1,13 +1,18 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/stores/use-app-store'
 import { selectActiveSessionId } from '@/stores/slices/session-slice'
 import { createAgent, updateAgent, deleteAgent } from '@/lib/agents'
 import { api } from '@/lib/app/api-client'
 import { fetchProviderModelDiscovery } from '@/lib/provider-model-discovery-client'
 import { sleep } from '@/lib/shared-utils'
-import { BottomSheet } from '@/components/shared/bottom-sheet'
+import { ConfirmDialog } from '@/components/shared/confirm-dialog'
+import { EmptyState } from '@/components/shared/empty-state'
+import { PageLoader } from '@/components/ui/page-loader'
+import { setLeaveGuard } from '@/lib/app/leave-guard'
+import { onTabFlushRequest } from '@/lib/app/tab-flush'
 import { toast } from 'sonner'
 import type { ProviderType, ProviderDiagnosticStep, ClaudeSkill, AgentPackManifest, AgentRoutingTarget } from '@/types'
 import { NON_LANGGRAPH_PROVIDER_IDS, WORKER_ONLY_PROVIDER_IDS } from '@/lib/provider-sets'
@@ -59,11 +64,16 @@ const AUTO_SYNC_MODEL_PROVIDER_IDS = new Set<ProviderType>([
 ])
 const CONNECTION_TEST_TIMEOUT_MS = 40_000
 
-export function AgentSheet() {
-  const open = useAppStore((s) => s.agentSheetOpen)
-  const setOpen = useAppStore((s) => s.setAgentSheetOpen)
-  const editingId = useAppStore((s) => s.editingAgentId)
-  const setEditingId = useAppStore((s) => s.setEditingAgentId)
+/** An agent's settings, shown in the main area at /agents/:id, or /agents/new when `agentId` is null. */
+export function AgentEditor({ agentId }: { agentId: string | null }) {
+  const router = useRouter()
+  const editingId = agentId
+  // True once the user changed something that is not saved yet.
+  const [dirty, setDirty] = useState(false)
+  // The held navigation while the "unsaved changes" dialog is up.
+  const [leavePrompt, setLeavePrompt] = useState<(() => void) | null>(null)
+  // Bumped by "Discard" to rerun the loader against the stored agent.
+  const [reloadKey, setReloadKey] = useState(0)
   const agents = useAppStore((s) => s.agents)
   const loadAgents = useAppStore((s) => s.loadAgents)
   const updateAgentInStore = useAppStore((s) => s.updateAgentInStore)
@@ -91,20 +101,25 @@ export function AgentSheet() {
   const loadMcpServersAction = useAppStore((s) => s.loadMcpServers)
   const [claudeSkills, setClaudeSkills] = useState<ClaudeSkill[]>([])
   const [claudeSkillsLoading, setClaudeSkillsLoading] = useState(false)
-  const loadClaudeSkills = async () => {
+  const loadClaudeSkills = useCallback(async () => {
     setClaudeSkillsLoading(true)
     try {
       const skills = await api<ClaudeSkill[]>('GET', '/claude-skills')
       setClaudeSkills(skills)
     } catch { /* ignore */ }
     finally { setClaudeSkillsLoading(false) }
-  }
+  }, [])
 
   const [tab, setTab] = useState<AgentTabKey>('essentials')
   const [draft, setDraft] = useState<AgentDraft>(createEmptyAgentDraft)
   const patch = useCallback<AgentPatch>((update) => {
     setDraft((current) => ({ ...current, ...(typeof update === 'function' ? update(current) : update) }))
   }, [])
+  // A change the user made, as opposed to the loader filling the form.
+  const userPatch = useCallback<AgentPatch>((update) => {
+    setDirty(true)
+    patch(update)
+  }, [patch])
   const {
     name,
     description,
@@ -222,7 +237,18 @@ export function AgentSheet() {
   const openclawCredentials = Object.values(credentials).filter((c) => c.provider === 'openclaw')
   const openclawGatewayProfiles = gatewayProfiles.filter((item) => item.provider === 'openclaw')
   const setAgentPrefill = useAppStore((s) => s.setAgentPrefill)
-  const editing = editingId ? agents[editingId] : null
+  // Duplicate mode: the source agent, taken from the store once when the new-agent
+  // page mounts. Holding it here keeps the fill below repeatable (Discard, and
+  // React's double-run of effects in development) after the store copy is cleared.
+  const [duplicateSource] = useState(() => (agentId === null ? useAppStore.getState().agentPrefill : null))
+  useEffect(() => {
+    if (duplicateSource) setAgentPrefill(null)
+  }, [duplicateSource, setAgentPrefill])
+  const editing = editingId ? agents[editingId] ?? null : null
+  const editingLoaded = editing !== null
+  // Set once this page's own agent fetch has come back, so an id that is not
+  // in the store can be told apart from one that has not loaded yet.
+  const [agentsChecked, setAgentsChecked] = useState(false)
   const globalVoiceId = typeof appSettings.elevenLabsVoiceId === 'string' ? appSettings.elevenLabsVoiceId.trim() : ''
   const agentVoiceId = voiceId.trim()
   const elevenLabsConfigured = appSettings.elevenLabsApiKeyConfigured === true
@@ -291,10 +317,6 @@ export function AgentSheet() {
   )
 
   useEffect(() => {
-    if (!open) {
-      lastAutoSyncedModelsKeyRef.current = null
-      return
-    }
     if (openclawEnabled) return
     if (!AUTO_SYNC_MODEL_PROVIDER_IDS.has(provider as ProviderType)) return
     if (!currentProvider?.supportsModelDiscovery) return
@@ -307,274 +329,286 @@ export function AgentSheet() {
     lastAutoSyncedModelsKeyRef.current = syncKey
 
     void syncLiveProviderModels(provider, credentialId, apiEndpoint, ollamaMode, false).catch(() => {})
-  }, [apiEndpoint, credentialId, currentProvider, ollamaMode, open, openclawEnabled, provider, syncLiveProviderModels])
+  }, [apiEndpoint, credentialId, currentProvider, ollamaMode, openclawEnabled, provider, syncLiveProviderModels])
 
+  // Reference data the tabs pick from. The page remounts per agent (keyed on
+  // the id), so this runs once per agent opened.
   useEffect(() => {
-    if (open) {
-      loadSettings()
-      loadProviders()
-      loadProviderConfigs()
-      loadGatewayProfiles()
-      loadCredentials()
-      loadSkills()
-      loadMcpServersAction()
-      loadProjects()
-      loadClaudeSkills()
-      // Fetch enabled extension IDs so we can filter tool toggles
-      api<{ enabledExtensionIds: string[]; externalTools?: ExtensionToolInfo[] }>('GET', '/extensions/builtins')
-        .then((res) => {
-          if (res?.enabledExtensionIds) setEnabledExtensionIds(new Set(res.enabledExtensionIds))
-          if (Array.isArray(res?.externalTools)) setExternalTools(res.externalTools)
-        })
-        .catch(() => {})
-      setTestStatus('idle')
-      setTestMessage('')
-      setTestDiagnostics([])
-      setTab('essentials')
-      if (editing) {
-        setSoulInitial(editing.soul || '')
-        setSoulSaveState('idle')
-        setCapInput('')
-        patch({
-          name: editing.name,
-          description: editing.description,
-          soul: editing.soul || '',
-          systemPrompt: editing.systemPrompt,
-          provider: editing.provider,
-          model: editing.model,
-          credentialId: editing.credentialId || null,
-          apiEndpoint: editing.apiEndpoint || null,
-          gatewayProfileId: editing.gatewayProfileId || null,
-          preferredGatewayTagsText: formatGatewayTagList(editing.preferredGatewayTags),
-          preferredGatewayUseCase: editing.preferredGatewayUseCase || '',
-          routingStrategy: editing.routingStrategy || 'single',
-          routingTargets: editing.routingTargets || [],
-          role: editing.role === 'coordinator' ? 'coordinator' : 'worker',
-          delegationEnabled: editing.delegationEnabled === true,
-          delegationTargetMode: editing.delegationTargetMode === 'selected' ? 'selected' : 'all',
-          delegationTargetAgentIds: editing.delegationTargetAgentIds || [],
-          tools: getEnabledToolIds(editing),
-          toolAccessMode: editing.toolAccessMode === 'scoped' ? 'scoped' : 'universal',
-          extensions: getEnabledExtensionIds(editing),
-          skills: editing.skills || [],
-          skillIds: editing.skillIds || [],
-          mcpServerIds: editing.mcpServerIds || [],
-          mcpDisabledTools: editing.mcpDisabledTools || [],
-          fallbackCredentialIds: editing.fallbackCredentialIds || [],
-          capabilities: Array.isArray(editing.capabilities) ? editing.capabilities : [],
-          ollamaMode: resolveStoredOllamaMode({
-            ollamaMode: editing.ollamaMode ?? null,
-            apiEndpoint: editing.apiEndpoint ?? null,
-          }),
-          openclawEnabled: editing.provider === 'openclaw',
-          projectId: editing.projectId,
-          avatarSeed: editing.avatarSeed || Math.random().toString(36).slice(2, 10),
-          avatarUrl: editing.avatarUrl || null,
-          thinkingLevel: editing.thinkingLevel || '',
-          memoryScopeMode: editing.memoryScopeMode || 'auto',
-          memoryTierPreference: editing.memoryTierPreference || 'blended',
-          proactiveMemory: editing.proactiveMemory !== false,
-          autoDraftSkillSuggestions: editing.autoDraftSkillSuggestions !== false,
-          planningMode: normalizeAgentPlanningMode(editing.planningMode),
-          autoRecovery: editing.autoRecovery || false,
-          disabled: editing.disabled === true,
-          filesystemScope: editing.filesystemScope === 'machine' ? 'machine' : 'workspace',
-          voiceId: editing.elevenLabsVoiceId || '',
-          replyNotificationsMuted: editing.replyNotificationsMuted === true,
-          heartbeatEnabled: editing.heartbeatEnabled || false,
-          heartbeatIntervalSec: parseDurationToSec(editing.heartbeatInterval, editing.heartbeatIntervalSec),
-          heartbeatModel: editing.heartbeatModel || '',
-          heartbeatPrompt: editing.heartbeatPrompt || '',
-          dreamEnabled: editing.dreamEnabled || false,
-          dreamCooldownMinutes: editing.dreamConfig?.cooldownMinutes != null ? String(editing.dreamConfig.cooldownMinutes) : '360',
-          dreamTier2Enabled: editing.dreamConfig?.tier2Enabled !== false,
-          orchestratorEnabled: editing.orchestratorEnabled || false,
-          orchestratorMission: editing.orchestratorMission || '',
-          orchestratorWakeInterval: typeof editing.orchestratorWakeInterval === 'string' ? editing.orchestratorWakeInterval : typeof editing.orchestratorWakeInterval === 'number' ? `${editing.orchestratorWakeInterval}s` : '5m',
-          orchestratorGovernance: editing.orchestratorGovernance || 'autonomous',
-          orchestratorMaxCyclesPerDay: editing.orchestratorMaxCyclesPerDay != null ? String(editing.orchestratorMaxCyclesPerDay) : '',
-          sessionResetMode: editing.sessionResetMode || '',
-          sessionIdleTimeoutSec: editing.sessionIdleTimeoutSec != null ? String(editing.sessionIdleTimeoutSec) : '',
-          sessionMaxAgeSec: editing.sessionMaxAgeSec != null ? String(editing.sessionMaxAgeSec) : '',
-          sessionDailyResetAt: editing.sessionDailyResetAt || '',
-          sessionResetTimezone: editing.sessionResetTimezone || '',
-          identityPersonaLabel: editing.identityState?.personaLabel || '',
-          identitySelfSummary: editing.identityState?.selfSummary || '',
-          identityRelationshipSummary: editing.identityState?.relationshipSummary || '',
-          identityToneStyle: editing.identityState?.toneStyle || '',
-          identityBoundariesText: formatIdentityList(editing.identityState?.boundaries),
-          identityContinuityNotesText: formatIdentityList(editing.identityState?.continuityNotes),
-          budgetEnabled: (typeof editing.hourlyBudget === 'number' && editing.hourlyBudget > 0)
-            || (typeof editing.dailyBudget === 'number' && editing.dailyBudget > 0)
-            || (typeof editing.monthlyBudget === 'number' && editing.monthlyBudget > 0),
-          hourlyBudget: typeof editing.hourlyBudget === 'number' && editing.hourlyBudget > 0 ? String(editing.hourlyBudget) : '',
-          dailyBudget: typeof editing.dailyBudget === 'number' && editing.dailyBudget > 0 ? String(editing.dailyBudget) : '',
-          monthlyBudget: typeof editing.monthlyBudget === 'number' && editing.monthlyBudget > 0 ? String(editing.monthlyBudget) : '',
-          budgetAction: editing.budgetAction || 'warn',
-        })
-      } else if (useAppStore.getState().agentPrefill) {
-        // Duplicate mode — prefill from source agent, then clear
-        const src = useAppStore.getState().agentPrefill!
-        setAgentPrefill(null)
-        skipAutoModelRef.current = true
-        setSoulInitial(src.soul || '')
-        setSoulSaveState('idle')
-        setCapInput('')
-        patch({
-          name: `${src.name || 'Agent'} (Copy)`,
-          description: src.description || '',
-          soul: src.soul || '',
-          systemPrompt: src.systemPrompt || '',
-          provider: src.provider || 'claude-cli',
-          model: src.model || '',
-          credentialId: src.credentialId || null,
-          apiEndpoint: src.apiEndpoint || null,
-          gatewayProfileId: src.gatewayProfileId || null,
-          preferredGatewayTagsText: formatGatewayTagList(src.preferredGatewayTags),
-          preferredGatewayUseCase: src.preferredGatewayUseCase || '',
-          routingStrategy: src.routingStrategy || 'single',
-          routingTargets: src.routingTargets || [],
-          role: src.role === 'coordinator' ? 'coordinator' : 'worker',
-          delegationEnabled: src.delegationEnabled === true,
-          delegationTargetMode: src.delegationTargetMode === 'selected' ? 'selected' : 'all',
-          delegationTargetAgentIds: src.delegationTargetAgentIds || [],
-          tools: getEnabledToolIds(src),
-          toolAccessMode: src.toolAccessMode === 'scoped' ? 'scoped' : 'universal',
-          extensions: getEnabledExtensionIds(src),
-          skills: src.skills || [],
-          skillIds: src.skillIds || [],
-          mcpServerIds: src.mcpServerIds || [],
-          mcpDisabledTools: src.mcpDisabledTools || [],
-          fallbackCredentialIds: src.fallbackCredentialIds || [],
-          capabilities: Array.isArray(src.capabilities) ? src.capabilities : [],
-          ollamaMode: resolveStoredOllamaMode({
-            ollamaMode: src.ollamaMode ?? null,
-            apiEndpoint: src.apiEndpoint ?? null,
-          }),
-          openclawEnabled: src.provider === 'openclaw',
-          projectId: src.projectId,
-          avatarSeed: Math.random().toString(36).slice(2, 10),
-          avatarUrl: null,
-          thinkingLevel: src.thinkingLevel || '',
-          memoryScopeMode: src.memoryScopeMode || 'auto',
-          memoryTierPreference: src.memoryTierPreference || 'blended',
-          proactiveMemory: src.proactiveMemory !== false,
-          autoDraftSkillSuggestions: src.autoDraftSkillSuggestions !== false,
-          planningMode: normalizeAgentPlanningMode(src.planningMode),
-          autoRecovery: src.autoRecovery || false,
-          disabled: false,
-          filesystemScope: src.filesystemScope === 'machine' ? 'machine' : 'workspace',
-          voiceId: src.elevenLabsVoiceId || '',
-          replyNotificationsMuted: src.replyNotificationsMuted === true,
-          heartbeatEnabled: src.heartbeatEnabled || false,
-          heartbeatIntervalSec: parseDurationToSec(src.heartbeatInterval, src.heartbeatIntervalSec),
-          heartbeatModel: src.heartbeatModel || '',
-          heartbeatPrompt: src.heartbeatPrompt || '',
-          dreamEnabled: src.dreamEnabled || false,
-          dreamCooldownMinutes: src.dreamConfig?.cooldownMinutes != null ? String(src.dreamConfig.cooldownMinutes) : '360',
-          dreamTier2Enabled: src.dreamConfig?.tier2Enabled !== false,
-          orchestratorEnabled: src.orchestratorEnabled || false,
-          orchestratorMission: src.orchestratorMission || '',
-          orchestratorWakeInterval: typeof src.orchestratorWakeInterval === 'string' ? src.orchestratorWakeInterval : typeof src.orchestratorWakeInterval === 'number' ? `${src.orchestratorWakeInterval}s` : '5m',
-          orchestratorGovernance: src.orchestratorGovernance || 'autonomous',
-          orchestratorMaxCyclesPerDay: src.orchestratorMaxCyclesPerDay != null ? String(src.orchestratorMaxCyclesPerDay) : '',
-          sessionResetMode: src.sessionResetMode || '',
-          sessionIdleTimeoutSec: src.sessionIdleTimeoutSec != null ? String(src.sessionIdleTimeoutSec) : '',
-          sessionMaxAgeSec: src.sessionMaxAgeSec != null ? String(src.sessionMaxAgeSec) : '',
-          sessionDailyResetAt: src.sessionDailyResetAt || '',
-          sessionResetTimezone: src.sessionResetTimezone || '',
-          identityPersonaLabel: src.identityState?.personaLabel || '',
-          identitySelfSummary: src.identityState?.selfSummary || '',
-          identityRelationshipSummary: src.identityState?.relationshipSummary || '',
-          identityToneStyle: src.identityState?.toneStyle || '',
-          identityBoundariesText: formatIdentityList(src.identityState?.boundaries),
-          identityContinuityNotesText: formatIdentityList(src.identityState?.continuityNotes),
-          budgetEnabled: (typeof src.hourlyBudget === 'number' && src.hourlyBudget > 0)
-            || (typeof src.dailyBudget === 'number' && src.dailyBudget > 0)
-            || (typeof src.monthlyBudget === 'number' && src.monthlyBudget > 0),
-          hourlyBudget: typeof src.hourlyBudget === 'number' && src.hourlyBudget > 0 ? String(src.hourlyBudget) : '',
-          dailyBudget: typeof src.dailyBudget === 'number' && src.dailyBudget > 0 ? String(src.dailyBudget) : '',
-          monthlyBudget: typeof src.monthlyBudget === 'number' && src.monthlyBudget > 0 ? String(src.monthlyBudget) : '',
-          budgetAction: src.budgetAction || 'warn',
-        })
-      } else {
-        const newSoul = randomSoul()
-        setSoulInitial(newSoul)
-        setSoulSaveState('idle')
-        setCapInput('')
-        patch({
-          name: '',
-          description: '',
-          soul: newSoul,
-          systemPrompt: '',
-          provider: 'claude-cli',
-          model: '',
-          credentialId: null,
-          apiEndpoint: null,
-          gatewayProfileId: null,
-          preferredGatewayTagsText: '',
-          preferredGatewayUseCase: '',
-          routingStrategy: 'single',
-          routingTargets: [],
-          role: 'worker',
-          delegationEnabled: false,
-          delegationTargetMode: 'all',
-          delegationTargetAgentIds: [],
-          tools: getDefaultAgentToolIds(),
-          toolAccessMode: 'scoped',
-          extensions: [],
-          skills: [],
-          skillIds: [],
-          mcpDisabledTools: [],
-          fallbackCredentialIds: [],
-          capabilities: [],
-          ollamaMode: 'local',
-          openclawEnabled: false,
-          projectId: undefined,
-          avatarSeed: '',
-          thinkingLevel: '',
-          memoryScopeMode: 'auto',
-          memoryTierPreference: 'blended',
-          proactiveMemory: true,
-          autoDraftSkillSuggestions: true,
-          planningMode: 'off',
-          autoRecovery: false,
-          disabled: false,
-          voiceId: '',
-          replyNotificationsMuted: false,
-          heartbeatEnabled: true,
-          heartbeatIntervalSec: '',
-          heartbeatModel: '',
-          heartbeatPrompt: '',
-          orchestratorEnabled: false,
-          orchestratorMission: '',
-          orchestratorWakeInterval: '5m',
-          orchestratorGovernance: 'autonomous',
-          orchestratorMaxCyclesPerDay: '',
-          sessionResetMode: '',
-          sessionIdleTimeoutSec: '',
-          sessionMaxAgeSec: '',
-          sessionDailyResetAt: '',
-          sessionResetTimezone: '',
-          identityPersonaLabel: '',
-          identitySelfSummary: '',
-          identityRelationshipSummary: '',
-          identityToneStyle: '',
-          identityBoundariesText: '',
-          identityContinuityNotesText: '',
-          budgetEnabled: false,
-          hourlyBudget: '',
-          dailyBudget: '',
-          monthlyBudget: '',
-          budgetAction: 'warn',
-        })
-      }
+    loadSettings()
+    loadProviders()
+    loadProviderConfigs()
+    loadGatewayProfiles()
+    loadCredentials()
+    loadSkills()
+    loadMcpServersAction()
+    loadProjects()
+    loadClaudeSkills()
+    void loadAgents().then(() => setAgentsChecked(true))
+    // Fetch enabled extension IDs so we can filter tool toggles
+    api<{ enabledExtensionIds: string[]; externalTools?: ExtensionToolInfo[] }>('GET', '/extensions/builtins')
+      .then((res) => {
+        if (res?.enabledExtensionIds) setEnabledExtensionIds(new Set(res.enabledExtensionIds))
+        if (Array.isArray(res?.externalTools)) setExternalTools(res.externalTools)
+      })
+      .catch(() => {})
+    setTab('essentials')
+  }, [
+    editingId, loadAgents, loadClaudeSkills, loadCredentials, loadGatewayProfiles, loadMcpServersAction,
+    loadProjects, loadProviderConfigs, loadProviders, loadSettings, loadSkills,
+  ])
+
+  // Fill the form from the stored agent (or the duplicate prefill, or new-agent
+  // defaults). Reruns on "Discard", and once more when an agent opened by URL
+  // reaches the store after the first render.
+  useEffect(() => {
+    setDirty(false)
+    setTestStatus('idle')
+    setTestMessage('')
+    setTestDiagnostics([])
+    if (editing) {
+      setSoulInitial(editing.soul || '')
+      setSoulSaveState('idle')
+      setCapInput('')
+      patch({
+        name: editing.name,
+        description: editing.description,
+        soul: editing.soul || '',
+        systemPrompt: editing.systemPrompt,
+        provider: editing.provider,
+        model: editing.model,
+        credentialId: editing.credentialId || null,
+        apiEndpoint: editing.apiEndpoint || null,
+        gatewayProfileId: editing.gatewayProfileId || null,
+        preferredGatewayTagsText: formatGatewayTagList(editing.preferredGatewayTags),
+        preferredGatewayUseCase: editing.preferredGatewayUseCase || '',
+        routingStrategy: editing.routingStrategy || 'single',
+        routingTargets: editing.routingTargets || [],
+        role: editing.role === 'coordinator' ? 'coordinator' : 'worker',
+        delegationEnabled: editing.delegationEnabled === true,
+        delegationTargetMode: editing.delegationTargetMode === 'selected' ? 'selected' : 'all',
+        delegationTargetAgentIds: editing.delegationTargetAgentIds || [],
+        tools: getEnabledToolIds(editing),
+        toolAccessMode: editing.toolAccessMode === 'scoped' ? 'scoped' : 'universal',
+        extensions: getEnabledExtensionIds(editing),
+        skills: editing.skills || [],
+        skillIds: editing.skillIds || [],
+        mcpServerIds: editing.mcpServerIds || [],
+        mcpDisabledTools: editing.mcpDisabledTools || [],
+        fallbackCredentialIds: editing.fallbackCredentialIds || [],
+        capabilities: Array.isArray(editing.capabilities) ? editing.capabilities : [],
+        ollamaMode: resolveStoredOllamaMode({
+          ollamaMode: editing.ollamaMode ?? null,
+          apiEndpoint: editing.apiEndpoint ?? null,
+        }),
+        openclawEnabled: editing.provider === 'openclaw',
+        projectId: editing.projectId,
+        avatarSeed: editing.avatarSeed || Math.random().toString(36).slice(2, 10),
+        avatarUrl: editing.avatarUrl || null,
+        thinkingLevel: editing.thinkingLevel || '',
+        memoryScopeMode: editing.memoryScopeMode || 'auto',
+        memoryTierPreference: editing.memoryTierPreference || 'blended',
+        proactiveMemory: editing.proactiveMemory !== false,
+        autoDraftSkillSuggestions: editing.autoDraftSkillSuggestions !== false,
+        planningMode: normalizeAgentPlanningMode(editing.planningMode),
+        autoRecovery: editing.autoRecovery || false,
+        disabled: editing.disabled === true,
+        filesystemScope: editing.filesystemScope === 'machine' ? 'machine' : 'workspace',
+        voiceId: editing.elevenLabsVoiceId || '',
+        replyNotificationsMuted: editing.replyNotificationsMuted === true,
+        heartbeatEnabled: editing.heartbeatEnabled || false,
+        heartbeatIntervalSec: parseDurationToSec(editing.heartbeatInterval, editing.heartbeatIntervalSec),
+        heartbeatModel: editing.heartbeatModel || '',
+        heartbeatPrompt: editing.heartbeatPrompt || '',
+        dreamEnabled: editing.dreamEnabled || false,
+        dreamCooldownMinutes: editing.dreamConfig?.cooldownMinutes != null ? String(editing.dreamConfig.cooldownMinutes) : '360',
+        dreamTier2Enabled: editing.dreamConfig?.tier2Enabled !== false,
+        orchestratorEnabled: editing.orchestratorEnabled || false,
+        orchestratorMission: editing.orchestratorMission || '',
+        orchestratorWakeInterval: typeof editing.orchestratorWakeInterval === 'string' ? editing.orchestratorWakeInterval : typeof editing.orchestratorWakeInterval === 'number' ? `${editing.orchestratorWakeInterval}s` : '5m',
+        orchestratorGovernance: editing.orchestratorGovernance || 'autonomous',
+        orchestratorMaxCyclesPerDay: editing.orchestratorMaxCyclesPerDay != null ? String(editing.orchestratorMaxCyclesPerDay) : '',
+        sessionResetMode: editing.sessionResetMode || '',
+        sessionIdleTimeoutSec: editing.sessionIdleTimeoutSec != null ? String(editing.sessionIdleTimeoutSec) : '',
+        sessionMaxAgeSec: editing.sessionMaxAgeSec != null ? String(editing.sessionMaxAgeSec) : '',
+        sessionDailyResetAt: editing.sessionDailyResetAt || '',
+        sessionResetTimezone: editing.sessionResetTimezone || '',
+        identityPersonaLabel: editing.identityState?.personaLabel || '',
+        identitySelfSummary: editing.identityState?.selfSummary || '',
+        identityRelationshipSummary: editing.identityState?.relationshipSummary || '',
+        identityToneStyle: editing.identityState?.toneStyle || '',
+        identityBoundariesText: formatIdentityList(editing.identityState?.boundaries),
+        identityContinuityNotesText: formatIdentityList(editing.identityState?.continuityNotes),
+        budgetEnabled: (typeof editing.hourlyBudget === 'number' && editing.hourlyBudget > 0)
+          || (typeof editing.dailyBudget === 'number' && editing.dailyBudget > 0)
+          || (typeof editing.monthlyBudget === 'number' && editing.monthlyBudget > 0),
+        hourlyBudget: typeof editing.hourlyBudget === 'number' && editing.hourlyBudget > 0 ? String(editing.hourlyBudget) : '',
+        dailyBudget: typeof editing.dailyBudget === 'number' && editing.dailyBudget > 0 ? String(editing.dailyBudget) : '',
+        monthlyBudget: typeof editing.monthlyBudget === 'number' && editing.monthlyBudget > 0 ? String(editing.monthlyBudget) : '',
+        budgetAction: editing.budgetAction || 'warn',
+      })
+    } else if (editingId) {
+      // The agent is not in the store yet; this effect reruns when it arrives.
+    } else if (duplicateSource) {
+      // Duplicate mode — prefill from the source agent
+      const src = duplicateSource
+      skipAutoModelRef.current = true
+      setSoulInitial(src.soul || '')
+      setSoulSaveState('idle')
+      setCapInput('')
+      patch({
+        name: `${src.name || 'Agent'} (Copy)`,
+        description: src.description || '',
+        soul: src.soul || '',
+        systemPrompt: src.systemPrompt || '',
+        provider: src.provider || 'claude-cli',
+        model: src.model || '',
+        credentialId: src.credentialId || null,
+        apiEndpoint: src.apiEndpoint || null,
+        gatewayProfileId: src.gatewayProfileId || null,
+        preferredGatewayTagsText: formatGatewayTagList(src.preferredGatewayTags),
+        preferredGatewayUseCase: src.preferredGatewayUseCase || '',
+        routingStrategy: src.routingStrategy || 'single',
+        routingTargets: src.routingTargets || [],
+        role: src.role === 'coordinator' ? 'coordinator' : 'worker',
+        delegationEnabled: src.delegationEnabled === true,
+        delegationTargetMode: src.delegationTargetMode === 'selected' ? 'selected' : 'all',
+        delegationTargetAgentIds: src.delegationTargetAgentIds || [],
+        tools: getEnabledToolIds(src),
+        toolAccessMode: src.toolAccessMode === 'scoped' ? 'scoped' : 'universal',
+        extensions: getEnabledExtensionIds(src),
+        skills: src.skills || [],
+        skillIds: src.skillIds || [],
+        mcpServerIds: src.mcpServerIds || [],
+        mcpDisabledTools: src.mcpDisabledTools || [],
+        fallbackCredentialIds: src.fallbackCredentialIds || [],
+        capabilities: Array.isArray(src.capabilities) ? src.capabilities : [],
+        ollamaMode: resolveStoredOllamaMode({
+          ollamaMode: src.ollamaMode ?? null,
+          apiEndpoint: src.apiEndpoint ?? null,
+        }),
+        openclawEnabled: src.provider === 'openclaw',
+        projectId: src.projectId,
+        avatarSeed: Math.random().toString(36).slice(2, 10),
+        avatarUrl: null,
+        thinkingLevel: src.thinkingLevel || '',
+        memoryScopeMode: src.memoryScopeMode || 'auto',
+        memoryTierPreference: src.memoryTierPreference || 'blended',
+        proactiveMemory: src.proactiveMemory !== false,
+        autoDraftSkillSuggestions: src.autoDraftSkillSuggestions !== false,
+        planningMode: normalizeAgentPlanningMode(src.planningMode),
+        autoRecovery: src.autoRecovery || false,
+        disabled: false,
+        filesystemScope: src.filesystemScope === 'machine' ? 'machine' : 'workspace',
+        voiceId: src.elevenLabsVoiceId || '',
+        replyNotificationsMuted: src.replyNotificationsMuted === true,
+        heartbeatEnabled: src.heartbeatEnabled || false,
+        heartbeatIntervalSec: parseDurationToSec(src.heartbeatInterval, src.heartbeatIntervalSec),
+        heartbeatModel: src.heartbeatModel || '',
+        heartbeatPrompt: src.heartbeatPrompt || '',
+        dreamEnabled: src.dreamEnabled || false,
+        dreamCooldownMinutes: src.dreamConfig?.cooldownMinutes != null ? String(src.dreamConfig.cooldownMinutes) : '360',
+        dreamTier2Enabled: src.dreamConfig?.tier2Enabled !== false,
+        orchestratorEnabled: src.orchestratorEnabled || false,
+        orchestratorMission: src.orchestratorMission || '',
+        orchestratorWakeInterval: typeof src.orchestratorWakeInterval === 'string' ? src.orchestratorWakeInterval : typeof src.orchestratorWakeInterval === 'number' ? `${src.orchestratorWakeInterval}s` : '5m',
+        orchestratorGovernance: src.orchestratorGovernance || 'autonomous',
+        orchestratorMaxCyclesPerDay: src.orchestratorMaxCyclesPerDay != null ? String(src.orchestratorMaxCyclesPerDay) : '',
+        sessionResetMode: src.sessionResetMode || '',
+        sessionIdleTimeoutSec: src.sessionIdleTimeoutSec != null ? String(src.sessionIdleTimeoutSec) : '',
+        sessionMaxAgeSec: src.sessionMaxAgeSec != null ? String(src.sessionMaxAgeSec) : '',
+        sessionDailyResetAt: src.sessionDailyResetAt || '',
+        sessionResetTimezone: src.sessionResetTimezone || '',
+        identityPersonaLabel: src.identityState?.personaLabel || '',
+        identitySelfSummary: src.identityState?.selfSummary || '',
+        identityRelationshipSummary: src.identityState?.relationshipSummary || '',
+        identityToneStyle: src.identityState?.toneStyle || '',
+        identityBoundariesText: formatIdentityList(src.identityState?.boundaries),
+        identityContinuityNotesText: formatIdentityList(src.identityState?.continuityNotes),
+        budgetEnabled: (typeof src.hourlyBudget === 'number' && src.hourlyBudget > 0)
+          || (typeof src.dailyBudget === 'number' && src.dailyBudget > 0)
+          || (typeof src.monthlyBudget === 'number' && src.monthlyBudget > 0),
+        hourlyBudget: typeof src.hourlyBudget === 'number' && src.hourlyBudget > 0 ? String(src.hourlyBudget) : '',
+        dailyBudget: typeof src.dailyBudget === 'number' && src.dailyBudget > 0 ? String(src.dailyBudget) : '',
+        monthlyBudget: typeof src.monthlyBudget === 'number' && src.monthlyBudget > 0 ? String(src.monthlyBudget) : '',
+        budgetAction: src.budgetAction || 'warn',
+      })
+    } else {
+      const newSoul = randomSoul()
+      setSoulInitial(newSoul)
+      setSoulSaveState('idle')
+      setCapInput('')
+      patch({
+        name: '',
+        description: '',
+        soul: newSoul,
+        systemPrompt: '',
+        provider: 'claude-cli',
+        model: '',
+        credentialId: null,
+        apiEndpoint: null,
+        gatewayProfileId: null,
+        preferredGatewayTagsText: '',
+        preferredGatewayUseCase: '',
+        routingStrategy: 'single',
+        routingTargets: [],
+        role: 'worker',
+        delegationEnabled: false,
+        delegationTargetMode: 'all',
+        delegationTargetAgentIds: [],
+        tools: getDefaultAgentToolIds(),
+        toolAccessMode: 'scoped',
+        extensions: [],
+        skills: [],
+        skillIds: [],
+        mcpDisabledTools: [],
+        fallbackCredentialIds: [],
+        capabilities: [],
+        ollamaMode: 'local',
+        openclawEnabled: false,
+        projectId: undefined,
+        avatarSeed: '',
+        thinkingLevel: '',
+        memoryScopeMode: 'auto',
+        memoryTierPreference: 'blended',
+        proactiveMemory: true,
+        autoDraftSkillSuggestions: true,
+        planningMode: 'off',
+        autoRecovery: false,
+        disabled: false,
+        voiceId: '',
+        replyNotificationsMuted: false,
+        heartbeatEnabled: true,
+        heartbeatIntervalSec: '',
+        heartbeatModel: '',
+        heartbeatPrompt: '',
+        orchestratorEnabled: false,
+        orchestratorMission: '',
+        orchestratorWakeInterval: '5m',
+        orchestratorGovernance: 'autonomous',
+        orchestratorMaxCyclesPerDay: '',
+        sessionResetMode: '',
+        sessionIdleTimeoutSec: '',
+        sessionMaxAgeSec: '',
+        sessionDailyResetAt: '',
+        sessionResetTimezone: '',
+        identityPersonaLabel: '',
+        identitySelfSummary: '',
+        identityRelationshipSummary: '',
+        identityToneStyle: '',
+        identityBoundariesText: '',
+        identityContinuityNotesText: '',
+        budgetEnabled: false,
+        hourlyBudget: '',
+        dailyBudget: '',
+        monthlyBudget: '',
+        budgetAction: 'warn',
+      })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editingId])
+  }, [editingId, reloadKey, editingLoaded])
 
   useEffect(() => {
-    if (!open || !editingId) {
+    if (!editingId) {
       setConfigVersions([])
       setConfigVersionsError(null)
       setConfigVersionsLoading(false)
@@ -582,7 +616,7 @@ export function AgentSheet() {
       return
     }
     void loadAgentConfigVersions(editingId)
-  }, [editingId, loadAgentConfigVersions, open])
+  }, [editingId, loadAgentConfigVersions])
 
   useEffect(() => {
     if (skipAutoModelRef.current) {
@@ -640,13 +674,30 @@ export function AgentSheet() {
     return () => { cancelled = true }
   }, [openclawEnabled])
 
-  const onClose = () => {
-    setOpen(false)
-    setEditingId(null)
+  // After a save, delete, restore or import: nothing is unsaved any more, and
+  // the page may move on. `router.replace` skips the leave guard on purpose.
+  const afterWrite = (next: { goTo: string | null }) => {
+    setDirty(false)
+    if (next.goTo) router.replace(next.goTo)
   }
 
+  // While edits are unsaved: in-app navigation asks first, reload/close warns,
+  // and the tab host is told this frame cannot be put to sleep.
+  useEffect(() => {
+    if (!dirty) return
+    const release = setLeaveGuard((proceed) => setLeavePrompt(() => proceed))
+    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    const releaseFlush = onTabFlushRequest(async () => false)
+    return () => {
+      release()
+      releaseFlush()
+      window.removeEventListener('beforeunload', onBeforeUnload)
+    }
+  }, [dirty])
+
   const applyGatewayProfileSelection = (nextGatewayProfileId: string | null) => {
-    patch({ gatewayProfileId: nextGatewayProfileId })
+    userPatch({ gatewayProfileId: nextGatewayProfileId })
     const gateway = openclawGatewayProfiles.find((item) => item.id === nextGatewayProfileId)
     if (!gateway) return
     patch({ provider: 'openclaw' })
@@ -659,7 +710,7 @@ export function AgentSheet() {
   const applyDirectProviderSelection = (nextProviderId: string) => {
     const nextProvider = agentSelectableProviders.find((item) => item.id === nextProviderId)
     const nextCredentials = resolveAgentSelectableProviderCredentials(nextProviderId, credentials, providerConfigs)
-    patch({ provider: nextProviderId })
+    userPatch({ provider: nextProviderId })
     patch({ model: nextProvider?.models[0] || '' })
     patch({ credentialId: nextCredentials[0]?.id || null })
     patch({ fallbackCredentialIds: [] })
@@ -675,7 +726,7 @@ export function AgentSheet() {
   }
 
   const updateRoutingTarget = (targetId: string, targetPatch: Partial<AgentRoutingTarget>) => {
-    patch((d) => ({
+    userPatch((d) => ({
       routingTargets: d.routingTargets.map((target) => (
         target.id === targetId
           ? { ...target, ...targetPatch }
@@ -685,7 +736,7 @@ export function AgentSheet() {
   }
 
   const removeRoutingTarget = (targetId: string) => {
-    patch((d) => ({ routingTargets: d.routingTargets.filter((target) => target.id !== targetId) }))
+    userPatch((d) => ({ routingTargets: d.routingTargets.filter((target) => target.id !== targetId) }))
   }
 
   const addRoutingTargetFromCurrent = () => {
@@ -704,7 +755,7 @@ export function AgentSheet() {
       preferredGatewayUseCase: preferredGatewayUseCase || null,
       priority: routingTargets.length + 1,
     }
-    patch((d) => ({ routingTargets: [...d.routingTargets, nextTarget] }))
+    userPatch((d) => ({ routingTargets: [...d.routingTargets, nextTarget] }))
   }
 
   const handleSave = async () => {
@@ -846,7 +897,7 @@ export function AgentSheet() {
     setSoulInitial(soul)
     setSoulSaveState('saved')
     setTimeout(() => setSoulSaveState('idle'), 1500)
-    onClose()
+    afterWrite({ goTo: editing ? null : `/agents/${encodeURIComponent(savedAgent.id)}` })
   }
 
   const handleDelete = async () => {
@@ -854,7 +905,7 @@ export function AgentSheet() {
       await deleteAgent(editing.id)
       toast.success('Agent moved to trash')
       await loadAgents()
-      onClose()
+      afterWrite({ goTo: '/agents' })
     }
   }
 
@@ -877,7 +928,9 @@ export function AgentSheet() {
         await refreshSession(activeSessionId)
       }
       toast.success('Agent configuration restored')
-      onClose()
+      afterWrite({ goTo: null })
+      // Show the restored settings, not the ones that were on screen before.
+      setReloadKey((key) => key + 1)
     } catch (err) {
       toast.error(`Restore failed: ${errorMessage(err)}`)
     } finally {
@@ -945,10 +998,10 @@ export function AgentSheet() {
         // Strip IDs and timestamps
         const { id: _id, createdAt: _ca, updatedAt: _ua, threadSessionId: _ts, ...agentData } = importedAgent
         void [_id, _ca, _ua, _ts]
-        await createAgent({ ...agentData, name: agentData.name || 'Imported Agent' })
+        const imported = await createAgent({ ...agentData, name: agentData.name || 'Imported Agent' })
         await loadAgents()
         toast.success(data?.kind === 'swarmclaw-agent-pack' ? 'Agent pack imported' : 'Agent imported')
-        onClose()
+        afterWrite({ goTo: `/agents/${encodeURIComponent(imported.id)}` })
       } catch {
         toast.error('Invalid agent JSON file')
       }
@@ -1029,7 +1082,7 @@ export function AgentSheet() {
   const canDelegateToAgents = delegationEnabled || role === 'coordinator'
   const agentOptions = Object.values(agents).filter((p) => p.id !== editingId)
   const toggleAgent = (id: string) => {
-    patch((d) => {
+    userPatch((d) => {
       const next = d.delegationTargetAgentIds.includes(id) ? d.delegationTargetAgentIds.filter((x) => x !== id) : [...d.delegationTargetAgentIds, id]
       return {
         delegationTargetMode: next.length === 0 ? 'all' : 'selected',
@@ -1041,14 +1094,32 @@ export function AgentSheet() {
   const inputClass ="w-full px-4 py-3.5 rounded-md border border-line-default bg-surface text-text text-[15px] outline-none transition-all duration-200 placeholder:text-text-3 focus-glow"
   const configVersionSummaries = configVersions.map((version) => buildAgentConfigVersionSummary(version))
 
+  if (editingId && !editing) {
+    if (!agentsChecked) return <PageLoader />
+    return (
+      <EmptyState
+        icon={
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        }
+        title="Agent not found"
+        subtitle="It may have been moved to the trash. Pick another agent from the list."
+        action={{ label: 'Back to agents', onClick: () => router.replace('/agents') }}
+      />
+    )
+  }
+
   return (
     <>
-    <BottomSheet open={open} onClose={onClose} wide>
-      <div className="mb-8 pr-14 sm:pr-20">
+    <div className="flex-1 min-h-0 overflow-y-auto">
+    <div className="mx-auto max-w-[960px] px-5 sm:px-8 py-6">
+      <div className="mb-8">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h2 className="font-display text-[28px] font-700 tracking-[-0.03em]">
-              {editing ? 'Edit Agent' : 'New Agent'}
+              {editing ? editing.name : 'New Agent'}
             </h2>
             <span className={`rounded-full px-2.5 py-1 text-[10px] font-700 tracking-[0.03em] ${
               disabled
@@ -1062,7 +1133,7 @@ export function AgentSheet() {
         </div>
       </div>
 
-      <div className="sticky -top-3 z-30 -mx-5 mb-6 flex items-center gap-1 border-b border-line-subtle bg-bg px-5 pt-3 sm:-top-5 sm:-mx-8 sm:px-8 sm:pt-5">
+      <div className="sticky top-0 z-30 -mx-5 mb-6 flex items-center gap-1 border-b border-line-subtle bg-bg px-5 pt-3 sm:-mx-8 sm:px-8 sm:pt-5">
         {AGENT_SHEET_TABS.map((entry) => (
           <button
             key={entry.key}
@@ -1085,7 +1156,7 @@ export function AgentSheet() {
       {tab === 'essentials' && (
         <TabEssentials
           draft={draft}
-          patch={patch}
+          patch={userPatch}
           inputClass={inputClass}
           agentSelectableProviders={agentSelectableProviders}
           currentProvider={currentProvider}
@@ -1129,7 +1200,7 @@ export function AgentSheet() {
       {tab === 'behavior' && (
         <TabBehavior
           draft={draft}
-          patch={patch}
+          patch={userPatch}
           inputClass={inputClass}
           canDelegateToAgents={canDelegateToAgents}
           agentOptions={agentOptions}
@@ -1143,7 +1214,7 @@ export function AgentSheet() {
       {tab === 'tools' && (
         <TabTools
           draft={draft}
-          patch={patch}
+          patch={userPatch}
           inputClass={inputClass}
           enabledExtensionIds={enabledExtensionIds}
           externalTools={externalTools}
@@ -1159,12 +1230,12 @@ export function AgentSheet() {
         />
       )}
       {tab === 'memory' && (
-        <TabMemory draft={draft} patch={patch} inputClass={inputClass} />
+        <TabMemory draft={draft} patch={userPatch} inputClass={inputClass} />
       )}
       {tab === 'network' && (
         <TabNetwork
           draft={draft}
-          patch={patch}
+          patch={userPatch}
           inputClass={inputClass}
           editing={editing}
           projects={projects}
@@ -1218,15 +1289,17 @@ export function AgentSheet() {
       {/* Import file input (hidden) */}
       <input ref={importFileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
 
-      <div className="sticky -bottom-5 z-30 -mx-5 mt-2 flex gap-3 border-t border-line-subtle bg-bg px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:-bottom-8 sm:-mx-8 sm:px-8 sm:pb-8">
+      <div className="sticky bottom-0 z-30 -mx-5 mt-2 flex gap-3 border-t border-line-subtle bg-bg px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:-mx-8 sm:px-8 sm:pb-8">
         {editing && (
           <button onClick={handleDelete} className="py-3.5 px-6 rounded-full border border-red-500/20 bg-transparent text-red-400 text-[15px] font-600 cursor-pointer hover:bg-red-500/10 transition-all" style={{ fontFamily: 'inherit' }}>
             Delete
           </button>
         )}
-        <button onClick={onClose} className="flex-1 py-3.5 rounded-full border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
-          Cancel
-        </button>
+        {dirty && (
+          <button onClick={() => setReloadKey((key) => key + 1)} className="flex-1 py-3.5 rounded-full border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
+            Elvetés
+          </button>
+        )}
         <button
           onClick={handleTestAndSave}
           disabled={!name.trim() || providerNeedsKey || testStatus === 'testing' || saving || (!openclawEnabled && testStatus === 'pass')}
@@ -1243,12 +1316,29 @@ export function AgentSheet() {
             : (testStatus === 'testing' ? 'Testing...' : testStatus === 'pass' ? (saving ? 'Saving...' : 'Connected!') : needsTest ? 'Test & Save' : editing ? 'Save' : 'Create')}
         </button>
       </div>
-    </BottomSheet>
+    </div>
+    </div>
 
     <SoulLibraryPicker
       open={soulLibraryOpen}
       onClose={() => setSoulLibraryOpen(false)}
-      onSelect={(s) => patch({ soul: s })}
+      onSelect={(s) => userPatch({ soul: s })}
+    />
+    <ConfirmDialog
+      open={leavePrompt !== null}
+      title="Mentetlen változások"
+      message="Az agent beállításain mentetlen módosítás van. Elveted és továbblépsz?"
+      confirmLabel="Elvetés"
+      danger
+      onConfirm={() => {
+        // `go` is the navigation requestLeave already handed over; calling it
+        // does not ask the guard again.
+        const go = leavePrompt
+        setLeavePrompt(null)
+        setDirty(false)
+        go?.()
+      }}
+      onCancel={() => setLeavePrompt(null)}
     />
     </>
   )

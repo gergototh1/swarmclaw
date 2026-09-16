@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/shared/skeleton'
 import { EmptyState } from '@/components/shared/empty-state'
 import { getEnabledCapabilityIds } from '@/lib/capability-selection'
 import { useWs } from '@/hooks/use-ws'
+import { useNavigate } from '@/lib/app/navigation'
 
 interface Props {
   inSidebar?: boolean
@@ -18,13 +19,12 @@ export function AgentList({ inSidebar }: Props) {
   const agents = useAppStore((s) => s.agents)
   const loadAgents = useAppStore((s) => s.loadAgents)
   const sessions = useAppStore((s) => s.sessions)
-  const setAgentSheetOpen = useAppStore((s) => s.setAgentSheetOpen)
+  const navigateTo = useNavigate()
   const activeProjectFilter = useAppStore((s) => s.activeProjectFilter)
   const showTrash = useAppStore((s) => s.showTrash)
   const setShowTrash = useAppStore((s) => s.setShowTrash)
   const fleetFilter = useAppStore((s) => s.fleetFilter)
   const setFleetFilter = useAppStore((s) => s.setFleetFilter)
-  const currentAgentId = useAppStore((s) => s.currentAgentId)
   const approvals = useApprovalStore((s) => s.approvals)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'delegating' | 'solo'>('all')
@@ -32,8 +32,6 @@ export function AgentList({ inSidebar }: Props) {
   // FLIP animation refs
   const flipPositions = useRef<Map<string, number>>(new Map())
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-
-  const selectedAgentId = currentAgentId
 
   const appSettings = useAppStore((s) => s.appSettings)
   const updateSettings = useAppStore((s) => s.updateSettings)
@@ -180,7 +178,7 @@ export function AgentList({ inSidebar }: Props) {
         }
         title="No agents yet"
         subtitle="Create AI agents and enable delegation where needed"
-        action={!inSidebar ? { label: '+ New Agent', onClick: () => setAgentSheetOpen(true) } : undefined}
+        action={{ label: '+ New Agent', onClick: () => navigateTo('agents', 'new') }}
       />
     )
   }
@@ -271,7 +269,7 @@ export function AgentList({ inSidebar }: Props) {
       <div className="flex flex-col gap-1 px-2 pb-4">
         {filtered.map((p) => (
           <div key={p.id} ref={(el) => { if (el) cardRefs.current.set(p.id, el); else cardRefs.current.delete(p.id) }}>
-            <AgentCard agent={p} isDefault={p.id === defaultAgentId} isRunning={runningAgentIds.has(p.id)} isOnline={onlineAgentIds.has(p.id)} isSelected={p.id === selectedAgentId} onSetDefault={handleSetDefault} />
+            <AgentCard agent={p} isDefault={p.id === defaultAgentId} isRunning={runningAgentIds.has(p.id)} isOnline={onlineAgentIds.has(p.id)} onSetDefault={handleSetDefault} />
           </div>
         ))}
       </div>

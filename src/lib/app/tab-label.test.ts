@@ -23,6 +23,10 @@ describe('tabLabel', () => {
     assert.equal(tabLabel('/agents/deleted', null, lookups).title, 'All Agents')
   })
 
+  it('names the new-agent page', () => {
+    assert.equal(tabLabel('/agents/new', null, lookups).title, 'New Agent')
+  })
+
   it('uses the extension page label, or the raw title the page reported', () => {
     assert.deepEqual(tabLabel('/x/crm/ugyfelek/acc_1', null, lookups), { title: 'CRM', sectionId: 'work', extensionIcon: 'Users' })
     assert.equal(tabLabel('/x/crm/ugyfelek/acc_1', 'CRM · Kovacs Kft', lookups).title, 'CRM · Kovacs Kft')

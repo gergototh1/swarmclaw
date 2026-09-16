@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic'
 
 // Lazy load all heavy overlay sheets to keep the initial AppLayout bundle tiny
-const AgentSheet = dynamic(() => import('@/components/agents/agent-sheet').then(m => m.AgentSheet), { ssr: false })
 const ScheduleSheet = dynamic(() => import('@/components/schedules/schedule-sheet').then(m => m.ScheduleSheet), { ssr: false })
 const MemorySheet = dynamic(() => import('@/components/memory/memory-sheet').then(m => m.MemorySheet), { ssr: false })
 const TaskSheet = dynamic(() => import('@/components/tasks/task-sheet').then(m => m.TaskSheet), { ssr: false })
@@ -26,7 +25,6 @@ const ProfileSheet = dynamic(() => import('@/components/shared/profile-sheet').t
 export function SheetLayer({ profileSheetOpen, setProfileSheetOpen }: { profileSheetOpen: boolean, setProfileSheetOpen: (open: boolean) => void }) {
   return (
     <>
-      <AgentSheet />
       <ScheduleSheet />
       <MemorySheet />
       <TaskSheet />
