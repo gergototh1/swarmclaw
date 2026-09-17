@@ -596,7 +596,7 @@ export default function TasksPage() {
           )}
           {doneCount > 0 && (
             <button
-              onClick={() => { void clearDoneMutation.mutateAsync().catch(() => toast.error('Nem sikerült törölni a befejezett feladatokat.')) }}
+              onClick={() => { void clearDoneMutation.mutateAsync().catch(() => toast.error('Couldn’t clear finished tasks.')) }}
               disabled={clearDoneMutation.isPending}
               className="px-4 py-2 rounded-full text-[13px] font-600 cursor-pointer transition-all border border-line-subtle bg-transparent text-text-3 hover:text-red-400 hover:border-red-400/20 disabled:opacity-40"
               style={{ fontFamily: 'inherit' }}

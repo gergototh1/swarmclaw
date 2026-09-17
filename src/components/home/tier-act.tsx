@@ -25,7 +25,7 @@ const NEEDS_YOU_LIMIT = 6
 
 export function TierAct() {
   const navigateTo = useNavigate()
-  const { openAgentThread } = useAgentChat()
+  const { openAgentThread, startAgentChat } = useAgentChat()
   const router = useRouter()
   const agents = useAppStore((s) => s.agents)
   const sessions = useAppStore((s) => s.sessions)
@@ -86,14 +86,15 @@ export function TierAct() {
     if (!agentId) return
     void (async () => {
       try {
-        const threadId = await openAgentThread(agentId)
-        if (!threadId) return
-        await sendMessage(text, { sessionId: threadId })
+        // A question asked from Home opens a fresh chat, the same as ⌘N.
+        const sessionId = await startAgentChat(agentId)
+        if (!sessionId) return
+        await sendMessage(text, { sessionId })
       } catch {
         toast.error('Something went wrong sending that message.', { description: 'Try again.' })
       }
     })()
-  }, [currentAgentId, firstAgent, openAgentThread, sendMessage])
+  }, [currentAgentId, firstAgent, startAgentChat, sendMessage])
 
   /*
    * `GET /api/chats` returns every session in the install and the `/chat`

@@ -16,7 +16,7 @@ export function useAgentChat() {
   const openAgentThread = useCallback(async (agentId: string): Promise<string | null> => {
     const thread = await useAppStore.getState().ensureAgentThread(agentId)
     if (!thread) {
-      toast.error('Nem sikerült megnyitni az agent szálát.', { description: 'Próbáld újra egy perc múlva.' })
+      toast.error('Couldn’t open the agent’s thread.', { description: 'Try again in a moment.' })
       return null
     }
     useAppStore.getState().setChatListMode('agents')
@@ -28,14 +28,14 @@ export function useAgentChat() {
     try {
       const next = await useAppStore.getState().startNewChatWithAgent(agentId)
       if (!next) {
-        toast.error('Nem sikerült új beszélgetést nyitni ezzel az agenttel.')
+        toast.error('Couldn’t start a new chat with this agent.')
         return null
       }
       useAppStore.getState().setChatListMode('conversations')
       navigateTo('conversations', next.id)
       return next.id
     } catch (err) {
-      toast.error(`Nem sikerült új beszélgetést nyitni: ${errorMessage(err)}`)
+      toast.error(`Couldn’t start a new chat: ${errorMessage(err)}`)
       return null
     }
   }, [navigateTo])

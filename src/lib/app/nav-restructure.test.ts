@@ -99,6 +99,13 @@ describe('navigation split', () => {
     assert.match(wizard, /ensureAgentThread\(first\.id\)/)
   })
 
+  it('asking from Home starts a new chat, not the agent thread', () => {
+    const home = read('src/components/home/tier-act.tsx')
+    const ask = home.slice(home.indexOf('const handleAskSend'), home.indexOf('/*', home.indexOf('const handleAskSend')))
+    assert.match(ask, /startAgentChat\(agentId\)/)
+    assert.doesNotMatch(ask, /openAgentThread/)
+  })
+
   it('the rail header has no default-agent shortcut', () => {
     assert.doesNotMatch(read('src/components/layout/sidebar-rail.tsx'), /goToDefaultChat|Default shortcut/)
   })

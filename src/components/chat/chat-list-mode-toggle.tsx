@@ -3,7 +3,7 @@
 import { useAppStore } from '@/stores/use-app-store'
 
 /**
- * The "Beszélgetések | Agentek" switch over the Chat list. Rendered in the
+ * The "Conversations | Agents" switch over the Chat list. Rendered in the
  * list panel's header on desktop and above the list itself on a narrow
  * screen, where the list is the whole page -- without it there a phone
  * would stay in whichever mode it was last left in.
@@ -12,8 +12,8 @@ export function ChatListModeToggle({ className = '' }: { className?: string }) {
   const mode = useAppStore((s) => s.chatListMode)
   const setMode = useAppStore((s) => s.setChatListMode)
   return (
-    <div className={`flex gap-1 ${className}`} role="tablist" aria-label="Chat lista">
-      {([['conversations', 'Beszélgetések'], ['agents', 'Agentek']] as const).map(([value, label]) => (
+    <div className={`flex gap-1 ${className}`} role="tablist" aria-label="Chat list">
+      {([['conversations', 'Conversations'], ['agents', 'Agents']] as const).map(([value, label]) => (
         <button
           key={value}
           role="tab"

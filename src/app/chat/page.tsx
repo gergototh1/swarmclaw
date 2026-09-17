@@ -15,14 +15,14 @@ import { toast } from 'sonner'
  *
  * The layout's rail already lists them, so an empty main pane beside a full
  * list is a dead end -- the reader picked "Chat" because they want the one
- * they were last in. In Beszélgetések mode that's the newest conversation; in
- * Agentek mode, or when there is no conversation yet, it's the default
+ * they were last in. In Conversations mode that's the newest conversation; in
+ * Agents mode, or when there is no conversation yet, it's the default
  * agent's own thread.
  *
  * Both are a `replace`, so Back leaves /chat instead of landing here again,
  * and neither changes the list mode the reader chose. Nothing is decided
  * before the session list has loaded: on a cold load an empty store would
- * otherwise send every Beszélgetések reader to the agent thread.
+ * otherwise send every Conversations reader to the agent thread.
  */
 export default function ChatIndexPage() {
   const router = useRouter()
@@ -64,7 +64,7 @@ export default function ChatIndexPage() {
     void ensureAgentThread(agentId).then((thread) => {
       if (!mounted.current) return
       if (!thread) {
-        toast.error('Nem sikerült megnyitni az agent szálát.', { description: 'Válassz egyet a listából, vagy próbáld újra egy perc múlva.' })
+        toast.error('Couldn’t open the agent’s thread.', { description: 'Pick one from the list, or try again in a moment.' })
         return
       }
       router.replace(`/chat/${encodeURIComponent(thread.id)}`)

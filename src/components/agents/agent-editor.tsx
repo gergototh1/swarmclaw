@@ -1333,7 +1333,7 @@ export function AgentEditor({ agentId }: { agentId: string | null }) {
         )}
         {dirty && (
           <button onClick={() => setReloadKey((key) => key + 1)} className="flex-1 py-3.5 rounded-full border border-line-default bg-transparent text-text-2 text-[15px] font-600 cursor-pointer hover:bg-surface-2 transition-all" style={{ fontFamily: 'inherit' }}>
-            Elvetés
+            Discard
           </button>
         )}
         <button
@@ -1362,9 +1362,9 @@ export function AgentEditor({ agentId }: { agentId: string | null }) {
     />
     <ConfirmDialog
       open={leavePrompt !== null}
-      title="Mentetlen változások"
-      message="Az agent beállításain mentetlen módosítás van. Elveted és továbblépsz?"
-      confirmLabel="Elvetés"
+      title="Unsaved changes"
+      message="This agent has unsaved changes. Discard them and continue?"
+      confirmLabel="Discard"
       danger
       onConfirm={() => {
         // `go` may ask the guard again (a caller that wraps `useNavigate`, or

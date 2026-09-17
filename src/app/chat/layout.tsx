@@ -14,7 +14,7 @@ import { errorMessage } from '@/lib/shared-utils'
 /**
  * The Chat page wears the agents layout: a 280px list beside the transcript.
  *
- * The list has two modes, toggled by the "Beszélgetések | Agentek" tabs in the
+ * The list has two modes, toggled by the "Conversations | Agents" tabs in the
  * header: past conversations, or one row per agent showing its own thread.
  * Both land on the same transcript -- this layout renders one chat surface
  * regardless of which list the row came from.
@@ -23,7 +23,7 @@ import { errorMessage } from '@/lib/shared-utils'
  * a list's own header is where you add to that list. It was in the transcript's
  * header, which is the one place you are certainly not looking when you want to
  * leave the conversation you are reading. The "+" itself follows the active
- * list: a new chat in Beszélgetések mode, a new agent in Agentek mode.
+ * list: a new chat in Conversations mode, a new agent in Agents mode.
  *
  * WHICH agent a new chat starts with is not asked here. The new conversation
  * inherits the one you are in, and the composer's picker changes it -- one
@@ -54,7 +54,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
     <>
       <SidebarPanelShell
         title="Chat"
-        subtitle={mode === 'agents' ? 'Agentek, mindegyik a saját szálával' : 'Beszélgetések, legutóbbi elöl'}
+        subtitle={mode === 'agents' ? 'Agents, each with its own thread' : 'Conversations, most recent first'}
         createLabel={mode === 'agents' ? 'Agent' : 'Chat'}
         onNew={() => { if (mode === 'agents') navigateTo('agents', 'new'); else void startNew() }}
         headerContent={<ChatListModeToggle className="px-4 pb-2" />}

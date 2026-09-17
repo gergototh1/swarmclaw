@@ -398,7 +398,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     onComplete(destination)
   }
 
-  // The first created agent's own thread; /chat in Agentek mode when there
+  // The first created agent's own thread; /chat in Agents mode when there
   // is no agent or its thread cannot be opened.
   const openFirstAgent = async () => {
     const store = useAppStore.getState()

@@ -35,6 +35,8 @@
 
 SwarmClaw serves non-technical users alongside power users. Every UI surface should follow these principles:
 
+**UI copy is English.** Every user-facing string — labels, buttons, dialogs, toasts, tooltips, aria-labels, empty states — is written in English unless the owner explicitly asks for Hungarian in that request. Code comments follow the surrounding file.
+
 **Progressive disclosure.** Hide power-user controls behind expandable sections — don't dump every option on screen at once. Use `AdvancedSettingsSection` (`src/components/shared/advanced-settings-section.tsx`) for collapsible expert panels (routing config, runtime behavior, overrides). Default state is collapsed.
 
 **Smart defaults — never leave blanks.** Every field that can have a sensible default should have one. `setup-defaults.ts` (`src/lib/setup-defaults.ts`) is the single source of truth for provider defaults, starter agent kits, `keyUrl`/`keyLabel` pairs, and default model selections. When adding a new provider or agent preset, add its defaults there — don't scatter magic values across components. `randomSoul()` (`src/lib/soul-suggestions.ts`) provides personality suggestions so the soul field is never empty.
