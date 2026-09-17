@@ -20,7 +20,6 @@ import { toast } from 'sonner'
 import { getEnabledCapabilityIds } from '@/lib/capability-selection'
 
 interface Props {
-  inSidebar?: boolean
   onSelect?: () => void
 }
 

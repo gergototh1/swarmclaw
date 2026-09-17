@@ -41,6 +41,22 @@ describe('navigation split', () => {
     assert.match(layout, /ConversationList/)
   })
 
+  it('/chat opens a thread with replace, after sessions load, without touching the list mode', () => {
+    const page = read('src/app/chat/page.tsx')
+    assert.doesNotMatch(page, /openAgentThread|setChatListMode|router\.push/)
+    assert.match(page, /ensureAgentThread\(agentId\)[\s\S]*?router\.replace\(/)
+    assert.match(page, /if \(!isDesktop \|\| !sessionsLoaded \|\| opened\.current\) return/)
+  })
+
+  it('the list mode switch is on both the desktop panel and the phone page', () => {
+    assert.match(read('src/app/chat/layout.tsx'), /<ChatListModeToggle/)
+    assert.match(read('src/app/chat/page.tsx'), /<ChatListModeToggle/)
+    const toggle = read('src/components/chat/chat-list-mode-toggle.tsx')
+    assert.match(toggle, /data-testid=\{`chat-list-mode-\$\{value\}`\}/)
+    assert.match(toggle, /'conversations'/)
+    assert.match(toggle, /'agents'/)
+  })
+
   it('the tasks route has no side list', () => {
     assert.doesNotMatch(read('src/app/tasks/layout.tsx'), /SidebarPanelShell/)
   })

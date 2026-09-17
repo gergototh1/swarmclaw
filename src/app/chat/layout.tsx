@@ -6,6 +6,7 @@ import { SidebarPanelShell } from '@/components/layout/sidebar-panel-shell'
 import { MainContent } from '@/components/layout/main-content'
 import { ConversationList } from '@/components/chat/conversation-list'
 import { AgentChatList } from '@/components/agents/agent-chat-list'
+import { ChatListModeToggle } from '@/components/chat/chat-list-mode-toggle'
 import { useAppStore } from '@/stores/use-app-store'
 import { useNavigate } from '@/lib/app/navigation'
 import { errorMessage } from '@/lib/shared-utils'
@@ -33,7 +34,6 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter()
   const startNewChatSession = useAppStore((s) => s.startNewChatSession)
   const mode = useAppStore((s) => s.chatListMode)
-  const setMode = useAppStore((s) => s.setChatListMode)
   const navigateTo = useNavigate()
   const activeId = params?.id ? decodeURIComponent(params.id) : null
 
@@ -57,26 +57,9 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         subtitle={mode === 'agents' ? 'Agentek, mindegyik a saját szálával' : 'Beszélgetések, legutóbbi elöl'}
         createLabel={mode === 'agents' ? 'Agent' : 'Chat'}
         onNew={() => { if (mode === 'agents') navigateTo('agents', 'new'); else void startNew() }}
-        headerContent={
-          <div className="flex gap-1 px-4 pb-2" role="tablist" aria-label="Chat lista">
-            {([['conversations', 'Beszélgetések'], ['agents', 'Agentek']] as const).map(([value, label]) => (
-              <button
-                key={value}
-                role="tab"
-                aria-selected={mode === value}
-                data-testid={`chat-list-mode-${value}`}
-                onClick={() => setMode(value)}
-                className={`px-3 py-1.5 rounded-sm text-[11px] font-600 cursor-pointer transition-all
-                  ${mode === value ? 'bg-accent-soft text-accent-bright' : 'bg-transparent text-text-3 hover:text-text-2'}`}
-                style={{ fontFamily: 'inherit' }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        }
+        headerContent={<ChatListModeToggle className="px-4 pb-2" />}
       >
-        {mode === 'agents' ? <AgentChatList inSidebar /> : <ConversationList activeId={activeId} />}
+        {mode === 'agents' ? <AgentChatList /> : <ConversationList activeId={activeId} />}
       </SidebarPanelShell>
       <MainContent>{children}</MainContent>
     </>
