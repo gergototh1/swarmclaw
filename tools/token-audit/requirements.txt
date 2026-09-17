@@ -1,0 +1,6 @@
+# Optional: exact counts via messages.count_tokens (needs ANTHROPIC_API_KEY)
+anthropic>=0.40
+# Optional: better offline estimate than chars/3.5
+tiktoken>=0.7
+# Tests
+pytest>=8

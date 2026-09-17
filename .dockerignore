@@ -14,3 +14,6 @@ extensions/video/node_modules
 extensions/video/dist
 extensions/gmail/node_modules
 extensions/gmail/dist
+# Local Python venvs and caches of the tools/ packages are dev-only.
+tools/*/.venv
+tools/*/.pytest_cache
