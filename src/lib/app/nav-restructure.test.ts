@@ -78,6 +78,15 @@ describe('navigation split', () => {
     assert.match(editor, /if \(warnOnUnload\) window\.addEventListener\('beforeunload'/)
   })
 
+  it('the editor clears the connection test and reloads history after a write, and asks restore in a dialog', () => {
+    const editor = read('src/components/agents/agent-editor.tsx')
+    const afterWrite = editor.slice(editor.indexOf('const afterWrite ='), editor.indexOf('const afterWrite =') + 400)
+    assert.match(afterWrite, /setTestStatus\('idle'\)/)
+    assert.match(afterWrite, /loadAgentConfigVersions\(editingId\)/)
+    assert.doesNotMatch(editor, /window\.confirm/)
+    assert.match(editor, /open=\{restorePromptVersionId !== null\}/)
+  })
+
   it('the rail header has no default-agent shortcut', () => {
     assert.doesNotMatch(read('src/components/layout/sidebar-rail.tsx'), /goToDefaultChat|Default shortcut/)
   })

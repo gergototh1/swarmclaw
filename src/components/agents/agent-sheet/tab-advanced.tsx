@@ -14,7 +14,7 @@ interface Props {
   configVersionsError: string | null
   restoringConfigVersionId: string | null
   loadAgentConfigVersions: (agentId: string) => Promise<void>
-  handleRestoreConfigVersion: (versionId: string) => Promise<void>
+  handleRestoreConfigVersion: (versionId: string) => void
   handleExport: () => void
   onImportClick: () => void
 }
@@ -80,7 +80,7 @@ export function TabAdvanced({
                   </div>
                   <button
                     type="button"
-                    onClick={() => void handleRestoreConfigVersion(summary.id)}
+                    onClick={() => handleRestoreConfigVersion(summary.id)}
                     disabled={Boolean(restoringConfigVersionId)}
                     className="shrink-0 rounded-md border border-accent-bright/20 bg-accent-soft/30 px-3 py-2 text-[12px] font-700 text-accent-bright transition-all hover:bg-accent-soft disabled:opacity-50"
                     style={{ fontFamily: 'inherit' }}

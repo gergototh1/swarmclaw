@@ -87,6 +87,8 @@ export function AgentEditor({ agentId }: { agentId: string | null }) {
   const [dirty, setDirty] = useState(false)
   // The held navigation while the "unsaved changes" dialog is up.
   const [leavePrompt, setLeavePrompt] = useState<(() => void) | null>(null)
+  // The saved configuration version waiting on the restore dialog.
+  const [restorePromptVersionId, setRestorePromptVersionId] = useState<string | null>(null)
   // Bumped by "Discard" to rerun the loader against the stored agent.
   const [reloadKey, setReloadKey] = useState(0)
   const agents = useAppStore((s) => s.agents)
@@ -691,9 +693,16 @@ export function AgentEditor({ agentId }: { agentId: string | null }) {
 
   // After a save, delete, restore or import: nothing is unsaved any more, and
   // the page may move on. `router.replace` skips the leave guard on purpose.
+  // The connection test belongs to the settings just written: a stale 'pass'
+  // would keep Save disabled on an agent that stays open.
   const afterWrite = (next: { goTo: string | null }) => {
     setDirty(false)
+    setTestStatus('idle')
+    setTestMessage('')
+    setTestErrorCode(null)
+    setTestDiagnostics([])
     if (next.goTo) router.replace(next.goTo)
+    else if (editingId) void loadAgentConfigVersions(editingId)
   }
 
   // While edits are unsaved: in-app navigation asks first, reload/close warns
@@ -932,10 +941,14 @@ export function AgentEditor({ agentId }: { agentId: string | null }) {
     }
   }
 
-  const handleRestoreConfigVersion = async (versionId: string) => {
+  // Asked through the restore ConfirmDialog below.
+  const handleRestoreConfigVersion = (versionId: string) => {
     if (!editing) return
-    const confirmed = window.confirm('Restore this saved agent configuration? Current settings will become a new history entry when restored.')
-    if (!confirmed) return
+    setRestorePromptVersionId(versionId)
+  }
+
+  const restoreConfigVersion = async (versionId: string) => {
+    if (!editing) return
     setRestoringConfigVersionId(versionId)
     try {
       await api('POST', '/config-versions/restore', { versionId })
@@ -1365,6 +1378,18 @@ export function AgentEditor({ agentId }: { agentId: string | null }) {
         go?.()
       }}
       onCancel={() => setLeavePrompt(null)}
+    />
+    <ConfirmDialog
+      open={restorePromptVersionId !== null}
+      title="Restore configuration"
+      message="Restore this saved agent configuration? Current settings will become a new history entry when restored."
+      confirmLabel="Restore"
+      onConfirm={() => {
+        const versionId = restorePromptVersionId
+        setRestorePromptVersionId(null)
+        if (versionId) void restoreConfigVersion(versionId)
+      }}
+      onCancel={() => setRestorePromptVersionId(null)}
     />
     </>
   )
