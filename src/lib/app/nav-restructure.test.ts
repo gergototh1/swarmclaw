@@ -45,6 +45,23 @@ describe('navigation split', () => {
     assert.doesNotMatch(read('src/app/tasks/layout.tsx'), /SidebarPanelShell/)
   })
 
+  it('a navigate from the tab host asks the leave guard first', () => {
+    const bridge = read('src/components/layout/tab-frame-bridge.tsx')
+    assert.match(bridge, /requestLeave\(\(\) => \{[\s\S]*?router\.push\(message\.href\)[\s\S]*?\}\)/)
+  })
+
+  it('a guarded rail click does not ask the guard twice', () => {
+    const rail = read('src/components/layout/sidebar-rail.tsx')
+    assert.doesNotMatch(rail, /useNavigate\(\)/)
+    assert.doesNotMatch(rail, /requestLeave\(\(\) => navigateTo/)
+  })
+
+  it('the editor drops its guard before running a confirmed leave, and never blocks the desktop app', () => {
+    const editor = read('src/components/agents/agent-editor.tsx')
+    assert.match(editor, /releaseLeaveGuardRef\.current\?\.\(\)[\s\S]{0,80}go\?\.\(\)/)
+    assert.match(editor, /if \(warnOnUnload\) window\.addEventListener\('beforeunload'/)
+  })
+
   it('the rail header has no default-agent shortcut', () => {
     assert.doesNotMatch(read('src/components/layout/sidebar-rail.tsx'), /goToDefaultChat|Default shortcut/)
   })

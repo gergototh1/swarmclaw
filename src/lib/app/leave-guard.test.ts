@@ -24,6 +24,35 @@ describe('leave guard', () => {
     assert.equal(went, true)
   })
 
+  it('a proceed that asks again runs once the guard is released first', () => {
+    // The editor's confirm: release the guard, then run the held navigation,
+    // which itself goes through requestLeave (the rail and useNavigate do).
+    let prompts = 0
+    const held: { fn: (() => void) | null } = { fn: null }
+    const releaseGuard = setLeaveGuard((proceed) => { prompts += 1; held.fn = proceed })
+    release = releaseGuard
+    let went = false
+    requestLeave(() => requestLeave(() => { went = true }))
+    assert.equal(prompts, 1)
+    releaseGuard()
+    held.fn?.()
+    assert.equal(went, true)
+    assert.equal(prompts, 1)
+    assert.equal(hasLeaveGuard(), false)
+  })
+
+  it('without the release the nested ask prompts again', () => {
+    let prompts = 0
+    const held: { fn: (() => void) | null } = { fn: null }
+    release = setLeaveGuard((proceed) => { prompts += 1; held.fn = proceed })
+    let went = false
+    requestLeave(() => requestLeave(() => { went = true }))
+    const first = held.fn
+    first?.()
+    assert.equal(prompts, 2)
+    assert.equal(went, false)
+  })
+
   it('a stale release does not remove a newer guard', () => {
     const releaseOld = setLeaveGuard(() => {})
     release = setLeaveGuard(() => {})

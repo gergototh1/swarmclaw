@@ -64,6 +64,21 @@ const AUTO_SYNC_MODEL_PROVIDER_IDS = new Set<ProviderType>([
 ])
 const CONNECTION_TEST_TIMEOUT_MS = 40_000
 
+/**
+ * The desktop app's window, or a tab frame inside it (the preload only runs in
+ * the top frame). There a `beforeunload` block does not ask anything: it
+ * silently stops window close, quit and the updater's restart.
+ */
+function insideDesktopApp(): boolean {
+  const hasBridge = (w: Window) => Boolean((w as unknown as { swarmclawDesktop?: unknown }).swarmclawDesktop)
+  if (hasBridge(window)) return true
+  try {
+    return window.parent !== window && hasBridge(window.parent)
+  } catch {
+    return false
+  }
+}
+
 /** An agent's settings, shown in the main area at /agents/:id, or /agents/new when `agentId` is null. */
 export function AgentEditor({ agentId }: { agentId: string | null }) {
   const router = useRouter()
@@ -681,20 +696,28 @@ export function AgentEditor({ agentId }: { agentId: string | null }) {
     if (next.goTo) router.replace(next.goTo)
   }
 
-  // While edits are unsaved: in-app navigation asks first, reload/close warns,
-  // and the tab host is told this frame cannot be put to sleep.
+  // While edits are unsaved: in-app navigation asks first, reload/close warns
+  // (in a browser), and the tab host is told this frame cannot be put to sleep.
+  // A missing agent has nothing to lose, so it holds no guard.
+  const agentMissing = Boolean(editingId && !editing)
+  // The live guard's release, so confirming the leave dialog can drop the guard
+  // before navigating instead of waiting for this effect's cleanup.
+  const releaseLeaveGuardRef = useRef<(() => void) | null>(null)
   useEffect(() => {
-    if (!dirty) return
+    if (!dirty || agentMissing) return
     const release = setLeaveGuard((proceed) => setLeavePrompt(() => proceed))
+    releaseLeaveGuardRef.current = release
     const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault() }
-    window.addEventListener('beforeunload', onBeforeUnload)
+    const warnOnUnload = !insideDesktopApp()
+    if (warnOnUnload) window.addEventListener('beforeunload', onBeforeUnload)
     const releaseFlush = onTabFlushRequest(async () => false)
     return () => {
       release()
+      if (releaseLeaveGuardRef.current === release) releaseLeaveGuardRef.current = null
       releaseFlush()
-      window.removeEventListener('beforeunload', onBeforeUnload)
+      if (warnOnUnload) window.removeEventListener('beforeunload', onBeforeUnload)
     }
-  }, [dirty])
+  }, [dirty, agentMissing])
 
   const applyGatewayProfileSelection = (nextGatewayProfileId: string | null) => {
     userPatch({ gatewayProfileId: nextGatewayProfileId })
@@ -1331,11 +1354,14 @@ export function AgentEditor({ agentId }: { agentId: string | null }) {
       confirmLabel="Elvetés"
       danger
       onConfirm={() => {
-        // `go` is the navigation requestLeave already handed over; calling it
-        // does not ask the guard again.
+        // `go` may ask the guard again (a caller that wraps `useNavigate`, or
+        // a second `requestLeave` on the way), and the dirty effect's cleanup
+        // only runs after this render, so the guard is dropped here first.
         const go = leavePrompt
         setLeavePrompt(null)
         setDirty(false)
+        releaseLeaveGuardRef.current?.()
+        releaseLeaveGuardRef.current = null
         go?.()
       }}
       onCancel={() => setLeavePrompt(null)}

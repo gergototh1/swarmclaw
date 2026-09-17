@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Activity, BookOpen, Briefcase, Home, Link2, MessageSquare, Users, Settings as SettingsIcon } from 'lucide-react'
 import { useAppStore } from '@/stores/use-app-store'
 import { Avatar } from '@/components/shared/avatar'
@@ -17,9 +17,9 @@ import { useWs } from '@/hooks/use-ws'
 import { NAV_SECTIONS, type NavSection, type NavSectionId, type NavSectionIconName } from '@/lib/app/nav-sections'
 import { VIEW_DESCRIPTIONS, VIEW_LABELS } from '@/lib/app/view-constants'
 import { panelIntentForView, sidebarOpenAfter } from '@/lib/app/panel-intent'
-import { getViewPath, resolveSidebarActiveView, useNavigate } from '@/lib/app/navigation'
+import { getViewPath, resolveSidebarActiveView } from '@/lib/app/navigation'
 import { hasLeaveGuard, requestLeave } from '@/lib/app/leave-guard'
-import { routeLinkClick } from '@/lib/app/tab-navigation'
+import { navigateInActiveTab, routeLinkClick, type NavigateOptions } from '@/lib/app/tab-navigation'
 import {
   PANEL_CLOSED_KEY,
   RAIL_EXPANDED_KEY,
@@ -77,13 +77,13 @@ export const SECTION_ICONS: Record<NavSectionIconName, React.ComponentType<{ siz
  * than by a font-size gap. `ExtensionNavItem` (nav-item.tsx) carries the same
  * three values — the two row kinds sit in one list and must not diverge.
  */
-function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtensionNavigate, navigateTo }: {
+function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtensionNavigate, followLink }: {
   section: NavSection
   isViewEnabled: (view: AppView) => boolean
   badges: Partial<Record<AppView, number>>
   onSelectView: (view: AppView) => void
   onExtensionNavigate: () => void
-  navigateTo: (view: AppView, id?: string | null) => void
+  followLink: (href: string, opts: NavigateOptions) => void
 }) {
   const pathname = usePathname()
   return (
@@ -98,9 +98,14 @@ function SectionSubList({ section, isViewEnabled, badges, onSelectView, onExtens
             key={view}
             href={href}
             onClick={(e) => {
-              if (hasLeaveGuard() && !e.metaKey && !e.ctrlKey && e.button === 0) {
+              // Unsaved edits: hold the link, and once the guard lets go do what
+              // an unguarded click does below.
+              if (hasLeaveGuard() && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) {
                 e.preventDefault()
-                requestLeave(() => navigateTo(view))
+                requestLeave(() => {
+                  followLink(href, { panel: panelIntentForView(view) })
+                  onSelectView(view)
+                })
                 return
               }
               // A background tab leaves the active tab where it is, so the rail's own handling has nothing to follow.
@@ -137,7 +142,7 @@ export function SidebarRail({
   mobile?: boolean
 }) {
   const pathname = usePathname()
-  const navigateTo = useNavigate()
+  const router = useRouter()
   const currentUser = useAppStore((s) => s.currentUser)
   const appSettings = useAppStore((s) => s.appSettings)
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
@@ -222,6 +227,13 @@ export function SidebarRail({
     setRailExpanded(!railExpandedStored)
   }
 
+  // A rail link's own navigation, for the click a leave guard held: the tab
+  // host moves the active tab, a plain window pushes the route. Not
+  // `useNavigate`, which would ask the guard a second time.
+  const followLink = (href: string, opts: NavigateOptions) => {
+    if (!navigateInActiveTab(href, opts)) router.push(href)
+  }
+
   const handleNavClick = (view: AppView) => {
     if (!isViewEnabled(view)) return
     if (mobile) {
@@ -288,12 +300,16 @@ export function SidebarRail({
         key={section.id}
         href={getViewPath(direct)}
         onClick={(e) => {
-          if (hasLeaveGuard() && !e.metaKey && !e.ctrlKey && e.button === 0) {
+          const panel = isViewEnabled(direct) ? panelIntentForView(direct) : undefined
+          if (hasLeaveGuard() && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) {
             e.preventDefault()
-            requestLeave(() => navigateTo(direct))
+            requestLeave(() => {
+              followLink(getViewPath(direct), { panel })
+              handleNavClick(direct)
+              selectSection(section.id)
+            })
             return
           }
-          const panel = isViewEnabled(direct) ? panelIntentForView(direct) : undefined
           if (routeLinkClick(e, getViewPath(direct), { panel }) === 'background') return
           handleNavClick(direct)
           selectSection(section.id)
@@ -333,7 +349,7 @@ export function SidebarRail({
           badges={badges}
           onSelectView={handleNavClick}
           onExtensionNavigate={handleExtensionNavClick}
-          navigateTo={navigateTo}
+          followLink={followLink}
         />
       </div>
     )

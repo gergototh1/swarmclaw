@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { setFrameActive } from '@/lib/app/frame-active'
+import { requestLeave } from '@/lib/app/leave-guard'
 import { createIdleSocket, type IdleSocket } from '@/lib/app/idle-socket'
 import { markFrameDeactivated, markSocketReopened } from '@/lib/app/socket-gap'
 import { sidebarOpenForNavigate } from '@/lib/app/panel-intent'
@@ -154,14 +155,18 @@ export function TabFrameBridge({ tabId }: { tabId: string }) {
       const message = parseHostMessage(event.data)
       if (!message) return
       if (message.type === 'navigate') {
-        // The side panel renders here, from this window's store, so a rail
-        // click's intent for it is applied here -- against the path this tab
-        // is on before it moves, as the rail does in a plain window.
-        if (message.panel) {
-          const { sidebarOpen, setSidebarOpen } = useAppStore.getState()
-          setSidebarOpen(sidebarOpenForNavigate(message.panel, window.location.pathname, message.href, sidebarOpen))
-        }
-        router.push(message.href)
+        // A page with unsaved edits (the agent editor) guards this window, not
+        // the host, so the host's navigate asks it here before moving.
+        requestLeave(() => {
+          // The side panel renders here, from this window's store, so a rail
+          // click's intent for it is applied here -- against the path this tab
+          // is on before it moves, as the rail does in a plain window.
+          if (message.panel) {
+            const { sidebarOpen, setSidebarOpen } = useAppStore.getState()
+            setSidebarOpen(sidebarOpenForNavigate(message.panel, window.location.pathname, message.href, sidebarOpen))
+          }
+          router.push(message.href)
+        })
         return
       }
       if (message.type === 'active') {
