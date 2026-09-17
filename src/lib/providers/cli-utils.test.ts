@@ -11,6 +11,7 @@ import {
   CLI_PROVIDER_CAPABILITIES,
   resolveCodexProbeInvocation,
   ensureCliWorkingDirectory,
+  claudeCliMcpArgs,
 } from './cli-utils'
 
 // ---------------------------------------------------------------------------
@@ -204,5 +205,20 @@ describe('ensureCliWorkingDirectory', () => {
 
   it('falls back to process.cwd when cwd is blank', () => {
     assert.equal(ensureCliWorkingDirectory(''), process.cwd())
+  })
+})
+
+/**
+ * Without `--strict-mcp-config` every agent launch also loaded the owner's own
+ * MCP servers, claude.ai connectors and plugins: Gmail, calendar, Telegram --
+ * none of them assigned in SwarmClaw, all of them callable.
+ */
+describe('claudeCliMcpArgs', () => {
+  it('isolates the CLI from the host MCP config even with nothing assigned', () => {
+    assert.deepEqual(claudeCliMcpArgs(null), ['--strict-mcp-config'])
+  })
+
+  it('keeps the assigned config next to the isolation flag', () => {
+    assert.deepEqual(claudeCliMcpArgs('/tmp/x.json'), ['--strict-mcp-config', '--mcp-config', '/tmp/x.json'])
   })
 })

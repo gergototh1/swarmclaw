@@ -489,3 +489,19 @@ export const CLI_PROVIDER_CAPABILITIES: Record<string, string> =
 export function isCliProvider(providerId: string): boolean {
   return providerId in CLI_PROVIDER_METADATA_BY_ID
 }
+
+/**
+ * Az MCP-kapcsolók egy ügynök-indításhoz.
+ *
+ * A `--strict-mcp-config` nélkül a CLI a megadott config MELLÉ betölti a gazda
+ * gépének minden MCP-jét is: `~/.claude.json`, claude.ai connectorok, pluginok.
+ * Így minden ügynök elérte a tulajdonos Gmailjét, naptárát és Telegramját,
+ * akkor is, ha a SwarmClaw-ban semmit nem kapott, és ~110 fölösleges eszköz
+ * ment minden indításkor a kontextusba. Az ügynök csak azt lássa, amit itt
+ * kiosztottunk.
+ */
+export function claudeCliMcpArgs(mcpConfigPath: string | null): string[] {
+  const args = ['--strict-mcp-config']
+  if (mcpConfigPath) args.push('--mcp-config', mcpConfigPath)
+  return args
+}

@@ -8,7 +8,7 @@ import { registerNativeCapability } from '../native-capabilities'
 import { normalizeToolInputArgs } from './normalize-tool-args'
 import { canonicalizeExtensionId } from '../tool-aliases'
 import { errorMessage, sleep } from '@/lib/shared-utils'
-import { buildCliEnv, probeCliAuth } from '@/lib/providers/cli-utils'
+import { buildCliEnv, probeCliAuth, claudeCliMcpArgs } from '@/lib/providers/cli-utils'
 import {
   appendDelegationCheckpoint,
   cancelDelegationJob,
@@ -1343,7 +1343,7 @@ async function runClaudeDelegate(binary: string, task: string, resume: boolean, 
     const resumeIdToUse = resumeId?.trim() || (resume ? storedResumeId : null)
 
     return new Promise<DelegateBackendResult>((resolve) => {
-      const args = ['--print', '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions']
+      const args = ['--print', '--output-format', 'stream-json', '--verbose', '--dangerously-skip-permissions', ...claudeCliMcpArgs(null)]
       if (resumeIdToUse) args.push('--resume', resumeIdToUse)
       const child = spawn(binary, args, { cwd: bctx.cwd, env, stdio: ['pipe', 'pipe', 'pipe'] })
       bindDelegateRuntime(runtime, child)

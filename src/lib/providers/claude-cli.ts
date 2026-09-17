@@ -7,7 +7,7 @@ import type { SSEEvent } from '@/types'
 import { log } from '../server/logger'
 import { loadRuntimeSettings } from '@/lib/server/runtime/runtime-settings'
 import { getEnabledToolIds } from '@/lib/capability-selection'
-import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, isStderrNoise } from './cli-utils'
+import { resolveCliBinary, buildCliEnv, probeCliAuth, attachAbortHandler, isStderrNoise, claudeCliMcpArgs } from './cli-utils'
 import { getAgent } from '@/lib/server/agents/agent-repository'
 import { loadMcpServers } from '@/lib/server/storage'
 import { buildAttachmentPreamble } from '@/lib/server/attachments/attachment-text'
@@ -442,8 +442,8 @@ export async function streamClaudeCliChat({ session, message, imagePath, attache
   if (Object.keys(mcpServers).length > 0) {
     mcpConfigPath = path.join(os.tmpdir(), `swarmclaw-mcp-${session.id}.json`)
     fs.writeFileSync(mcpConfigPath, JSON.stringify({ mcpServers }))
-    args.push('--mcp-config', mcpConfigPath)
   }
+  args.push(...claudeCliMcpArgs(mcpConfigPath))
 
   const env = buildCliEnv()
 
