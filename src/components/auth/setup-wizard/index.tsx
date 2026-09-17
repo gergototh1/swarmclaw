@@ -398,6 +398,16 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     onComplete(destination)
   }
 
+  // The first created agent's own thread; /chat in Agentek mode when there
+  // is no agent or its thread cannot be opened.
+  const openFirstAgent = async () => {
+    const store = useAppStore.getState()
+    store.setChatListMode('agents')
+    const first = createdAgents[0]
+    const thread = first ? await store.ensureAgentThread(first.id) : null
+    await finishSetup(thread ? `/chat/${encodeURIComponent(thread.id)}` : '/chat')
+  }
+
   return (
     <div className="h-full flex flex-col items-center px-8 bg-bg relative overflow-y-auto py-16">
       <div className="absolute inset-0 pointer-events-none">
@@ -482,7 +492,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         <StepNext
           createdAgents={createdAgents}
           onContinueToDashboard={() => finishSetup('/home')}
-          onOpenFirstAgent={() => { useAppStore.getState().setChatListMode('agents'); finishSetup('/chat') }}
+          onOpenFirstAgent={() => void openFirstAgent()}
           onOpenProtocols={() => finishSetup('/protocols')}
           onOpenBuilder={() => finishSetup(DEFAULT_BUILDER_ROUTE)}
           onOpenConnectors={() => finishSetup('/connectors')}

@@ -45,11 +45,16 @@ export const createAgentSlice: StateCreator<AppState, [], [], AgentSlice> = (set
   ensureAgentThread: async (agentId) => {
     const existingId = get().agents[agentId]?.threadSessionId
     if (existingId && get().sessions[existingId]) return get().sessions[existingId]
+    // The POSTed thread, kept for an agent the store does not hold yet (its
+    // `threadSessionId` has nowhere to go). A concurrent caller that joined
+    // the in-flight request still reads the store below.
+    let created: Session | null = null
     await agentThreadDedup.dedup(agentId, async () => {
       try {
         const user = get().currentUser || 'default'
         const session = await api<Session>('POST', `/agents/${agentId}/thread`, { user })
         if (session?.id) {
+          created = session
           const agents = { ...get().agents }
           if (agents[agentId]) agents[agentId] = { ...agents[agentId], threadSessionId: session.id }
           const sessions = { ...get().sessions, [session.id]: session }
@@ -61,7 +66,7 @@ export const createAgentSlice: StateCreator<AppState, [], [], AgentSlice> = (set
       }
     })
     const threadId = get().agents[agentId]?.threadSessionId
-    return threadId ? get().sessions[threadId] ?? null : null
+    return (threadId ? get().sessions[threadId] : undefined) ?? created
   },
   agents: {},
   loadAgents: createLoader<AppState>(set, 'agents', () => fetchAgents()),

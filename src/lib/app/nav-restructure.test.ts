@@ -87,6 +87,18 @@ describe('navigation split', () => {
     assert.match(editor, /open=\{restorePromptVersionId !== null\}/)
   })
 
+  it('search sends chat results to the conversations view, in one navigation', () => {
+    const dialog = read('src/components/shared/search-dialog.tsx')
+    assert.match(dialog, /session: 'conversations'/)
+    assert.match(dialog, /message: 'conversations'/)
+    assert.match(dialog, /if \(result\.type !== 'session' && result\.type !== 'message'\) \{\s*navigateToView\(TYPE_VIEW_MAP\[result\.type\]\)/)
+  })
+
+  it('the setup wizard opens the first created agent in its own thread', () => {
+    const wizard = read('src/components/auth/setup-wizard/index.tsx')
+    assert.match(wizard, /ensureAgentThread\(first\.id\)/)
+  })
+
   it('the rail header has no default-agent shortcut', () => {
     assert.doesNotMatch(read('src/components/layout/sidebar-rail.tsx'), /goToDefaultChat|Default shortcut/)
   })

@@ -156,3 +156,28 @@ test('loadSessions meghivja a chat-read migraciot, es felkuldi a lokalis olvasot
     resetMigrationDoneFlagForSessionSlice()
   }
 })
+
+test('ensureAgentThread returns the POSTed thread even when the agent is not in the store yet', async () => {
+  const savedFetch = globalThis.fetch
+  const savedState = { agents: useAppStore.getState().agents, sessions: useAppStore.getState().sessions }
+  useAppStore.setState({ agents: {}, sessions: {} })
+  globalThis.fetch = (async (input: unknown) => {
+    const url = String(input)
+    if (url === '/api/agents/fresh-agent/thread') {
+      return new Response(JSON.stringify({ id: 'thread-fresh', agentId: 'fresh-agent' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
+    throw new Error(`Unexpected fetch: ${url}`)
+  }) as typeof fetch
+
+  try {
+    const thread = await useAppStore.getState().ensureAgentThread('fresh-agent')
+    assert.equal(thread?.id, 'thread-fresh')
+    assert.ok(useAppStore.getState().sessions['thread-fresh'], 'the thread is also stored')
+  } finally {
+    globalThis.fetch = savedFetch
+    useAppStore.setState(savedState)
+  }
+})

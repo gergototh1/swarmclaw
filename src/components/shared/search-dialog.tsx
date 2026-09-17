@@ -37,11 +37,11 @@ const TYPE_EXTRA_PATHS: Partial<Record<SearchResult['type'], string>> = {
 const TYPE_VIEW_MAP: Record<SearchResult['type'], AppView> = {
   agent: 'agents',
   task: 'tasks',
-  session: 'agents',
+  session: 'conversations',
   schedule: 'schedules',
   webhook: 'webhooks',
   skill: 'skills',
-  message: 'agents',
+  message: 'conversations',
 }
 
 const TYPE_LABELS: Record<SearchResult['type'], string> = {
@@ -145,8 +145,10 @@ export function SearchDialog() {
       setSidebarOpen(true)
       return
     }
-    const view = TYPE_VIEW_MAP[result.type]
-    navigateToView(view)
+    // A chat result is one navigation, straight to /chat/:id, below.
+    if (result.type !== 'session' && result.type !== 'message') {
+      navigateToView(TYPE_VIEW_MAP[result.type])
+    }
     setSidebarOpen(true)
 
     switch (result.type) {
